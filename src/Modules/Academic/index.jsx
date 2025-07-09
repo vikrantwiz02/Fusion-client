@@ -24,6 +24,11 @@ import StudentAddDropReplace from "./StudentAddDropReplace";
 import AdminReplacementDashboard from "./AdminReplacementDashboard";
 import StudentCalendar from "./StudentCalendar";
 import AdminStudentDashboard from "./AdminStudentDashboard";
+import StudentCourseFeedbackForm from "./FeedbackForm/StudentCourseFeedbackForm";
+import AdminFeedbackView from "./FeedbackForm/AdminFeedbackView";
+import AdminBatchChange from "./AdminBatchChange";
+import AdminPromoteSemester from "./AdminPromoteSemester";
+import InstructorDashboard from "./FeedbackForm/InstructorDashboard";
 
 function AcademicPage() {
   const [activeTab, setActiveTab] = useState("0");
@@ -49,6 +54,9 @@ function AcademicPage() {
       { title: "Backlog Mapping" },
       { title: "Replacement Allocation" },
       { title: "Student Dashboard"},
+      { title: "Feedback Responses"},
+      { title: "Batch/Branch Change"},
+      { title: "Promote Students"},
     ];
     tabComponents = [
       StudentCourses,
@@ -60,7 +68,10 @@ function AcademicPage() {
       AllotCourses,
       AcadCourseBacklogMapping,
       AdminReplacementDashboard,
-      AdminStudentDashboard
+      AdminStudentDashboard,
+      AdminFeedbackView,
+      AdminBatchChange,
+      AdminPromoteSemester
     ];
   } else if (role === "student") {
     tabItems = [
@@ -71,6 +82,7 @@ function AcademicPage() {
       { title: "Final-Registration" },
       { title: "Swayam Registration" },
       { title: "Add / Drop" },
+      // { title: "Feedback Form" },
     ];
     tabComponents = [
       RegisteredCourses,
@@ -79,7 +91,8 @@ function AcademicPage() {
       PreRegistration,
       FinalRegistration,
       SwayamRegistration,
-      StudentAddDropReplace
+      StudentAddDropReplace,
+      // StudentCourseFeedbackForm
     ];
   } else if (
     role === "faculty" ||
@@ -87,8 +100,8 @@ function AcademicPage() {
     role === "Assistant Professor" ||
     role === "Professor"
   ) {
-    tabItems = [{ title: "View Roll List"},{title: "TA management"}];
-    tabComponents = [ViewRollList, Faculty_TA_Dashboard];
+    tabItems = [{ title: "View Roll List"},{title: "TA management"}, {title: "Course Feedback"}];
+    tabComponents = [ViewRollList, Faculty_TA_Dashboard, InstructorDashboard];
   } else {
     tabItems = [{ title: "Registered Courses" },];
     tabComponents = [RegisteredCourses];

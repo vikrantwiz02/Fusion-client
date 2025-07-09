@@ -21,13 +21,11 @@ import { useSelector } from "react-redux";
 export default function GenerateTranscript() {
   const userRole = useSelector((state) => state.user.role);
   const [formData, setFormData] = useState({
-    programme: "",
     batch: "",
-    semester: null,         // now stores JSON string e.g. '{"no":1,"type":"Odd Semester"}'
+    semester: null,
     specialization: "",
   });
   const [formOptions, setFormOptions] = useState({
-    programme: [],
     batches: [],
     semesters: [],
     specializations: [],
@@ -37,7 +35,6 @@ export default function GenerateTranscript() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // same semesterOptions as in CheckResult
   const semesterOptions = [
     { value: JSON.stringify({ no: 1, type: "Odd Semester" }), label: "Semester 1" },
     { value: JSON.stringify({ no: 2, type: "Even Semester" }), label: "Semester 2" },
@@ -53,7 +50,6 @@ export default function GenerateTranscript() {
     { value: JSON.stringify({ no: 9, type: "Summer Semester" }), label: "Summer 4" },
   ];
 
-  // Fetch form options
   useEffect(() => {
     const fetchFormOptions = async () => {
       const token = localStorage.getItem("authToken");
@@ -67,15 +63,11 @@ export default function GenerateTranscript() {
           params: { role: userRole },
           headers: { Authorization: `Token ${token}` },
         });
-
-        const uniqueProgramme = [...new Set(data.programmes || [])];
         const batches = data.batches || [];
         const uniqueSpecializations = [
           ...new Set((data.specializations || []).map((spec) => spec.trim())),
         ];
-
         setFormOptions({
-          programme: uniqueProgramme.map((prog) => ({ value: prog, label: prog })),
           batches: batches.map((batch) => ({ value: batch.id.toString(), label: batch.label })),
           semesters: semesterOptions,
           specializations: uniqueSpecializations.map((spec) => ({ value: spec, label: spec })),
@@ -87,7 +79,6 @@ export default function GenerateTranscript() {
         setLoading(false);
       }
     };
-
     fetchFormOptions();
   }, [userRole]);
 
@@ -110,9 +101,7 @@ export default function GenerateTranscript() {
       setError("Please select a semester.");
       return;
     }
-
     const { no: semester_no, type: semester_type } = JSON.parse(formData.semester);
-
     try {
       setLoading(true);
       const requestData = {
@@ -145,9 +134,7 @@ export default function GenerateTranscript() {
       setError("Please select a semester.");
       return;
     }
-
     const { no: semester_no, type: semester_type } = JSON.parse(formData.semester);
-
     try {
       setLoading(true);
       const requestData = {
@@ -161,13 +148,15 @@ export default function GenerateTranscript() {
         headers: { Authorization: `Token ${token}` },
         responseType: "blob",
       });
+      const batchOption = formOptions.batches.find((opt) => opt.value === formData.batch);
+      const semesterOption = formOptions.semesters.find((opt) => opt.value === formData.semester);
+      const batchLabel = batchOption ? batchOption.label : formData.batch;
+      const semesterLabel = semesterOption ? semesterOption.label : `Semester ${semester_no}`;
+      const fileName = `${batchLabel}_${semesterLabel}.xlsx`;
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute(
-        "download",
-        `transcript_${formData.batch}_sem${semester_no}.xlsx`
-      );
+      link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -183,29 +172,17 @@ export default function GenerateTranscript() {
   return (
     <Card shadow="sm" p="md" radius="md" withBorder>
       <Stack spacing="md" pos="relative">
-        <LoadingOverlay visible={loading}/>
-
+        <LoadingOverlay visible={loading} />
         {error && (
           <Paper p="sm" color="red" radius="sm" withBorder>
             {error}
           </Paper>
         )}
-
         <Paper shadow="sm" radius="sm" p="md" withBorder>
           <Stack spacing="md">
             <h1>Transcript Details</h1>
             <form onSubmit={handleSubmit}>
-              <SimpleGrid cols={4} spacing="md">
-                <Box>
-                  <Select
-                    label="Program"
-                    placeholder="Select Program"
-                    data={formOptions.programme}
-                    value={formData.programme}
-                    onChange={handleChange("programme")}
-                    radius="sm"
-                  />
-                </Box>
+              <SimpleGrid cols={3} spacing="md">
                 <Box>
                   <Select
                     label="Batch"
@@ -238,29 +215,19 @@ export default function GenerateTranscript() {
                 </Box>
               </SimpleGrid>
               <Group position="right" mt="md">
-                <Button
-                  type="submit"
-                  size="md"
-                  radius="sm"
-                >
+                <Button type="submit" size="md" radius="sm">
                   Generate Transcript
                 </Button>
-                <Button
-                  size="md"
-                  radius="sm"
-                  color="green"
-                  onClick={handleDownloadCSV}
-                >
+                <Button size="md" radius="sm" color="green" onClick={handleDownloadCSV}>
                   Download CSV Transcript
                 </Button>
               </Group>
             </form>
           </Stack>
         </Paper>
-
         {showTranscript && (
           <Paper shadow="sm" radius="sm" p="md" withBorder>
-            <Transcript data={transcriptData} semester={(JSON.parse(formData.semester))} />
+            <Transcript data={transcriptData} semester={JSON.parse(formData.semester)} />
           </Paper>
         )}
       </Stack>
