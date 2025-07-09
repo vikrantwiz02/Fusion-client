@@ -75,3 +75,20 @@ export const studentDropRegistrationsRoute = `${host}/academic-procedures/api/st
 export const studentDropCourseRoute     = `${host}/academic-procedures/api/stu/drop-course/`;
 
 export const StudentSearchRoute     = `${host}/academic-procedures/api/acad/student-search/`;
+
+export const studentQuestionsRoute = `${host}/academic-procedures/api/stu/feedback_questions/`;
+export const studentSubmitRoute  = `${host}/academic-procedures/api/stu/feedback_submit/`;
+
+export const instCoursesRoute  = `${host}/academic-procedures/api/inst/courses/`;
+export const instAllStatsRoute  = `${host}/academic-procedures/api/inst/stats/all/`;
+
+export const adminCoursesRoute    = `${host}/academic-procedures/api/acad/feedback_courses/`;
+export const adminAllStatsRoute = `${host}/academic-procedures/api/acad/stats/all/`;
+
+export const listBatchesRoute   = `${host}/academic-procedures/api/acad/batch_change/batches/`;
+export const listStudentsRoute  = `${host}/academic-procedures/api/acad/batch_change/students/`;
+export const applyBatchRoute    = `${host}/academic-procedures/api/acad/batch_change/apply/`;
+
+
+export const listStudentsPromoteRoute = `${host}/academic-procedures/api/acad/promote/students/`;
+export const applyPromoteRoute = `${host}/academic-procedures/api/acad/promote/apply/`;
