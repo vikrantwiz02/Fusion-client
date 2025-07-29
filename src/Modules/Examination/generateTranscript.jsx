@@ -11,12 +11,12 @@ import {
   LoadingOverlay,
 } from "@mantine/core";
 import axios from "axios";
+import { useSelector } from "react-redux";
 import Transcript from "./components/transcript.jsx";
 import {
   generate_transcript_form,
   generate_result,
 } from "./routes/examinationRoutes.jsx";
-import { useSelector } from "react-redux";
 
 export default function GenerateTranscript() {
   const userRole = useSelector((state) => state.user.role);
@@ -36,18 +36,54 @@ export default function GenerateTranscript() {
   const [error, setError] = useState(null);
 
   const semesterOptions = [
-    { value: JSON.stringify({ no: 1, type: "Odd Semester" }), label: "Semester 1" },
-    { value: JSON.stringify({ no: 2, type: "Even Semester" }), label: "Semester 2" },
-    { value: JSON.stringify({ no: 2, type: "Summer Semester" }), label: "Summer 1" },
-    { value: JSON.stringify({ no: 3, type: "Odd Semester" }), label: "Semester 3" },
-    { value: JSON.stringify({ no: 4, type: "Even Semester" }), label: "Semester 4" },
-    { value: JSON.stringify({ no: 4, type: "Summer Semester" }), label: "Summer 2" },
-    { value: JSON.stringify({ no: 5, type: "Odd Semester" }), label: "Semester 5" },
-    { value: JSON.stringify({ no: 6, type: "Even Semester" }), label: "Semester 6" },
-    { value: JSON.stringify({ no: 6, type: "Summer Semester" }), label: "Summer 3" },
-    { value: JSON.stringify({ no: 7, type: "Odd Semester" }), label: "Semester 7" },
-    { value: JSON.stringify({ no: 8, type: "Even Semester" }), label: "Semester 8" },
-    { value: JSON.stringify({ no: 9, type: "Summer Semester" }), label: "Summer 4" },
+    {
+      value: JSON.stringify({ no: 1, type: "Odd Semester" }),
+      label: "Semester 1",
+    },
+    {
+      value: JSON.stringify({ no: 2, type: "Even Semester" }),
+      label: "Semester 2",
+    },
+    {
+      value: JSON.stringify({ no: 2, type: "Summer Semester" }),
+      label: "Summer 1",
+    },
+    {
+      value: JSON.stringify({ no: 3, type: "Odd Semester" }),
+      label: "Semester 3",
+    },
+    {
+      value: JSON.stringify({ no: 4, type: "Even Semester" }),
+      label: "Semester 4",
+    },
+    {
+      value: JSON.stringify({ no: 4, type: "Summer Semester" }),
+      label: "Summer 2",
+    },
+    {
+      value: JSON.stringify({ no: 5, type: "Odd Semester" }),
+      label: "Semester 5",
+    },
+    {
+      value: JSON.stringify({ no: 6, type: "Even Semester" }),
+      label: "Semester 6",
+    },
+    {
+      value: JSON.stringify({ no: 6, type: "Summer Semester" }),
+      label: "Summer 3",
+    },
+    {
+      value: JSON.stringify({ no: 7, type: "Odd Semester" }),
+      label: "Semester 7",
+    },
+    {
+      value: JSON.stringify({ no: 8, type: "Even Semester" }),
+      label: "Semester 8",
+    },
+    {
+      value: JSON.stringify({ no: 8, type: "Summer Semester" }),
+      label: "Summer 4",
+    },
   ];
 
   useEffect(() => {
@@ -68,12 +104,18 @@ export default function GenerateTranscript() {
           ...new Set((data.specializations || []).map((spec) => spec.trim())),
         ];
         setFormOptions({
-          batches: batches.map((batch) => ({ value: batch.id.toString(), label: batch.label })),
+          batches: batches.map((batch) => ({
+            value: batch.id.toString(),
+            label: batch.label,
+          })),
           semesters: semesterOptions,
-          specializations: uniqueSpecializations.map((spec) => ({ value: spec, label: spec })),
+          specializations: uniqueSpecializations.map((spec) => ({
+            value: spec,
+            label: spec,
+          })),
         });
       } catch (e) {
-        setError("Error fetching form options: " + e.message);
+        setError(`Error fetching form options: ${e.message}`);
         console.error(e);
       } finally {
         setLoading(false);
@@ -101,7 +143,9 @@ export default function GenerateTranscript() {
       setError("Please select a semester.");
       return;
     }
-    const { no: semester_no, type: semester_type } = JSON.parse(formData.semester);
+    const { no: semester_no, type: semester_type } = JSON.parse(
+      formData.semester,
+    );
     try {
       setLoading(true);
       const requestData = {
@@ -117,7 +161,7 @@ export default function GenerateTranscript() {
       setShowTranscript(true);
       setError(null);
     } catch (err) {
-      setError("Error generating transcript: " + err.message);
+      setError(`Error generating transcript: ${err.message}`);
       console.error(err);
     } finally {
       setLoading(false);
@@ -134,7 +178,9 @@ export default function GenerateTranscript() {
       setError("Please select a semester.");
       return;
     }
-    const { no: semester_no, type: semester_type } = JSON.parse(formData.semester);
+    const { no: semester_no, type: semester_type } = JSON.parse(
+      formData.semester,
+    );
     try {
       setLoading(true);
       const requestData = {
@@ -148,10 +194,16 @@ export default function GenerateTranscript() {
         headers: { Authorization: `Token ${token}` },
         responseType: "blob",
       });
-      const batchOption = formOptions.batches.find((opt) => opt.value === formData.batch);
-      const semesterOption = formOptions.semesters.find((opt) => opt.value === formData.semester);
+      const batchOption = formOptions.batches.find(
+        (opt) => opt.value === formData.batch,
+      );
+      const semesterOption = formOptions.semesters.find(
+        (opt) => opt.value === formData.semester,
+      );
       const batchLabel = batchOption ? batchOption.label : formData.batch;
-      const semesterLabel = semesterOption ? semesterOption.label : `Semester ${semester_no}`;
+      const semesterLabel = semesterOption
+        ? semesterOption.label
+        : `Semester ${semester_no}`;
       const fileName = `${batchLabel}_${semesterLabel}.xlsx`;
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
@@ -162,7 +214,7 @@ export default function GenerateTranscript() {
       document.body.removeChild(link);
       setError(null);
     } catch (err) {
-      setError("Error downloading CSV transcript: " + err.message);
+      setError(`Error downloading CSV transcript: ${err.message}`);
       console.error(err);
     } finally {
       setLoading(false);
@@ -218,7 +270,12 @@ export default function GenerateTranscript() {
                 <Button type="submit" size="md" radius="sm">
                   Generate Transcript
                 </Button>
-                <Button size="md" radius="sm" color="green" onClick={handleDownloadCSV}>
+                <Button
+                  size="md"
+                  radius="sm"
+                  color="green"
+                  onClick={handleDownloadCSV}
+                >
                   Download CSV Transcript
                 </Button>
               </Group>
@@ -227,7 +284,10 @@ export default function GenerateTranscript() {
         </Paper>
         {showTranscript && (
           <Paper shadow="sm" radius="sm" p="md" withBorder>
-            <Transcript data={transcriptData} semester={JSON.parse(formData.semester)} />
+            <Transcript
+              data={transcriptData}
+              semester={JSON.parse(formData.semester)}
+            />
           </Paper>
         )}
       </Stack>
