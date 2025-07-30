@@ -98,7 +98,7 @@ export default function AdminReplacementDashboard() {
             <Select
               label="Academic Year"
               placeholder="e.g. 2024-25"
-              data={['2021-22', '2022-23', '2023-24', '2024-25'].map(y => ({ value: y, label: y }))}
+              data={['2021-22', '2022-23', '2023-24', '2024-25','2025-26','2026-27'].map(y => ({ value: y, label: y }))}
               value={year}
               onChange={setYear}
             />
