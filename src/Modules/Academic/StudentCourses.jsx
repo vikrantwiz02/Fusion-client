@@ -54,6 +54,7 @@ export default function StudentCourses() {
   );
   const [newCourse, setNewCourse] = useState({
     semester_id: null,
+    semester_no: null,
     semester_type: null,
     courseslot_id: null,
     course_id: null,
@@ -175,6 +176,7 @@ export default function StudentCourses() {
         setNewCourse({
           semester_id: null,
           semester_type: null,
+          semester_no: null,
           courseslot_id: null,
           course_id: null,
           academic_year: null,
@@ -200,19 +202,31 @@ export default function StudentCourses() {
     clearError();
     if (!val) return;
     const semObj = JSON.parse(val);
+    // console.log(studentData.semester_list);
+    
+  let semesterId = semObj.no;
+  if (studentData && studentData.semester_list) {
+    const found = studentData.semester_list.find(
+      (s) => s.semester_no == semObj.no
+    );
+    if (found) {
+      semesterId = found.id;
+    }
+  }
     setNewCourse((p) => ({
-      ...p,
-      semester_id: semObj.no,
-      semester_type: semObj.type,
-      courseslot_id: null,
-      course_id: null,
-    }));
+    ...p,
+    semester_id: semesterId,
+    semester_no: semObj.no, 
+    semester_type: semObj.type,
+    courseslot_id: null,
+    course_id: null,
+  }));
     setSlotCourses([]);
     setSemSlots([]);
     const token = localStorage.getItem("authToken");
     try {
       const { data } = await axios.get(
-        `${getCourseSlotsRoute}?semester_id=${semObj.no}`,
+        `${getCourseSlotsRoute}?semester_id=${semesterId}`,
         { headers: { Authorization: `Token ${token}` } }
       );
       setSemSlots(data);
@@ -360,7 +374,11 @@ export default function StudentCourses() {
           label="Semester"
           placeholder="Select semester"
           data={semesterOptions}
-          value={newCourse.semester_id && JSON.stringify({ no: newCourse.semester_id, type: newCourse.semester_type })}
+          value={
+          newCourse.semester_no && newCourse.semester_type
+          ? JSON.stringify({ no: newCourse.semester_no, type: newCourse.semester_type })
+          : ""
+        }
           onChange={handleSemesterSelect}
           mb="sm"
         />
