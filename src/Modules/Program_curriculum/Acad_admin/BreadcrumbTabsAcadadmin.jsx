@@ -2,8 +2,8 @@ import { Flex, Button, Tabs, Text } from "@mantine/core";
 import { CaretCircleLeft, CaretCircleRight } from "@phosphor-icons/react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import classes from "../../Dashboard/Dashboard.module.css";
 import { useSelector } from "react-redux";
+import classes from "../../Dashboard/Dashboard.module.css";
 
 function BreadcrumbTabsAcadadmin() {
   const role = useSelector((state) => state.user.role);
@@ -13,16 +13,16 @@ function BreadcrumbTabsAcadadmin() {
 
   // Store role in localStorage and track changes
   useEffect(() => {
-    const storedRole = localStorage.getItem('userRole');
-    
+    const storedRole = localStorage.getItem("userRole");
+
     // If role exists and is different from stored role, update localStorage
     if (role) {
       if (storedRole !== role) {
-        localStorage.setItem('userRole', role);
-        
+        localStorage.setItem("userRole", role);
+
         // If storedRole exists and is different (role changed), redirect to first URL
         if (storedRole && storedRole !== role) {
-          navigate('/dashboard');
+          navigate("/dashboard");
         }
       }
     }
@@ -43,6 +43,10 @@ function BreadcrumbTabsAcadadmin() {
     {
       title: "Course Instructor",
       url: "/programme_curriculum/admin_course_instructor",
+    },
+    {
+      title: "Upcoming Batches",
+      url: "/programme_curriculum/admin_upcoming_batches",
     },
   ];
 
@@ -71,9 +75,9 @@ function BreadcrumbTabsAcadadmin() {
   // Effect to check for role changes during the component's lifecycle
   useEffect(() => {
     const checkRoleChange = () => {
-      const storedRole = localStorage.getItem('userRole');
+      const storedRole = localStorage.getItem("userRole");
       if (storedRole && role && storedRole !== role) {
-        localStorage.setItem('userRole', role);
+        localStorage.setItem("userRole", role);
         navigate(breadcrumbItems[0].url);
       }
     };

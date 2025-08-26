@@ -357,5 +357,5 @@ export default function StudSemesterInfo({ curriculum }) {
 }
 
 StudSemesterInfo.propTypes = {
-  curriculum: PropTypes.string.isRequired,
+  curriculum: PropTypes.string,
 };
