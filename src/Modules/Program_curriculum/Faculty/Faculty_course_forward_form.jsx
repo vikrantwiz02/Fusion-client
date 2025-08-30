@@ -12,6 +12,7 @@ import {
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useForm } from "@mantine/form";
+import { notifications } from "@mantine/notifications";
 import { fetchFacultySuperiorData, fetchDisciplinesData } from "../api/api";
 import { host } from "../../../routes/globalRoutes";
 
@@ -149,15 +150,57 @@ function FacultyCourseForwardForm() {
       );
 
       if (response.ok) {
-        alert("Proposal rejected successfully!");
-        navigate("/programme_curriculum/faculty_outward_files");
+        notifications.show({
+          title: "✅ Proposal Rejected Successfully!",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>The course proposal has been rejected.</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                Rejection reason has been recorded.
+              </Text>
+            </div>
+          ),
+          color: "green",
+          autoClose: 5000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
+        });
+        
+        setTimeout(() => {
+          navigate("/programme_curriculum/faculty_outward_files");
+        }, 1500);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to reject proposal");
       }
     } catch (err) {
       console.error("Rejection error:", err);
-      alert(`Error rejecting proposal: ${err.message}`);
+      
+      notifications.show({
+        title: "❌ Failed to Reject Proposal",
+        message: (
+          <div>
+            <Text size="sm" mb={8}>
+              <strong>Error rejecting proposal: {err.message}</strong>
+            </Text>
+            <Text size="xs" color="gray.7">
+              Please try again or contact support.
+            </Text>
+          </div>
+        ),
+        color: "red",
+        autoClose: 7000,
+        style: {
+          backgroundColor: '#f8d7da',
+          borderColor: '#f5c6cb',
+          color: '#721c24',
+        },
+      });
     }
   };
 
@@ -187,14 +230,57 @@ function FacultyCourseForwardForm() {
       );
 
       if (response.ok) {
-        navigate("/programme_curriculum/faculty_outward_files");
+        notifications.show({
+          title: "✅ Form Submitted Successfully!",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>The course proposal form has been submitted.</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                Your submission has been forwarded for review.
+              </Text>
+            </div>
+          ),
+          color: "green",
+          autoClose: 5000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
+        });
+        
+        setTimeout(() => {
+          navigate("/programme_curriculum/faculty_outward_files");
+        }, 1500);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to submit form");
       }
     } catch (e) {
       console.error("Submission error:", e);
-      alert(`Error submitting form: ${e.message}`);
+      
+      notifications.show({
+        title: "❌ Failed to Submit Form",
+        message: (
+          <div>
+            <Text size="sm" mb={8}>
+              <strong>Error submitting form: {e.message}</strong>
+            </Text>
+            <Text size="xs" color="gray.7">
+              Please check your inputs and try again.
+            </Text>
+          </div>
+        ),
+        color: "red",
+        autoClose: 7000,
+        style: {
+          backgroundColor: '#f8d7da',
+          borderColor: '#f5c6cb',
+          color: '#721c24',
+        },
+      });
     }
   };
 

@@ -10,6 +10,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useNavigate, useParams } from "react-router-dom";
+import { notifications } from "@mantine/notifications";
 import { fetchDisciplinesData, fetchAllProgrammes } from "../api/api";
 import { host } from "../../../routes/globalRoutes";
 
@@ -18,7 +19,7 @@ function Admin_edit_discipline_form() {
     initialValues: {
       disciplineName: "",
       acronym: "",
-      linkedProgrammes: [], // Initialize with an empty array
+      linkedProgrammes: [],
     },
   });
 
@@ -36,7 +37,6 @@ function Admin_edit_discipline_form() {
           throw new Error("Authorization token not found");
         }
 
-        // Fetch programmes data
         const response = await fetchAllProgrammes(token);
         const programmeData = [
           ...response.ug_programmes,
@@ -44,30 +44,25 @@ function Admin_edit_discipline_form() {
           ...response.phd_programmes,
         ];
 
-        // Filter programmes that are not connected to a discipline
         const filteredProgrammes = programmeData.filter(
           (programme) => !programme.discipline__name,
         );
 
-        // Map the filtered data
         const programmeList = filteredProgrammes.map((programme) => ({
           name: `${programme.name} ${programme.programme_begin_year}`,
           id: `${programme.id}`,
         }));
 
-        // Fetch discipline data
         const disciplines = await fetchDisciplinesData(token);
         const dis = disciplines.find((d) => d.id === Number(id));
         setDiscipline(dis);
 
-        // Merge programmes and mark pre-selected ones
         if (dis) {
           const mergedProgrammes = [
             ...programmeList,
             ...dis.programmes.map((p) => ({ name: p.name, id: `${p.id}` })),
           ];
 
-          // Remove duplicates
           const uniqueProgrammes = Array.from(
             new Set(mergedProgrammes.map((p) => p.id)),
           ).map((programmeId) =>
@@ -76,15 +71,19 @@ function Admin_edit_discipline_form() {
 
           setProgrammes(uniqueProgrammes);
 
-          // Initialize form values with discipline data
           form.setValues({
             disciplineName: dis.name,
             acronym: dis.acronym,
-            linkedProgrammes: dis.programmes.map((p) => `${p.id}`), // Pre-select linked programmes
+            linkedProgrammes: dis.programmes.map((p) => `${p.id}`),
           });
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load discipline data. Please refresh the page.",
+          color: "red",
+          autoClose: 4000,
+        });
       } finally {
         setLoading(false);
       }
@@ -94,18 +93,13 @@ function Admin_edit_discipline_form() {
   }, [id]);
 
   const handleSubmit = async (values) => {
-    console.log("Submitted values are: ", values);
-
     const apiUrl = `${host}/programme_curriculum/api/admin_edit_discipline/${id}/`;
 
-    // Transform the values into the required structure
     const payload = {
-      name: values.disciplineName, // Map disciplineName to name
-      acronym: values.acronym, // Map acronym directly
-      programmes: values.linkedProgrammes, // Map linkedProgrammes to programmes
+      name: values.disciplineName,
+      acronym: values.acronym,
+      programmes: values.linkedProgrammes,
     };
-
-    console.log("Payload: ", payload);
 
     try {
       const token = localStorage.getItem("authToken");
@@ -124,17 +118,76 @@ function Admin_edit_discipline_form() {
       if (response.ok) {
         localStorage.setItem("AdminDisciplineCachechange", "true");
         const data = await response.json();
-        console.log("Response Data:", data);
-        alert("Discipline updated successfully!");
-        navigate("/programme_curriculum/acad_discipline_view");
+        
+        notifications.show({
+          title: "✅ Discipline Updated Successfully!",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Discipline "{values.disciplineName}" has been updated.</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                Acronym: {values.acronym} | Linked Programmes: {values.linkedProgrammes?.length || 0}
+              </Text>
+            </div>
+          ),
+          color: "green",
+          autoClose: 5000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
+        });
+        
+        setTimeout(() => {
+          navigate("/programme_curriculum/acad_discipline_view");
+        }, 1500);
       } else {
         const errorText = await response.text();
-        console.error("Error:", errorText);
-        alert("Failed to update discipline.");
+        
+        notifications.show({
+          title: "❌ Failed to Update Discipline",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Unable to update discipline. Please try again.</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                Please check your inputs and try again.
+              </Text>
+            </div>
+          ),
+          color: "red",
+          autoClose: 7000,
+          style: {
+            backgroundColor: '#f8d7da',
+            borderColor: '#f5c6cb',
+            color: '#721c24',
+          },
+        });
       }
     } catch (error) {
-      console.error("Network Error:", error);
-      alert("An error occurred. Please try again.");
+      notifications.show({
+        title: "🚨 Network Error",
+        message: (
+          <div>
+            <Text size="sm" mb={8}>
+              <strong>Connection error occurred while updating discipline.</strong>
+            </Text>
+            <Text size="xs" color="gray.7">
+              Please check your internet connection and try again.
+            </Text>
+          </div>
+        ),
+        color: "red",
+        autoClose: 7000,
+        style: {
+          backgroundColor: '#f8d7da',
+          borderColor: '#f5c6cb',
+          color: '#721c24',
+        },
+      });
     }
   };
   const handleCancel = () => {
@@ -145,12 +198,6 @@ function Admin_edit_discipline_form() {
     <div
       style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
     >
-      {(() => {
-        console.log("Discipline Data: ", discipline);
-        console.log("Programme Data: ", programmes);
-        return null;
-      })()}
-
       <Container
         fluid
         style={{

@@ -30,20 +30,17 @@ export const studentFetchCourseSlotDetails = async (id) => {
 
 export const fetchAllProgrammes = async () => {
   try {
-    // Fetch the token from localStorage
     const token = localStorage.getItem("authToken");
 
-    // Check if token exists
     if (!token) {
       throw new Error("Authorization token is required");
     }
 
-    // Make the API call with the token
     const response = await axios.get(
       `${BASE_URL}/programme_curriculum/api/admin_programmes/`,
       {
         headers: {
-          Authorization: `Token ${token}`, // Removed trailing comma here
+          Authorization: `Token ${token}`,
         },
       },
     );
@@ -77,21 +74,14 @@ export const fetchWorkingCurriculumsData = async (token) => {
     );
     return response.data;
   } catch (error) {
-    throw error; // Rethrow the error to handle it in the component
+    throw error;
   }
 };
 
 export const fetchCurriculumData = async (id) => {
   try {
-    // const token = localStorage.getItem("authToken"); // Uncomment if authentication is needed
     const response = await axios.get(
       `${BASE_URL}/programme_curriculum/api/curriculums/${id}`,
-      // Uncomment if authentication is needed
-      // {
-      //   headers: {
-      //     Authorization: `Token ${token}`,
-      //   },
-      // }
     );
     return response.data;
   } catch (error) {
@@ -101,16 +91,16 @@ export const fetchCurriculumData = async (id) => {
 
 export const fetchDisciplinesData = async () => {
   try {
-    const token = localStorage.getItem("authToken"); // Replace with your token retrieval method
+    const token = localStorage.getItem("authToken");
     const response = await axios.get(
       `${BASE_URL}/programme_curriculum/api/admin_disciplines/`,
       {
         headers: {
-          Authorization: `Token ${token}`, // Add Authorization header if needed
+          Authorization: `Token ${token}`,
         },
       },
     );
-    return response.data.disciplines; // Return the fetched disciplines data
+    return response.data.disciplines;
   } catch (error) {
     throw error;
   }
@@ -118,75 +108,74 @@ export const fetchDisciplinesData = async () => {
 
 export const fetchBatchesData = async () => {
   try {
-    const token = localStorage.getItem("authToken"); // Retrieve auth token from localStorage
+    const token = localStorage.getItem("authToken");
     const response = await axios.get(
       `${BASE_URL}/programme_curriculum/api/batches/list/`,
       {
         headers: {
-          Authorization: `Token ${token}`, // Add Authorization header if token exists
+          Authorization: `Token ${token}`,
         },
       },
     );
 
-    // Assuming the API returns { batches, finished_batches, filter }
     return {
       runningBatches: response.data.batches,
       finishedBatches: response.data.finished_batches,
       filter: response.data.filter,
     };
   } catch (error) {
-    throw error; // Propagate error to be handled by the calling function
+    throw error;
   }
 };
 
 export const fetchCourseSlotData = async (courseslotId) => {
   try {
-    const token = localStorage.getItem("authToken"); // Retrieve auth token from localStorage
+    const token = localStorage.getItem("authToken");
     const response = await axios.get(
       `${BASE_URL}/programme_curriculum/api/admin_courseslot/${courseslotId}`,
       {
         headers: {
-          Authorization: `Token ${token}`, // Add Authorization header
+          Authorization: `Token ${token}`,
         },
       },
     );
-    return response.data; // Return the fetched course slot data
+    return response.data;
   } catch (error) {
-    throw error; // Propagate error for handling by the caller
+    throw error;
   }
 };
 
 export const fetchCourseDetails = async (id) => {
   try {
-    const token = localStorage.getItem("authToken"); // Retrieve auth token from localStorage
+    const token = localStorage.getItem("authToken");
     const response = await axios.get(
       `${BASE_URL}/programme_curriculum/api/admin_course/${id}/`,
       {
         headers: {
-          Authorization: `Token ${token}`, // Add the Authorization header
+          Authorization: `Token ${token}`,
         },
       },
     );
-    return response.data; // Return the fetched course details
+    return response.data;
   } catch (error) {
-    throw error; // Propagate error for handling by the caller
+    throw error;
   }
 };
 
 export const fetchAllCourses = async () => {
   try {
-    const token = localStorage.getItem("authToken"); // Retrieve auth token
+    const token = localStorage.getItem("authToken");
     const response = await axios.get(
       `${BASE_URL}/programme_curriculum/api/admin_courses/`,
       {
         headers: {
-          Authorization: `Token ${token}`, // Add Authorization header
+          Authorization: `Token ${token}`,
         },
       },
     );
-    return response.data.courses; // Return the courses data
+    return response.data.courses;
   } catch (error) {
-    throw error; // Propagate error for handling by the caller
+    throw error;
   }
 };
 
@@ -230,11 +219,9 @@ export const adminFetchCourseInstructorData = async () => {
 
 export const fetchCourseSlotTypeChoices = async () => {
   try {
-    // const token = localStorage.getItem("authToken"); // Uncomment if authentication is needed
     const token = localStorage.getItem("authToken");
     const response = await axios.get(
       `${BASE_URL}/programme_curriculum/api/admin_get_course_slot_type/`,
-      // Uncomment if authentication is needed
       {
         headers: {
           Authorization: `Token ${token}`,
@@ -258,12 +245,7 @@ export const fetchSemesterDetails = async (curriculumId, semesterId) => {
       },
     );
 
-    // Extracting curriculum details from response
     return response.data;
-    // response.data;
-
-    // Formatting the string as "CSE UG Curriculum v1.0, sem - 1"
-    // return `${curriculum_name} v${curriculum_version}, sem - ${semester_number}`;
   } catch (error) {
     throw error;
   }
@@ -588,9 +570,7 @@ export const addSingleStudent = async (studentData, programmeType) => {
   try {
     const token = localStorage.getItem("authToken");
 
-    // Map frontend field names to backend expected field names
     const mappedStudent = {
-      // REQUIRED FIELDS (all mandatory)
       name: studentData.name,
       father_name: studentData.fname || studentData.father_name,
       mother_name: studentData.mname || studentData.mother_name,
@@ -666,7 +646,7 @@ export const addSingleStudent = async (studentData, programmeType) => {
     }
 
     const payload = {
-      ...mappedStudent, // Spread the student data at root level
+      ...mappedStudent,
       programme_type: programmeType || "ug",
     };
 
@@ -757,9 +737,6 @@ export const createBatch = async (batchData) => {
   try {
     const token = localStorage.getItem("authToken");
 
-    // Log the original input data for debugging
-
-    // Ensure required fields are present and properly typed
     const payload = {
       programme: batchData.programme || batchData.program,
       discipline: batchData.discipline,
@@ -837,7 +814,6 @@ export const deleteBatch = async (batchId) => {
     );
     return response.data;
   } catch (error) {
-    // Add more specific error information for debugging
     if (error.response?.status === 400) {
       const errorData = error.response.data;
       error.message =

@@ -1,4 +1,3 @@
-/* eslint-disable */
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -28,6 +27,7 @@ import {
   Tooltip,
   ScrollArea,
   Title,
+  Checkbox,
 } from "@mantine/core";
 import {
   Plus,
@@ -47,6 +47,7 @@ import {
   PencilSimple,
   Database,
   Warning,
+  Trash,
 } from "@phosphor-icons/react";
 import { notifications } from "@mantine/notifications";
 import { useMediaQuery } from "@mantine/hooks";
@@ -66,8 +67,9 @@ import {
   updateStudent,
   deleteStudent,
 } from "../api/api";
+import axios from "axios";
+import { host } from "../../../routes/globalRoutes";
 
-// Custom CSS to prevent text truncation in tables
 const customTableStyles = `
   .student-allocation-table .mantine-Badge-root {
     overflow: visible !important;
@@ -95,113 +97,18 @@ const customTableStyles = `
   }
 `;
 
-/**
- * BACKEND API ENDPOINTS REQUIRED:
- *
- * 1. GET /programme_curriculum/api/batches/{programme_type}/
- *    - Returns list of batches for UG/PG/PHD with calculated seat information
- *    - Response: { success: true, data: [{ id, programme, discipline, year, totalSeats, filledSeats, availableSeats }] }
- *    - BACKEND LOGIC FOR SEAT CALCULATION:
- *      * totalSeats: Should be manually set by admin for each programme/discipline/year combination
- *      * filledSeats: Should be calculated by counting actual students enrolled in that specific branch/programme/year
- *        Example SQL: SELECT COUNT(*) FROM students WHERE branch = 'CSE' AND programme = 'B.Tech' AND year = 2024
- *      * availableSeats: Should be calculated as (totalSeats - filledSeats)
- *      * If filledSeats > totalSeats, availableSeats should be 0 (over-enrollment scenario)
- *
- * 2. GET /programme_curriculum/api/branches/
- *    - Returns available branches/disciplines
- *    - Response: { success: true, branches: [{ value, label, programme_type }] }
- *
- * 3. POST /programme_curriculum/api/process-excel/
- *    - Validates and processes uploaded Excel file
- *    - Body: FormData with file and programme type
- *    - Response: { success: true, valid_data: [], valid_records: number, invalid_records: number }
- *
- * 4. POST /programme_curriculum/api/upload-students/
- *    - Bulk upload students from Excel processing
- *    - Body: { students: [], programme: string }
- *    - Response: { success: true, data: { successful_uploads: number, failed_uploads: number } }
- *    - BACKEND LOGIC: After uploading students, should trigger recalculation of seat statistics
- *
- * 5. POST /programme_curriculum/api/add-student/
- *    - Add single student manually with full batch allocation algorithm
- *    - Body: { ...student_data, programme: string }
- *    - Response: { success: true, data: { student_id, roll_number, institute_email, password } }
- *    - BACKEND LOGIC:
- *      * Apply same batch allocation algorithm as Excel upload
- *      * Generate roll number based on current academic year and branch sequence
- *      * Create institute email (@iiitdmj.ac.in)
- *      * Generate secure password
- *      * Update batch statistics (filledSeats, availableSeats)
- *      * Add student to appropriate branch/programme/year group
- *    - UI IMPLEMENTATION: ✅ COMPLETE - Manual form with automatic processing
- *
- * 6. GET /programme_curriculum/api/export-students/{programme_type}/
- *    - Export student data as Excel
- *    - Response: Excel file download
- *
- * 7. PUT /programme_curriculum/api/set-total-seats/
- *    - Allows admin to manually set total seats for a programme/discipline/year
- *    - Body: { programme, discipline, year, totalSeats }
- *    - Response: { success: true, message: "Total seats updated successfully" }
- *    - BACKEND LOGIC: Should update totalSeats and recalculate availableSeats automatically
- *    - UI IMPLEMENTATION: ✅ COMPLETE - Inline editing with validation in batch table
- *
- * 8. BATCH ALLOCATION ALGORITHM - ✅ FRONTEND IMPLEMENTED
- *    - Automatically processes Excel data and allocates roll numbers
- *    - Groups students by branch code (BCS, BEC, BME, BSM, BDS, etc.)
- *    - Generates sequential roll numbers (e.g., 25BCS001, 25BEC002)
- *    - Creates institute emails (@iiitdmj.ac.in)
- *    - Generates random passwords for initial login
- *    - Provides allocation summary with branch-wise distribution
- *    - Ready for backend integration with student database
- */
-
-// Constants
 const PROGRAMME_TYPES = {
   UG: "ug",
   PG: "pg",
   PHD: "phd",
 };
 
-// const FORM_STEPS = [
-//   { key: 'basic', label: 'Basic Info', description: 'Personal information', icon: User },
-//   { key: 'additional', label: 'Additional Info', description: 'PWD, JEE & Address details', icon: GraduationCap },
-//   { key: 'academic', label: 'Academic Info', description: 'Branch details', icon: GraduationCap },
-//   { key: 'review', label: 'Review & Submit', description: 'Verify details', icon: Check }
-// ];
-
-// const BRANCHES = {
-//   [PROGRAMME_TYPES.UG]: [
-//     { value: 'CSE_BTECH', label: 'Computer Science and Engineering (B.Tech)' },
-//     { value: 'ECE_BTECH', label: 'Electronics and Communication Engineering (B.Tech)' },
-//     { value: 'ME_BTECH', label: 'Mechanical Engineering (B.Tech)' },
-//     { value: 'SM_BTECH', label: 'Smart Manufacturing (B.Tech)' },
-//     { value: 'DESIGN_BDES', label: 'Design (B.Des)' }
-//   ],
-//   [PROGRAMME_TYPES.PG]: [
-//     { value: 'CSE_MTECH', label: 'Computer Science and Engineering (M.Tech)' },
-//     { value: 'ECE_MTECH', label: 'Electronics and Communication Engineering (M.Tech)' },
-//     { value: 'ME_MTECH', label: 'Mechanical Engineering (M.Tech)' },
-//     { value: 'SM_MTECH', label: 'Smart Manufacturing (M.Tech)' },
-//     { value: 'DESIGN_MDES', label: 'Design (M.Des)' }
-//   ],
-//   [PROGRAMME_TYPES.PHD]: [
-//     { value: 'CSE_PHD', label: 'Computer Science and Engineering (PhD)' },
-//     { value: 'ECE_PHD', label: 'Electronics and Communication Engineering (PhD)' },
-//     { value: 'ME_PHD', label: 'Mechanical Engineering (PhD)' },
-//     { value: 'SM_PHD', label: 'Smart Manufacturing (PhD)' },
-//     { value: 'DESIGN_PHD', label: 'Design (PhD)' }
-//   ]
-// };
-
-// Unified field structure for both Excel import and manual entry
 const STUDENT_FIELDS_CONFIG = {
-  // Core identification fields
   jeeAppNo: {
     label: "JEE App. No.",
     placeholder: "Enter JEE application number",
     required: true,
+    backendField: "jee_app_no",
     excelColumns: [
       "jee main application number",
       "jee app. no.",
@@ -216,12 +123,14 @@ const STUDENT_FIELDS_CONFIG = {
     label: "Full Name",
     placeholder: "Enter full name",
     required: true,
+    backendField: "name", 
     excelColumns: ["name", "student name", "full name"],
   },
   fname: {
     label: "Father Name",
     placeholder: "Enter father's name",
     required: true,
+    backendField: "father_name",
     excelColumns: [
       "father's name",
       "father name",
@@ -236,6 +145,7 @@ const STUDENT_FIELDS_CONFIG = {
     label: "Mother Name",
     placeholder: "Enter mother's name",
     required: true,
+    backendField: "mother_name",
     excelColumns: [
       "mother's name",
       "mother name",
@@ -247,12 +157,12 @@ const STUDENT_FIELDS_CONFIG = {
     ],
   },
 
-  // Personal details
   gender: {
     label: "Gender",
     placeholder: "Select gender",
     required: true,
     type: "select",
+    backendField: "gender", 
     options: [
       { value: "Male", label: "Male" },
       { value: "Female", label: "Female" },
@@ -265,6 +175,7 @@ const STUDENT_FIELDS_CONFIG = {
     placeholder: "Select category",
     required: true,
     type: "select",
+    backendField: "category",
     options: [
       { value: "GEN", label: "General (GEN)" },
       { value: "OBC", label: "Other Backward Class (OBC)" },
@@ -279,25 +190,19 @@ const STUDENT_FIELDS_CONFIG = {
     placeholder: "Select allotted gender",
     required: false,
     type: "select",
+    backendField: "allotted_gender",
     options: [
-      { value: "Male", label: "Male" },
-      { value: "Female", label: "Female" },
-      { value: "Other", label: "Other" },
+      { value: "Gender-Neutral", label: "Gender-Neutral" },
+      { value: "Female Only", label: "Female Only" },
     ],
     excelColumns: ["allotted gender"],
   },
   allottedCategory: {
     label: "Allotted Category",
-    placeholder: "Select allotted category",
+    placeholder: "Enter allotted category",
     required: false,
-    type: "select",
-    options: [
-      { value: "GEN", label: "General (GEN)" },
-      { value: "OBC", label: "Other Backward Class (OBC)" },
-      { value: "SC", label: "Scheduled Caste (SC)" },
-      { value: "ST", label: "Scheduled Tribe (ST)" },
-      { value: "EWS", label: "Economically Weaker Section (EWS)" },
-    ],
+    type: "text",
+    backendField: "allotted_category",
     excelColumns: ["allottedcat", "allotted category"],
   },
   pwd: {
@@ -305,6 +210,7 @@ const STUDENT_FIELDS_CONFIG = {
     placeholder: "Select PWD status",
     required: true,
     type: "select",
+    backendField: "pwd",
     options: [
       { value: "YES", label: "Yes" },
       { value: "NO", label: "No" },
@@ -312,12 +218,12 @@ const STUDENT_FIELDS_CONFIG = {
     excelColumns: ["pwd", "disability", "person with disability"],
   },
 
-  // Academic information
   branch: {
     label: "Branch",
     placeholder: "Select branch",
     required: true,
     type: "select",
+    backendField: "branch",
     excelColumns: [
       "discipline",
       "branch",
@@ -328,12 +234,12 @@ const STUDENT_FIELDS_CONFIG = {
     ],
   },
 
-  // Contact and address
   address: {
     label: "Address",
     placeholder: "Enter complete address",
     required: true,
     type: "textarea",
+    backendField: "address",
     excelColumns: [
       "full address",
       "address",
@@ -342,11 +248,11 @@ const STUDENT_FIELDS_CONFIG = {
     ],
   },
 
-  // Additional fields that should be in both Excel and manual entry
   phoneNumber: {
     label: "Phone Number",
     placeholder: "Enter phone number",
     required: false,
+    backendField: "phone_number",
     excelColumns: [
       "mobileno",
       "phone",
@@ -361,6 +267,7 @@ const STUDENT_FIELDS_CONFIG = {
     placeholder: "Enter personal email",
     required: false,
     type: "email",
+    backendField: "personal_email",
     excelColumns: [
       "alternet email id",
       "email",
@@ -378,6 +285,7 @@ const STUDENT_FIELDS_CONFIG = {
     placeholder: "Select date of birth",
     required: false,
     type: "date",
+    backendField: "date_of_birth",
     excelColumns: [
       "date of birth",
       "dob",
@@ -393,6 +301,7 @@ const STUDENT_FIELDS_CONFIG = {
     placeholder: "Enter AI rank",
     required: false,
     type: "number",
+    backendField: "ai_rank",
     excelColumns: [
       "ai rank",
       "jee rank",
@@ -410,44 +319,50 @@ const STUDENT_FIELDS_CONFIG = {
     placeholder: "Enter category rank",
     required: false,
     type: "number",
+    backendField: "category_rank",
     excelColumns: ["category rank", "cat rank"],
   },
 
-  // Additional fields from your Excel format
   fatherOccupation: {
     label: "Father's Occupation",
     placeholder: "Enter father's occupation",
     required: false,
+    backendField: "father_occupation", 
     excelColumns: ["father's occupation", "father occupation"],
   },
   fatherMobile: {
     label: "Father's Mobile",
     placeholder: "Enter father's mobile number",
     required: false,
+    backendField: "father_mobile", 
     excelColumns: ["father mobile number", "father mobile", "father phone"],
   },
   motherOccupation: {
     label: "Mother's Occupation",
     placeholder: "Enter mother's occupation",
     required: false,
+    backendField: "mother_occupation", 
     excelColumns: ["mother's occupation", "mother occupation"],
   },
   motherMobile: {
     label: "Mother's Mobile",
     placeholder: "Enter mother's mobile number",
     required: false,
+    backendField: "mother_mobile", 
     excelColumns: ["mother mobile number", "mother mobile", "mother phone"],
   },
   state: {
     label: "State",
     placeholder: "Enter state",
     required: false,
+    backendField: "state", 
     excelColumns: ["state", "state name"],
   },
   rollNumber: {
     label: "Institute Roll Number",
     placeholder: "Enter institute roll number",
     required: false,
+    backendField: "roll_number", 
     excelColumns: [
       "institute roll number",
       "roll number",
@@ -463,6 +378,7 @@ const STUDENT_FIELDS_CONFIG = {
     placeholder: "Enter institute email",
     required: false,
     type: "email",
+    backendField: "institute_email", 
     excelColumns: [
       "institute email id",
       "institute email",
@@ -476,7 +392,6 @@ const STUDENT_FIELDS_CONFIG = {
 };
 
 const INITIAL_FORM_DATA = {
-  // Core fields (required)
   jeeAppNo: "",
   name: "",
   fname: "",
@@ -487,14 +402,12 @@ const INITIAL_FORM_DATA = {
   branch: "",
   address: "",
 
-  // Additional fields (optional)
   phoneNumber: "",
   email: "",
   dob: "",
   jeeRank: "",
   categoryRank: "",
 
-  // Excel fields
   allottedGender: "",
   allottedCategory: "",
   fatherOccupation: "",
@@ -508,19 +421,431 @@ const INITIAL_FORM_DATA = {
 
 // Main Component
 const AdminUpcomingBatch = () => {
-  // Redux state management
+  const getCurrentBatchYear = () => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const month = now.getMonth();
+
+    if (month >= 6) {
+      // July to December
+      return currentYear;
+    } else {
+      // January to June
+      return currentYear - 1;
+    }
+  };
+
+  // Automatically adds new years in July, separate for UG/PG/PHD
+  const getBatchYearOptions = (programmeType) => {
+    const currentBatchYear = getCurrentBatchYear();
+    const options = [];
+    const baseStartYear = 2016;
+    let startYear, endYear;
+    
+    switch (programmeType) {
+      case PROGRAMME_TYPES.UG:
+        startYear = Math.max(baseStartYear, currentBatchYear - 3);
+        endYear = currentBatchYear;
+        break;
+      case PROGRAMME_TYPES.PG:
+        startYear = Math.max(baseStartYear, currentBatchYear - 1);
+        endYear = currentBatchYear;
+        break;
+      case PROGRAMME_TYPES.PHD:
+        startYear = Math.max(baseStartYear, currentBatchYear - 5);
+        endYear = currentBatchYear;
+        break;
+      default:
+        startYear = baseStartYear;
+        endYear = currentBatchYear;
+    }
+
+    for (let year = endYear; year >= startYear; year--) {
+      const academicYear = batchYearToAcademicYear(year);
+      options.push({
+        value: year.toString(),
+        label: `${year} (Academic Year: ${academicYear})`
+      });
+    }
+    
+    return options;
+  };
+
+  // Function to generate academic year options for viewing data
+  const getViewAcademicYearOptions = () => {
+    const currentBatchYear = getCurrentBatchYear();
+    const options = [];
+
+    for (let year = currentBatchYear; year >= currentBatchYear - 5; year--) {
+      const academicYear = batchYearToAcademicYear(year);
+      options.push({
+        value: year.toString(),
+        label: academicYear
+      });
+    }
+    
+    return options;
+  };
+
+  const isViewingCurrentYear = () => {
+    const currentYear = getCurrentBatchYear();
+    return viewAcademicYear === currentYear;
+  };
+
+  const batchYearToAcademicYear = (batchYear) => {
+    const year = parseInt(batchYear, 10);
+    return `${year}-${(year + 1).toString().slice(-2)}`;
+  };
+
+  const academicYearToBatchYear = (academicYear) => {
+    if (typeof academicYear === 'number') return academicYear;
+    if (typeof academicYear === 'string' && academicYear.includes('-')) {
+      return parseInt(academicYear.split('-')[0], 10);
+    }
+    return parseInt(academicYear, 10);
+  };
+
+  const getCurrentAcademicYearString = () => {
+    return batchYearToAcademicYear(getCurrentBatchYear());
+  };
+
+  const normalizeBatchData = (batchData) => {
+    return batchData.map(batch => {
+      const totalSeats = batch.totalSeats || batch.total_seats || 0;
+      const filledSeats = batch.filledSeats || batch.filled_seats || batch.student_count || 0;
+      const availableSeats = Math.max(0, totalSeats - filledSeats);
+      
+      return {
+        ...batch,
+        year: academicYearToBatchYear(batch.year), 
+        totalSeats,
+        filledSeats,
+        availableSeats,
+        name: batch.name || batch.programme || "Unknown",
+      };
+    });
+  };
+
+  const showWorkflowGuidance = (errorType, details = {}) => {
+    switch (errorType) {
+      case 'curriculum_required':
+        notifications.show({
+          title: "🎯 Setup Required: Step 1 of 3",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Create a curriculum first:</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                1. Go to Programme Curriculum → Admin Curriculum<br/>
+                2. Click "Add Curriculum" to create a new curriculum<br/>
+                3. Set status to "Working" when ready<br/>
+                4. Then come back to create batches
+              </Text>
+            </div>
+          ),
+          color: "blue",
+          autoClose: 12000,
+          style: {
+            backgroundColor: '#e3f2fd',
+            borderColor: '#90caf9',
+            color: '#1565c0',
+          },
+        });
+        break;
+        
+      case 'batches_required':
+        notifications.show({
+          title: "🎯 Setup Required: Step 2 of 3", 
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Create batches for {details.academicYear || 'current year'}:</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                1. Curriculum ✅ (completed)<br/>
+                2. Create batches and assign curriculum to each<br/>
+                3. Then upload student data
+              </Text>
+            </div>
+          ),
+          color: "blue",
+          autoClose: 10000,
+          style: {
+            backgroundColor: '#e3f2fd',
+            borderColor: '#90caf9',
+            color: '#1565c0',
+          },
+        });
+        break;
+        
+      case 'curriculum_assignment_required':
+        notifications.show({
+          title: "🎯 Setup Required: Step 2b of 3",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Assign curriculum to batches:</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                1. Curriculum ✅ (completed)<br/>
+                2. Batches ✅ (completed)<br/>
+                3. Assign curriculum to: {details.batchNames}<br/>
+                4. Then upload student data
+              </Text>
+            </div>
+          ),
+          color: "orange",
+          autoClose: 12000,
+          style: {
+            backgroundColor: '#fff3cd',
+            borderColor: '#ffeaa7',
+            color: '#856404',
+          },
+        });
+        break;
+        
+      case 'ready_for_students':
+        notifications.show({
+          title: "🎉 Ready for Step 3!",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>All prerequisites completed:</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                1. Curriculum ✅<br/>
+                2. Batches ✅<br/>
+                3. Curriculum Assignment ✅<br/>
+                You can now upload student data!
+              </Text>
+            </div>
+          ),
+          color: "green",
+          autoClose: 8000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
+        });
+        break;
+    }
+  };
+
+  // Proactive validation check before attempting student operations
+  const checkPrerequisites = async () => {
+    try {
+      const currentBatches = getCurrentYearBatches();
+      
+      if (!currentBatches || currentBatches.length === 0) {
+        showWorkflowGuidance('batches_required', { 
+          academicYear: getCurrentAcademicYearString()
+        });
+        return false;
+      }
+
+      const batchesWithoutCurriculum = currentBatches.filter(batch => 
+        !batch.curriculum || !batch.curriculum_id
+      );
+      
+      if (batchesWithoutCurriculum.length > 0) {
+        const batchNames = batchesWithoutCurriculum
+          .map(batch => `${batch.name} ${batch.discipline}`)
+          .join(', ');
+        showWorkflowGuidance('curriculum_assignment_required', { batchNames });
+        return false;
+      }
+
+      showWorkflowGuidance('ready_for_students');
+      return true;
+      
+    } catch (error) {
+      console.error('Prerequisites check failed:', error);
+      return true;
+    }
+  };
+
+  // Helper to get current year batches based on active section
+  const getCurrentYearBatches = () => {
+    const currentYear = getCurrentBatchYear();
+    switch (activeSection) {
+      case 'ug':
+        return ugBatches.filter(batch => batch.year === currentYear);
+      case 'pg':
+        return pgBatches.filter(batch => batch.year === currentYear);
+      case 'phd':
+        return phdBatches.filter(batch => batch.year === currentYear);
+      default:
+        return [];
+    }
+  };
+
+  // Helper function to determine target batch based on branch
+  const getBatchForBranch = (branch, batches) => {
+    if (!branch || !batches || batches.length === 0) return null;
+
+    const normalizedBranch = branch.toLowerCase().trim();
+
+    const branchMappings = {
+      'computer science': 'CSE',
+      'computer science and engineering': 'CSE',
+      'cse': 'CSE',
+      'cs': 'CSE',
+      'computer science (b.tech)': 'CSE',
+      'computer science and engineering (b.tech)': 'CSE',
+      'computer science (m.tech)': 'CSE',
+      'computer science and engineering (m.tech)': 'CSE',
+      'computer science (phd)': 'CSE',
+      'computer science and engineering (phd)': 'CSE',
+
+      'electronics': 'ECE',
+      'electronics and communication': 'ECE',
+      'electronics and communication engineering': 'ECE',
+      'ece': 'ECE',
+      'ec': 'ECE',
+      'electronics (b.tech)': 'ECE',
+      'electronics and communication engineering (b.tech)': 'ECE',
+      'electronics (m.tech)': 'ECE',
+      'electronics and communication engineering (m.tech)': 'ECE',
+      'electronics (phd)': 'ECE',
+      'electronics and communication engineering (phd)': 'ECE',
+
+      'mechanical': 'ME',
+      'mechanical engineering': 'ME',
+      'me': 'ME',
+      'mech': 'ME',
+      'mechanical (b.tech)': 'ME',
+      'mechanical engineering (b.tech)': 'ME',
+      'mechanical (m.tech)': 'ME',
+      'mechanical engineering (m.tech)': 'ME',
+      'mechanical (phd)': 'ME',
+      'mechanical engineering (phd)': 'ME',
+
+      'smart manufacturing': 'SM',
+      'sm': 'SM',
+      'smart manufacturing (b.tech)': 'SM',
+      'smart manufacturing (m.tech)': 'SM',
+      'smart manufacturing (phd)': 'SM',
+
+      'design': 'Design',
+      'design (b.des)': 'Design',
+      'design (m.des)': 'Design',
+      'design (phd)': 'Design',
+    };
+
+    const targetBatchCode = branchMappings[normalizedBranch];
+    
+    if (targetBatchCode) {
+      return batches.find(batch => 
+        batch.displayBranch === targetBatchCode || 
+        batch.discipline === targetBatchCode ||
+        batch.branch === targetBatchCode ||
+        batch.name?.includes(targetBatchCode)
+      );
+    }
+
+    for (const batch of batches) {
+      const batchBranch = (batch.displayBranch || batch.discipline || batch.branch || '').toLowerCase();
+      if (batchBranch.includes(normalizedBranch) || normalizedBranch.includes(batchBranch)) {
+        return batch;
+      }
+    }
+    
+    return null;
+  };
+
+  // Function to handle student branch transfer
+  const handleBranchTransfer = async (studentData, oldBatch, newBatch) => {
+    try {
+      notifications.show({
+        title: "Branch Transfer",
+        message: `Student ${studentData.name || studentData.Name || 'Unknown'} is being transferred from ${oldBatch?.displayBranch || 'current batch'} to ${newBatch?.displayBranch || 'new batch'}`,
+        color: "blue",
+        autoClose: 5000,
+      });
+
+      if (selectedBatch && (selectedBatch.id === oldBatch?.id)) {
+        setStudentList((prev) => 
+          prev.filter(student => 
+            (student.id || student.student_id) !== (studentData.id || studentData.student_id)
+          )
+        );
+      }
+
+      const updateBatchCount = (batches, setBatches, batchId, delta) => {
+        setBatches(prev => prev.map(batch => {
+          if (batch.id === batchId) {
+            return {
+              ...batch,
+              studentsCount: Math.max(0, (batch.studentsCount || 0) + delta),
+              studentCount: Math.max(0, (batch.studentCount || 0) + delta)
+            };
+          }
+          return batch;
+        }));
+      };
+
+      if (oldBatch) {
+        if (activeSection === 'ug') {
+          updateBatchCount(ugBatches, setUgBatches, oldBatch.id, -1);
+        } else if (activeSection === 'pg') {
+          updateBatchCount(pgBatches, setPgBatches, oldBatch.id, -1);
+        } else if (activeSection === 'phd') {
+          updateBatchCount(phdBatches, setPhdBatches, oldBatch.id, -1);
+        }
+      }
+
+      if (newBatch) {
+        if (activeSection === 'ug') {
+          updateBatchCount(ugBatches, setUgBatches, newBatch.id, 1);
+        } else if (activeSection === 'pg') {
+          updateBatchCount(pgBatches, setPgBatches, newBatch.id, 1);
+        } else if (activeSection === 'phd') {
+          updateBatchCount(phdBatches, setPhdBatches, newBatch.id, 1);
+        }
+      }
+
+      fetchBatchData();
+      
+      return true;
+    } catch (error) {
+      console.error('Branch transfer error:', error);
+      notifications.show({
+        title: "Transfer Error",
+        message: `Failed to transfer student: ${error.message}`,
+        color: "red",
+      });
+      return false;
+    }
+  };
+
   const dispatch = useDispatch();
   const { userDetails } = useSelector((state) => state.user);
   const isMobile = useMediaQuery("(max-width: 768px)");
 
-  // State management
   const [activeSection, setActiveSection] = useState(PROGRAMME_TYPES.UG);
   const [ugBatches, setUgBatches] = useState([]);
   const [pgBatches, setPgBatches] = useState([]);
   const [phdBatches, setPhdBatches] = useState([]);
+  const [batchData, setBatchData] = useState(null); 
   const [loading, setLoading] = useState(false);
+  const [selectedBatchYear, setSelectedBatchYear] = useState(() => getCurrentBatchYear());
+  const [viewAcademicYear, setViewAcademicYear] = useState(() => getCurrentBatchYear()); 
 
-  // Helper function to get dynamic field mapping based on unified configuration
+  useEffect(() => {
+    const currentYear = getCurrentBatchYear();
+    setSelectedBatchYear(currentYear);
+    setViewAcademicYear(currentYear);
+  }, [activeSection]);
+
+  useEffect(() => {
+    setNewBatchData(prev => ({
+      ...prev,
+      year: selectedBatchYear
+    }));
+  }, [selectedBatchYear]);
+
   const getFieldMapping = () => {
     const mapping = {};
     Object.keys(STUDENT_FIELDS_CONFIG).forEach((fieldKey) => {
@@ -529,12 +854,10 @@ const AdminUpcomingBatch = () => {
     return mapping;
   };
 
-  // Helper function to get field display names
   const getFieldDisplayName = (fieldName) => {
     return STUDENT_FIELDS_CONFIG[fieldName]?.label || fieldName;
   };
 
-  // Helper function to get available fields from unified configuration
   const getAvailableFields = () => {
     return Object.keys(STUDENT_FIELDS_CONFIG);
   };
@@ -547,7 +870,6 @@ const AdminUpcomingBatch = () => {
     if (error.response?.data?.message) {
       const backendMessage = error.response.data.message.toLowerCase();
 
-      // Check for duplicate JEE Application Number
       if (
         backendMessage.includes("jee_app_no") &&
         backendMessage.includes("already exists")
@@ -557,7 +879,6 @@ const AdminUpcomingBatch = () => {
           ? "One or more JEE Application Numbers already exist in the database. Please check your Excel file and remove duplicates."
           : "This JEE Application Number already exists in the database. Please check and enter a different number.";
       }
-      // Check for duplicate Roll Number
       else if (
         backendMessage.includes("roll_number") &&
         backendMessage.includes("already exists")
@@ -567,7 +888,6 @@ const AdminUpcomingBatch = () => {
           ? "One or more Institute Roll Numbers already exist in the database. Please check your Excel file and remove duplicates."
           : "This Institute Roll Number already exists in the database. Please check and enter a different number.";
       }
-      // Check for duplicate Institute Email
       else if (
         backendMessage.includes("institute_email") &&
         backendMessage.includes("already exists")
@@ -577,7 +897,7 @@ const AdminUpcomingBatch = () => {
           ? "One or more Institute Email IDs already exist in the database. Please check your Excel file and remove duplicates."
           : "This Institute Email ID already exists in the database. Please check and enter a different email.";
       }
-      // Generic duplicate key error
+  
       else if (
         backendMessage.includes("duplicate key") ||
         backendMessage.includes("already exists")
@@ -587,7 +907,6 @@ const AdminUpcomingBatch = () => {
           ? "Some entries in your Excel file already exist in the database. Please check for duplicate JEE App Numbers, Roll Numbers, and Institute Emails."
           : "Some information you entered already exists in the database. Please check JEE App No, Roll Number, and Institute Email for duplicates.";
       }
-      // Other backend errors
       else {
         errorMessage = error.response.data.message || errorMessage;
       }
@@ -598,11 +917,9 @@ const AdminUpcomingBatch = () => {
     return { title: errorTitle, message: errorMessage };
   };
 
-  // Helper function to validate required fields
   const validateRequiredFields = (formData, isEditMode = false) => {
     const errors = {};
 
-    // Define dropdown fields that should not be validated in edit mode
     const dropdownFields = [
       "gender",
       "category",
@@ -615,7 +932,6 @@ const AdminUpcomingBatch = () => {
     Object.keys(STUDENT_FIELDS_CONFIG).forEach((fieldKey) => {
       const fieldConfig = STUDENT_FIELDS_CONFIG[fieldKey];
 
-      // Skip dropdown fields validation in edit mode
       if (isEditMode && dropdownFields.includes(fieldKey)) {
         return;
       }
@@ -636,7 +952,6 @@ const AdminUpcomingBatch = () => {
     const errors = {};
     let fieldsToValidate = [];
 
-    // Define dropdown fields that should not be validated in edit mode
     const dropdownFields = [
       "gender",
       "category",
@@ -646,29 +961,26 @@ const AdminUpcomingBatch = () => {
       "branch",
     ];
 
-    // Define which fields are required for each step
     switch (step) {
-      case 0: // Basic Info
+      case 0: 
         fieldsToValidate = ["name", "fname", "mname", "gender", "category"];
         break;
-      case 1: // Additional Info
+      case 1:
         fieldsToValidate = ["pwd", "jeeAppNo", "address"];
         break;
-      case 2: // Academic Info
+      case 2: 
         fieldsToValidate = ["branch"];
         break;
       default:
         return errors;
     }
 
-    // Filter out dropdown fields in edit mode
     if (isEditMode) {
       fieldsToValidate = fieldsToValidate.filter(
         (field) => !dropdownFields.includes(field),
       );
     }
 
-    // Only validate the fields for the current step
     fieldsToValidate.forEach((fieldKey) => {
       const fieldConfig = STUDENT_FIELDS_CONFIG[fieldKey];
       if (
@@ -684,45 +996,11 @@ const AdminUpcomingBatch = () => {
   };
 
   // BATCH ALLOCATION ALGORITHM FUNCTIONS
-  // These implement the logic from your handwritten notes
-
   // Function to get current academic year based on date
   const getCurrentAcademicYear = () => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const month = now.getMonth(); // 0-based, so June is 5
-
-    // Academic year runs from July to June
-    // If current month is July (6) to December (11), academic year is current-next
-    // If current month is January (0) to June (5), academic year is previous-current
-    if (month >= 6) {
-      // July to December
-      return `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
-    } else {
-      // January to June
-      return `${currentYear - 1}-${currentYear.toString().slice(-2)}`;
-    }
+    return getCurrentAcademicYearString();
   };
 
-  // Function to get current year for backend compatibility
-  // Returns the starting year of the academic year (matches backend logic)
-  const getCurrentBatchYear = () => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const month = now.getMonth(); // 0-based, so June is 5
-
-    // For August 2025: returns 2025 (for 2025-26 academic year)
-    // This matches the backend's academic year calculation
-    if (month >= 6) {
-      // July to December
-      return currentYear;
-    } else {
-      // January to June
-      return currentYear - 1;
-    }
-  };
-
-  // Pre-process Excel file to determine correct programmes before backend processing
   const preProcessExcelFile = async (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -754,7 +1032,6 @@ const AdminUpcomingBatch = () => {
             return;
           }
 
-          // Analyze disciplines and determine programmes
           const disciplineMapping = {};
           const disciplineCounts = {
             btech: 0,
@@ -773,7 +1050,6 @@ const AdminUpcomingBatch = () => {
                 .trim();
               let detectedProgramme = "";
 
-              // Determine programme based on discipline
               if (discipline.includes("design")) {
                 detectedProgramme =
                   activeSection === "ug"
@@ -818,7 +1094,6 @@ const AdminUpcomingBatch = () => {
             }
           }
 
-          // Check for potential mismatches and warn user
           const totalStudents = Object.values(disciplineCounts).reduce(
             (sum, count) => sum + count,
             0,
@@ -847,11 +1122,9 @@ const AdminUpcomingBatch = () => {
     });
   };
 
-  // Function to determine the correct programme based on discipline and programme type
   const determineCorrectProgramme = (discipline, programmeType) => {
     const disciplineLower = (discipline || "").toLowerCase().trim();
 
-    // For UG students
     if (programmeType === "ug") {
       if (
         disciplineLower.includes("design") ||
@@ -859,12 +1132,10 @@ const AdminUpcomingBatch = () => {
       ) {
         return "B.Des";
       } else {
-        // CSE, ECE, ME, SM all go to B.Tech
         return "B.Tech";
       }
     }
 
-    // For PG students
     if (programmeType === "pg") {
       if (
         disciplineLower.includes("design") ||
@@ -872,17 +1143,14 @@ const AdminUpcomingBatch = () => {
       ) {
         return "M.Des";
       } else {
-        // CSE, ECE, ME, SM all go to M.Tech
         return "M.Tech";
       }
     }
 
-    // For PhD students
     if (programmeType === "phd") {
       return "PhD";
     }
 
-    // Default fallback
     return programmeType === "ug"
       ? "B.Tech"
       : programmeType === "pg"
@@ -890,14 +1158,10 @@ const AdminUpcomingBatch = () => {
         : "PhD";
   };
 
-  // Function to determine branch code from branch name or existing code
   const getBranchCode = (branchName, branchCode, getDisplayCode = false) => {
-    // Normalize the input
     const branch = (branchName || branchCode || "").toLowerCase().trim();
 
-    // Branch code mapping - Display names vs Roll number codes
     const branchMappings = {
-      // B.Tech programmes - Display: CSE, ECE, ME, SM | Roll Number: BCS, BEC, BME, BSM
       "computer science and engineering": { display: "CSE", rollCode: "BCS" },
       cse: { display: "CSE", rollCode: "BCS" },
       "computer science": { display: "CSE", rollCode: "BCS" },
@@ -914,20 +1178,16 @@ const AdminUpcomingBatch = () => {
       sm: { display: "SM", rollCode: "BSM" },
       manufacturing: { display: "SM", rollCode: "BSM" },
 
-      // B.Des programmes - Display: DES | Roll Number: BDS
       design: { display: "DES", rollCode: "BDS" },
       bdes: { display: "DES", rollCode: "BDS" },
 
-      // M.Tech programmes
       "mtech computer science": { display: "CSE", rollCode: "MCS" },
       "mtech electronics": { display: "ECE", rollCode: "MEC" },
       "mtech mechanical": { display: "ME", rollCode: "MME" },
       "mtech smart manufacturing": { display: "SM", rollCode: "MSM" },
 
-      // M.Des programmes
       "mdes design": { display: "DES", rollCode: "MDS" },
 
-      // PhD programmes
       "phd computer science": { display: "CSE", rollCode: "PCS" },
       "phd electronics": { display: "ECE", rollCode: "PEC" },
       "phd mechanical": { display: "ME", rollCode: "PME" },
@@ -935,7 +1195,6 @@ const AdminUpcomingBatch = () => {
       "phd design": { display: "DES", rollCode: "PDS" },
     };
 
-    // Try to find a match
     const matchedEntry = Object.entries(branchMappings).find(([key]) =>
       branch.includes(key),
     );
@@ -944,12 +1203,10 @@ const AdminUpcomingBatch = () => {
       return getDisplayCode ? codes.display : codes.rollCode;
     }
 
-    // Return default or existing code
     const result = branchCode || "UNK";
     return result;
   };
 
-  // Function to get display branch name for UI
   const getDisplayBranchName = (branchName, branchCode) => {
     const branch = (branchName || branchCode || "").toLowerCase().trim();
 
@@ -983,13 +1240,8 @@ const AdminUpcomingBatch = () => {
 
   // Function to generate roll number based on branch and sequence
   const generateRollNumber = (branchCode, year, sequence) => {
-    // Extract last 2 digits of year (e.g., 2025 -> 25)
     const yearSuffix = year.toString().slice(-2);
-
-    // Pad sequence number to 3 digits
     const sequenceNumber = sequence.toString().padStart(3, "0");
-
-    // Generate roll number format: YYBCCseq (e.g., 25BCS001, 25BEC002)
     return `${yearSuffix}${branchCode}${sequenceNumber}`;
   };
 
@@ -1000,9 +1252,7 @@ const AdminUpcomingBatch = () => {
 
   // Main batch allocation algorithm
   const processBatchAllocation = (studentData, programmeType) => {
-    const batchYear = parseInt(getCurrentBatchYear(), 10); // Use starting year for roll numbers (e.g., 2025 for 2025-26)
-
-    // Step 1: Group students by branch
+    const batchYear = parseInt(selectedBatchYear, 10);
     const branchGroups = {};
 
     studentData.forEach((student, index) => {
@@ -1020,17 +1270,15 @@ const AdminUpcomingBatch = () => {
       });
     });
 
-    // Step 2: Sort students within each branch (by name for consistency)
     Object.keys(branchGroups).forEach((branchCode) => {
       branchGroups[branchCode].sort((a, b) => a.name.localeCompare(b.name));
     });
 
-    // Step 3: Allocate roll numbers sequentially within each branch
     const processedStudents = [];
     const branchCounters = {};
 
     Object.keys(branchGroups).forEach((branchCode) => {
-      branchCounters[branchCode] = 1; // Start from 001
+      branchCounters[branchCode] = 1;
 
       branchGroups[branchCode].forEach((student) => {
         const rollNumber = generateRollNumber(
@@ -1048,14 +1296,13 @@ const AdminUpcomingBatch = () => {
           programme: programmeType.toUpperCase(),
           allocationDate: new Date().toISOString(),
           status: "ALLOCATED",
-          reportedStatus: "NOT_REPORTED", // Default status
+          reportedStatus: "NOT_REPORTED",
         });
 
         branchCounters[branchCode] += 1;
       });
     });
 
-    // Step 4: Sort final list by roll number for display
     processedStudents.sort((a, b) => a.rollNumber.localeCompare(b.rollNumber));
 
     return {
@@ -1066,7 +1313,7 @@ const AdminUpcomingBatch = () => {
           acc[branch] = branchCounters[branch] - 1;
           return acc;
         }, {}),
-        year: getCurrentBatchYear(), // Use backend-compatible year format
+        year: selectedBatchYear,
         academicYear: getCurrentAcademicYear(),
         programme: programmeType.toUpperCase(),
         allocationDate: new Date().toISOString(),
@@ -1074,11 +1321,8 @@ const AdminUpcomingBatch = () => {
     };
   };
 
-  // Helper function to add manually processed student to existing batch data
   const addStudentToExistingBatch = (processedStudent) => {
     const { programme, displayBranch, branchCode } = processedStudent;
-
-    // Determine which batch array to update based on programme type
     let currentBatches;
     let setBatchFunction;
 
@@ -1102,7 +1346,6 @@ const AdminUpcomingBatch = () => {
         setBatchFunction = setUgBatches;
     }
 
-    // Find existing batch for the same branch/discipline
     const existingBatchIndex = currentBatches.findIndex(
       (batch) =>
         batch.displayBranch === displayBranch ||
@@ -1110,7 +1353,6 @@ const AdminUpcomingBatch = () => {
     );
 
     if (existingBatchIndex !== -1) {
-      // Add student to existing batch
       currentBatches[existingBatchIndex].students.push(processedStudent);
       currentBatches[existingBatchIndex].filledSeats += 1;
       currentBatches[existingBatchIndex].availableSeats = Math.max(
@@ -1119,9 +1361,8 @@ const AdminUpcomingBatch = () => {
           currentBatches[existingBatchIndex].filledSeats,
       );
     } else {
-      // Create new batch for this branch
       const newBatch = {
-        id: Date.now(), // Simple ID generation
+        id: Date.now(),
         programme: determineCorrectProgramme(displayBranch, programme),
         discipline:
           displayBranch === "CSE"
@@ -1136,8 +1377,8 @@ const AdminUpcomingBatch = () => {
                     ? "Design"
                     : displayBranch,
         displayBranch,
-        year: parseInt(getCurrentBatchYear(), 10),
-        totalSeats: 60, // Default value, can be updated later
+        year: parseInt(selectedBatchYear, 10),
+        totalSeats: 60,
         filledSeats: 1,
         availableSeats: 59,
         students: [processedStudent],
@@ -1145,63 +1386,53 @@ const AdminUpcomingBatch = () => {
       currentBatches.push(newBatch);
     }
 
-    // Update the state with modified batch data
     setBatchFunction(currentBatches);
   };
 
-  // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [filterYear, setFilterYear] = useState(
-    getCurrentBatchYear().toString(),
-  ); // Always set to current academic year
+    selectedBatchYear.toString(),
+  );
   const [filterProgramme, setFilterProgramme] = useState("");
 
-  // Modal and form states
   const [modalOpened, setModalOpened] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addMode, setAddMode] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [entryMode, setEntryMode] = useState("excel"); // 'excel' or 'manual'
+  const [entryMode, setEntryMode] = useState("excel");
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [extractedData, setExtractedData] = useState([]);
 
-  // Batch allocation states
   const [processedBatchData, setProcessedBatchData] = useState(null);
   const [allocationSummary, setAllocationSummary] = useState(null);
   const [showBatchPreview, setShowBatchPreview] = useState(false);
 
-  // Manual entry form states
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [manualFormData, setManualFormData] = useState(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState({});
 
-  // Edit total seats states
   const [editingBatchId, setEditingBatchId] = useState(null);
   const [editTotalSeats, setEditTotalSeats] = useState("");
   const [seatsUpdateLoading, setSeatsUpdateLoading] = useState(false);
 
-  // CRUD operations states
-  const [editingRow, setEditingRow] = useState(null); // ID of row being edited
-  const [editFormData, setEditFormData] = useState({}); // Form data for editing
-  const [showAddBatchModal, setShowAddBatchModal] = useState(false); // Add new batch modal
+  const [editingRow, setEditingRow] = useState(null); 
+  const [editFormData, setEditFormData] = useState({}); 
+  const [showAddBatchModal, setShowAddBatchModal] = useState(false); 
   const [newBatchData, setNewBatchData] = useState({
     programme: "",
     discipline: "",
-    year: getCurrentBatchYear(),
+    year: selectedBatchYear,
     totalSeats: 60,
   });
-  const [deletingBatchId, setDeletingBatchId] = useState(null); // ID of batch being deleted
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // Delete confirmation modal
-
-  // Student deletion confirmation modal
+  const [deletingBatchId, setDeletingBatchId] = useState(null); 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteStudentConfirm, setShowDeleteStudentConfirm] =
     useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
 
-  // Student list modal states
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [studentList, setStudentList] = useState([]);
@@ -1209,7 +1440,10 @@ const AdminUpcomingBatch = () => {
   const [editingStudent, setEditingStudent] = useState(null);
   const [deletingStudent, setDeletingStudent] = useState(null);
 
-  // Student modal search and export states
+  const [selectedStudents, setSelectedStudents] = useState(new Set());
+  const [isAllSelected, setIsAllSelected] = useState(false);
+  const [isBulkReporting, setIsBulkReporting] = useState(false);
+
   const [studentSearchQuery, setStudentSearchQuery] = useState("");
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedFields, setSelectedFields] = useState({});
@@ -1217,39 +1451,60 @@ const AdminUpcomingBatch = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [selectAllFields, setSelectAllFields] = useState(true);
 
-  // API Functions - Connected to real backend
   const fetchBatchData = async () => {
     setLoading(true);
     try {
-      const response = await fetchAdminBatchesOverview();
+      const token = localStorage.getItem("authToken");
+      if (!token) throw new Error("Authorization token not found");
 
-      if (response.success) {
-        // Frontend categorization fix - properly group batches by programme type
-        const allBatches = [
-          ...(response.data.ug || []),
-          ...(response.data.pg || []),
-          ...(response.data.phd || []),
-        ];
+      const response = await axios.get(
+        `${host}/programme_curriculum/api/admin_batches/`,
+        {
+          headers: { Authorization: `Token ${token}` },
+        },
+      );
 
-        // Use helper function to categorize batches
+      if (response.data && response.data.success) {
+        console.log('DEBUG - Raw API data from unified admin_batches:', {
+          responseData: response.data,
+          batches: response.data.batches,
+          firstBatch: response.data.batches?.[0],
+          firstBatchFields: response.data.batches?.[0] ? Object.keys(response.data.batches[0]) : [],
+        });
+
+        const allBatches = response.data.batches || [];
+
         const categorizedBatches = categorizeBatchesByProgramme(allBatches);
 
-        // Set the properly categorized batch data
         setUgBatches(categorizedBatches.ug);
         setPgBatches(categorizedBatches.pg);
         setPhdBatches(categorizedBatches.phd);
+
+        const allBatchesUnified = [
+          ...normalizeBatchData(categorizedBatches.ug),
+          ...normalizeBatchData(categorizedBatches.pg),
+          ...normalizeBatchData(categorizedBatches.phd)
+        ];
+        
+        setBatchData({
+          upcoming_batches: allBatchesUnified,
+          current_batches: allBatchesUnified,
+          ug: normalizeBatchData(categorizedBatches.ug),
+          pg: normalizeBatchData(categorizedBatches.pg),
+          phd: normalizeBatchData(categorizedBatches.phd)
+        });
+
+        await syncBatchData();
       } else {
         throw new Error(response.message || "Failed to fetch batch data");
       }
     } catch (error) {
-      // Only show error notifications - these are important for user
       notifications.show({
         title: "Error",
         message: "Failed to load batch data. Please try again.",
         color: "red",
       });
 
-      // Initialize with empty arrays instead of mock data
       setUgBatches([]);
       setPgBatches([]);
       setPhdBatches([]);
@@ -1258,7 +1513,6 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  // Helper function to categorize batches by programme type
   const categorizeBatchesByProgramme = (allBatches) => {
     const categorized = {
       ug: [],
@@ -1267,13 +1521,11 @@ const AdminUpcomingBatch = () => {
     };
 
     allBatches.forEach((batch) => {
-      // Check multiple possible fields for programme type
       const programme = (batch.programme || "").trim();
       const name = (batch.name || "").trim();
       const discipline = (batch.discipline || "").toLowerCase();
       const displayBranch = (batch.displayBranch || "").toLowerCase();
 
-      // Try multiple detection methods - Updated to handle combined programme-discipline strings
       if (
         programme.startsWith("B.Tech") ||
         programme.startsWith("B.Design") ||
@@ -1331,54 +1583,63 @@ const AdminUpcomingBatch = () => {
     return categorized;
   };
 
-  // Load data on component mount
   useEffect(() => {
     fetchBatchData();
   }, []);
 
-  // Reset programme filter when switching between UG/PG/PHD tabs
   useEffect(() => {
-    setFilterProgramme(""); // Reset to "All Programmes" when tab changes
+    setFilterProgramme("");
+    syncBatchData();
   }, [activeSection]);
 
-  // Debug: Monitor manualFormData changes
   useEffect(() => {
-    // Debug logging for fname and mname tracking
   }, [manualFormData]);
 
   // Handle editing student data mapping
   useEffect(() => {
     if (editingStudent && showAddModal && addMode === "manual") {
-      // Define dropdown fields that should not be editable (keep original DB values)
-      const dropdownFields = [
-        "gender",
-        "category",
-        "allottedGender",
-        "allottedCategory",
-        "pwd",
-        "branch",
-      ];
-
-      // Map student data to form fields
-      const studentData = {};
-      Object.keys(STUDENT_FIELDS_CONFIG).forEach((fieldKey) => {
+      const isFormEmpty = !manualFormData.name && !manualFormData.fname && !manualFormData.category;
+      
+      if (isFormEmpty) {
+        const studentData = {};
+        Object.keys(STUDENT_FIELDS_CONFIG).forEach((fieldKey) => {
         const fieldConfig = STUDENT_FIELDS_CONFIG[fieldKey];
         let value = "";
 
-        // Skip dropdown fields - they should remain as original DB values, not editable
-        if (dropdownFields.includes(fieldKey)) {
-          return;
-        }
-
-        // Direct field match
         if (
           editingStudent[fieldKey] !== undefined &&
           editingStudent[fieldKey] !== null &&
           editingStudent[fieldKey] !== ""
         ) {
           value = editingStudent[fieldKey];
+          
+          if (fieldKey === "category") {
+            const categoryMapping = {
+              "General": "GEN",
+              "Other Backward Class": "OBC", 
+              "Scheduled Caste": "SC",
+              "Scheduled Tribe": "ST",
+              "Economically Weaker Section": "EWS"
+            };
+            value = categoryMapping[value] || value;
+          }
         }
-        // Excel column mapping
+        else if (fieldConfig.backendField && editingStudent[fieldConfig.backendField] !== undefined &&
+          editingStudent[fieldConfig.backendField] !== null &&
+          editingStudent[fieldConfig.backendField] !== "") {
+          value = editingStudent[fieldConfig.backendField];
+
+          if (fieldKey === "category") {
+            const categoryMapping = {
+              "General": "GEN",
+              "Other Backward Class": "OBC", 
+              "Scheduled Caste": "SC",
+              "Scheduled Tribe": "ST",
+              "Economically Weaker Section": "EWS"
+            };
+            value = categoryMapping[value] || value;
+          }
+        }
         else if (fieldConfig.excelColumns) {
           for (const excelCol of fieldConfig.excelColumns) {
             const colValue = editingStudent[excelCol];
@@ -1388,12 +1649,21 @@ const AdminUpcomingBatch = () => {
               colValue !== ""
             ) {
               value = colValue;
+              if (fieldKey === "category") {
+                const categoryMapping = {
+                  "General": "GEN",
+                  "Other Backward Class": "OBC", 
+                  "Scheduled Caste": "SC",
+                  "Scheduled Tribe": "ST",
+                  "Economically Weaker Section": "EWS"
+                };
+                value = categoryMapping[value] || value;
+              }
               break;
             }
           }
         }
 
-        // Special handling for all known field variations
         if (!value) {
           const specialMappings = {
             fname: [
@@ -1434,6 +1704,12 @@ const AdminUpcomingBatch = () => {
             ],
             address: ["Address", "permanent_address", "permanentAddress"],
             state: ["State", "home_state", "homeState"],
+            gender: ["Gender"],
+            category: ["Category"],
+            allottedCategory: ["allottedcat", "allotted_category", "Allotted Cat"],
+            allottedGender: ["allotted_gender", "Allotted Gender"],
+            pwd: ["PWD"],
+            branch: ["Branch", "discipline", "Discipline"],
           };
 
           const variations = specialMappings[fieldKey] || [];
@@ -1445,31 +1721,161 @@ const AdminUpcomingBatch = () => {
               editingStudent[variation] !== ""
             ) {
               value = editingStudent[variation];
+
+              if (fieldKey === "category") {
+                const categoryMapping = {
+                  "General": "GEN",
+                  "Other Backward Class": "OBC", 
+                  "Scheduled Caste": "SC",
+                  "Scheduled Tribe": "ST",
+                  "Economically Weaker Section": "EWS"
+                };
+                value = categoryMapping[value] || value;
+              }
               break;
             }
           }
         }
 
         studentData[fieldKey] = value || "";
+        if (fieldKey === "category") {
+          console.log('🔍 CATEGORY DEBUG:', {
+            fieldKey,
+            originalValue: editingStudent.category,
+            backendField: fieldConfig.backendField,
+            backendValue: editingStudent[fieldConfig.backendField],
+            mappedValue: value,
+            finalValue: studentData[fieldKey],
+            editingStudentKeys: Object.keys(editingStudent)
+          });
+        }
       });
 
       setManualFormData(studentData);
+      }
     }
   }, [editingStudent, showAddModal, addMode]);
 
-  // Initialize export fields when export modal opens
   useEffect(() => {
     if (showExportModal && Object.keys(selectedFields).length === 0) {
       initializeSelectedFields();
     }
   }, [showExportModal]);
 
-  // Get current batch data based on active section
+  useEffect(() => {
+  }, [viewAcademicYear]);
+
+
   const getCurrentBatches = () => {
-    if (activeSection === "ug") return ugBatches;
-    if (activeSection === "pg") return pgBatches;
-    return phdBatches;
-  }; // Filter batches based on search and filters
+    let allBatches;
+    
+    if (activeSection === "ug") allBatches = ugBatches || [];
+    else if (activeSection === "pg") allBatches = pgBatches || [];
+    else allBatches = phdBatches || [];
+
+    if (allBatches.length > 0) {
+      console.log('Debug - First batch data structure from unified API:', {
+        sampleBatch: allBatches[0],
+        curriculum: allBatches[0].curriculum,
+        curriculum_name: allBatches[0].curriculum_name,
+        allFields: Object.keys(allBatches[0]),
+        fullBatchObject: allBatches[0],
+        id: allBatches[0].id,
+        name: allBatches[0].name,
+        programme: allBatches[0].programme,
+        discipline: allBatches[0].discipline,
+        year: allBatches[0].year,
+        totalSeats: allBatches[0].totalSeats,
+        total_seats: allBatches[0].total_seats,
+        filledSeats: allBatches[0].filledSeats,
+        filled_seats: allBatches[0].filled_seats,
+        student_count: allBatches[0].student_count,
+        availableSeats: allBatches[0].availableSeats,
+        available_seats: allBatches[0].available_seats,
+        curriculumId: allBatches[0].curriculumId,
+        curriculum_id: allBatches[0].curriculum_id,
+      });
+    }
+
+    const processedBatches = allBatches.map(batch => {
+      const totalSeats = batch.totalSeats || batch.total_seats || 80;
+      const filledSeats = batch.filledSeats || batch.filled_seats || batch.student_count || 0;
+      const availableSeats = Math.max(0, totalSeats - filledSeats);
+      
+      return {
+        ...batch,
+        totalSeats,
+        filledSeats,
+        availableSeats,
+        name: batch.name || batch.programme || "Unknown",
+        curriculum: batch.curriculum || batch.curriculum_name || "N/A",
+        curriculumVersion: batch.curriculumVersion || batch.curriculum_version || null,
+      };
+    });
+    
+    // Filter out incomplete batches (those with missing essential data)
+    const validBatches = processedBatches.filter(batch => {
+      const hasYear = batch.year;
+      const hasNameOrProgramme = (batch.name && batch.name.trim() !== "") || (batch.programme && batch.programme.trim() !== "");
+      const hasDisciplineOrSeats = (batch.discipline && batch.discipline.trim() !== "") || batch.totalSeats > 0 || batch.filledSeats > 0;
+      
+      const isValid = hasYear && (hasNameOrProgramme || hasDisciplineOrSeats);
+
+      if (!isValid) {
+        console.log('Filtering out incomplete batch:', {
+          batch: batch,
+          hasYear: hasYear,
+          hasNameOrProgramme: hasNameOrProgramme,
+          hasDisciplineOrSeats: hasDisciplineOrSeats,
+          name: batch.name,
+          programme: batch.programme,
+          discipline: batch.discipline,
+          year: batch.year,
+          totalSeats: batch.totalSeats,
+          filledSeats: batch.filledSeats
+        });
+      }
+      
+      return isValid;
+    });
+    return validBatches.filter(batch => batch.year === viewAcademicYear);
+  };
+
+  // Automatically sync batch data using backend API
+  const syncBatchData = async () => {
+    try {
+      const response = await fetch('/programme_curriculum/api/batches/sync/', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.log('Sync endpoint not available yet, skipping auto-sync...');
+        return;
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        setBatchData(data.batches);
+        console.log('Batch data synchronized automatically');
+      } else {
+        console.warn('Sync failed:', data.message);
+      }
+    } catch (error) {
+      if (!error.message.includes('Unexpected token') && !error.message.includes('<!doctype')) {
+        console.error('Auto-sync error:', error);
+      } else {
+        console.log('Sync endpoint not ready yet, skipping...');
+      }
+    }
+  };
+
+  // Helper function to get current batches for validation (upcoming batches)
+  const getCurrentBatchesForValidation = () => {
+    return getCurrentBatches();
+  };
   const filteredBatches = getCurrentBatches().filter((batch) => {
     const matchesSearch =
       searchQuery === "" ||
@@ -1483,7 +1889,9 @@ const AdminUpcomingBatch = () => {
     const matchesProgramme =
       filterProgramme === "" || batch.programme === filterProgramme;
 
-    return matchesSearch && matchesYear && matchesProgramme;
+    const matchesViewYear = batch.year === viewAcademicYear;
+
+    return matchesSearch && matchesYear && matchesProgramme && matchesViewYear;
   });
 
   // Handle file upload for Excel - Now connected to backend with enhanced programme detection
@@ -1496,15 +1904,33 @@ const AdminUpcomingBatch = () => {
       try {
         setUploadProgress(30);
 
-        // Pre-process Excel to determine programmes for each student
         const preProcessedData = await preProcessExcelFile(file);
 
-        // Call backend API to process Excel file
+        console.log("Uploading file:", file);
+        console.log("Programme type:", activeSection);
+        console.log("File details:", {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified
+        });
+
         const response = await processExcelUpload(file, activeSection);
+
+        console.log("Backend response:", response);
+        console.log("Response structure:", {
+          success: response.success,
+          valid_students: response.valid_students?.length,
+          valid_records: response.valid_records,
+          message: response.message
+        });
 
         setUploadProgress(80);
 
+        console.log("Checking success condition:", response.success);
+
         if (response.success) {
+          console.log("Success path taken - processing student data");
           setExtractedData(response.valid_students);
           setUploadProgress(100);
 
@@ -1514,21 +1940,17 @@ const AdminUpcomingBatch = () => {
             color: "green",
           });
 
-          // Simple extraction - take all data as-is from Excel
           const validStudents = response.valid_students || [];
           const invalidStudents = response.invalid_students || [];
 
-          // Extract data from invalid students (they have the actual data in .data field)
           const invalidStudentData = invalidStudents.map((item) => ({
             ...item.data,
-            _validation_error: item.error, // Keep track of validation error for display only
+            _validation_error: item.error, 
             _row_number: item.row,
           }));
 
-          // Combine all students for preview - no sorting, no email generation
           const allStudents = [...validStudents, ...invalidStudentData];
 
-          // Group by discipline for display purposes
           const disciplineGroups = allStudents.reduce((groups, student) => {
             const discipline =
               student.branch || student.discipline || "Unknown";
@@ -1539,25 +1961,65 @@ const AdminUpcomingBatch = () => {
             return groups;
           }, {});
 
-          // Debug: Check field names in processed data
           if (allStudents.length > 0) {
           }
 
           setExtractedData(allStudents);
           setShowPreview(true);
         } else {
+          console.log("Success condition failed - response:", response);
+          console.log("Response.success value:", response.success, typeof response.success);
           throw new Error(response.message || "Failed to process Excel file");
         }
       } catch (error) {
         setUploadProgress(0);
 
-        notifications.show({
-          title: "Error",
-          message:
-            error.message ||
-            "Failed to process Excel file. Please check the format and try again.",
-          color: "red",
-        });
+        console.error("Excel upload error:", error);
+        console.error("Error response:", error.response?.data);
+        console.error("Error status:", error.response?.status);
+        console.error("Error headers:", error.response?.headers);
+
+        const errorData = error.response?.data;
+        const errorMessage = errorData?.message || errorData?.error || error.message;
+
+        if (errorMessage?.includes("No working curriculums found")) {
+          showWorkflowGuidance('curriculum_required');
+        } else if (errorMessage?.includes("No active batches found")) {
+          showWorkflowGuidance('batches_required', { 
+            academicYear: getViewAcademicYearOptions()[0]?.label || 'current year'
+          });
+        } else if (errorMessage?.includes("have no curriculum assigned")) {
+          // Extract batch names from error message
+          const batchMatch = errorMessage.match(/assigned: (.+?)\./);
+          const batchNames = batchMatch ? batchMatch[1] : "some batches";
+          
+          showWorkflowGuidance('curriculum_assignment_required', { batchNames });
+        } else if (errorMessage?.includes("validation") || errorMessage?.includes("prerequisite")) {
+          notifications.show({
+            title: "📋 Validation Error",
+            message: errorMessage,
+            color: "red",
+            autoClose: 8000,
+            style: {
+              backgroundColor: '#f8d7da',
+              borderColor: '#f5c6cb',
+              color: '#721c24',
+            },
+          });
+        } else {
+          // General error notification
+          notifications.show({
+            title: "❌ Upload Error",
+            message: errorMessage || "Failed to process Excel file. Please check the format and try again.",
+            color: "red",
+            autoClose: 6000,
+            style: {
+              backgroundColor: '#f8d7da',
+              borderColor: '#f5c6cb',
+              color: '#721c24',
+            },
+          });
+        }
       } finally {
         setIsProcessing(false);
       }
@@ -1567,8 +2029,6 @@ const AdminUpcomingBatch = () => {
   // Function to apply case conversion rules
   const applyCaseConversion = (student) => {
     const convertedStudent = { ...student };
-
-    // Email fields that should remain lowercase
     const emailFields = [
       "email",
       "instituteEmail",
@@ -1576,8 +2036,6 @@ const AdminUpcomingBatch = () => {
       "personal_email",
       "institute_email",
     ];
-
-    // Fields that should be converted to uppercase (all text fields except emails)
     const fieldsToConvert = [
       "name",
       "fname",
@@ -1599,17 +2057,14 @@ const AdminUpcomingBatch = () => {
 
       if (typeof value === "string" && value.trim() !== "") {
         if (emailFields.includes(key)) {
-          // Convert email fields to lowercase
           convertedStudent[key] = value.toLowerCase().trim();
           if (key === "instituteEmail" || key === "email") {
           }
         } else if (fieldsToConvert.includes(key)) {
-          // Convert specified fields to uppercase
           convertedStudent[key] = value.toUpperCase().trim();
           if (key === "name" || key === "rollNumber") {
           }
         } else {
-          // For other fields, just trim whitespace
           convertedStudent[key] = value.trim();
         }
       }
@@ -1621,7 +2076,7 @@ const AdminUpcomingBatch = () => {
   // Export utility functions
   const getExportableFields = () => {
     return Object.keys(STUDENT_FIELDS_CONFIG)
-      .filter((key) => !STUDENT_FIELDS_CONFIG[key].systemGenerated) // Exclude system-generated fields like password
+      .filter((key) => !STUDENT_FIELDS_CONFIG[key].systemGenerated) 
       .map((key) => ({
         key,
         label: STUDENT_FIELDS_CONFIG[key].label,
@@ -1632,7 +2087,6 @@ const AdminUpcomingBatch = () => {
   const initializeSelectedFields = () => {
     const fields = {};
     getExportableFields().forEach((field) => {
-      // Exclude system-generated fields like password from default selection
       fields[field.key] = !STUDENT_FIELDS_CONFIG[field.key].systemGenerated;
     });
     setSelectedFields(fields);
@@ -1659,7 +2113,6 @@ const AdminUpcomingBatch = () => {
     };
     setSelectedFields(newSelectedFields);
 
-    // Update the "Select All" toggle based on whether all fields are selected
     const allFields = getExportableFields();
     const allSelected = allFields.every(
       (field) => newSelectedFields[field.key],
@@ -1673,22 +2126,16 @@ const AdminUpcomingBatch = () => {
     } else if (noneSelected) {
       setSelectAllFields(false);
     } else {
-      // Mixed state - you could use an indeterminate state here if needed
       setSelectAllFields(false);
     }
   };
 
   const prepareExportData = (students, selectedFieldKeys) => {
-    // Define the priority order for fields with logical grouping:
-    // 1. Basic identification: Roll Number, JEE App No, Full Name, Institute Email
-    // 2. Personal info: Gender, Category, PWD, DOB, Phone, Personal Email, Address, State
-    // 3. Academic info: Branch, JEE Rank, Category Rank
-    // 4. Parents info: Father Name, Father Occupation, Father Mobile, Mother Name, Mother Occupation, Mother Mobile
     const priorityFields = [
       "rollNumber",
       "jeeAppNo",
       "name",
-      "instituteEmail", // Basic identification
+      "instituteEmail",
       "gender",
       "category",
       "allottedGender",
@@ -1698,16 +2145,16 @@ const AdminUpcomingBatch = () => {
       "phoneNumber",
       "email",
       "address",
-      "state", // Personal info
+      "state",
       "branch",
       "jeeRank",
-      "categoryRank", // Academic info
+      "categoryRank",
       "fname",
       "fatherOccupation",
       "fatherMobile",
       "mname",
       "motherOccupation",
-      "motherMobile", // Parents info
+      "motherMobile", 
     ];
 
     // Sort selected fields to maintain priority order
@@ -1719,16 +2166,13 @@ const AdminUpcomingBatch = () => {
     return students.map((student, index) => {
       const exportRow = {};
 
-      // Always add S.No as the first column
       exportRow["S.No"] = index + 1;
 
       sortedFieldKeys.forEach((fieldKey) => {
         const fieldConfig = STUDENT_FIELDS_CONFIG[fieldKey];
         let value = "";
 
-        // Enhanced field mapping with specific handling for problematic fields
         if (fieldKey === "fname") {
-          // Father name variations
           value =
             student.fname ||
             student.father_name ||
@@ -1739,7 +2183,6 @@ const AdminUpcomingBatch = () => {
             student["father's name"] ||
             "";
         } else if (fieldKey === "mname") {
-          // Mother name variations
           value =
             student.mname ||
             student.mother_name ||
@@ -1750,7 +2193,6 @@ const AdminUpcomingBatch = () => {
             student["mother's name"] ||
             "";
         } else if (fieldKey === "email") {
-          // Personal email variations
           value =
             student.email ||
             student.personal_email ||
@@ -1762,7 +2204,6 @@ const AdminUpcomingBatch = () => {
             student["email id"] ||
             "";
         } else if (fieldKey === "dob") {
-          // Date of birth variations
           value =
             student.dob ||
             student.date_of_birth ||
@@ -1772,7 +2213,6 @@ const AdminUpcomingBatch = () => {
             student["birth date"] ||
             "";
         } else if (fieldKey === "jeeRank") {
-          // AI Rank variations
           value =
             student.jeeRank ||
             student.ai_rank ||
@@ -1785,7 +2225,6 @@ const AdminUpcomingBatch = () => {
             student.rank ||
             "";
         } else if (fieldKey === "rollNumber") {
-          // Roll number variations
           value =
             student.rollNumber ||
             student.roll_number ||
@@ -1796,7 +2235,6 @@ const AdminUpcomingBatch = () => {
             student["roll number"] ||
             "";
         } else if (fieldKey === "instituteEmail") {
-          // Institute email variations
           value =
             student.instituteEmail ||
             student.institute_email ||
@@ -1809,14 +2247,12 @@ const AdminUpcomingBatch = () => {
           // Generic field mapping
           value = student[fieldKey] || "";
 
-          // Try alternative field names from Excel columns
           if (!value && fieldConfig.excelColumns) {
             for (const excelCol of fieldConfig.excelColumns) {
               if (student[excelCol]) {
                 value = student[excelCol];
                 break;
               }
-              // Try case-insensitive match
               const exactMatch = Object.keys(student).find(
                 (key) => key.toLowerCase() === excelCol.toLowerCase(),
               );
@@ -1827,7 +2263,6 @@ const AdminUpcomingBatch = () => {
             }
           }
 
-          // Try common field name variations
           if (!value) {
             const variations = [
               fieldKey.toLowerCase(),
@@ -1848,7 +2283,6 @@ const AdminUpcomingBatch = () => {
           }
         }
 
-        // Apply case conversion for display
         if (typeof value === "string" && value.trim() !== "") {
           const emailFields = ["email", "instituteEmail", "personalEmail"];
           if (emailFields.includes(fieldKey)) {
@@ -1871,12 +2305,10 @@ const AdminUpcomingBatch = () => {
 
         exportRow[fieldConfig.label] = value || "";
 
-        // Skip logging for missing non-critical data
         if (
           !value &&
           ["fname", "mname", "name", "email", "jeeRank"].includes(fieldKey)
         ) {
-          // Data validation could be implemented here if needed
         }
       });
 
@@ -1887,17 +2319,14 @@ const AdminUpcomingBatch = () => {
   const exportToExcel = (data, filename) => {
     const wb = XLSX.utils.book_new();
 
-    // Ensure proper column order with S.No first
     if (data.length > 0) {
       const firstRow = data[0];
       const orderedKeys = [];
 
-      // Always start with S.No
       if (firstRow["S.No"] !== undefined) {
         orderedKeys.push("S.No");
       }
 
-      // Add priority fields in order
       const priorityLabels = [
         "Institute Roll Number",
         "JEE App. No.",
@@ -1910,14 +2339,12 @@ const AdminUpcomingBatch = () => {
         }
       });
 
-      // Add remaining fields
       Object.keys(firstRow).forEach((key) => {
         if (!orderedKeys.includes(key)) {
           orderedKeys.push(key);
         }
       });
 
-      // Reorder data with proper column sequence
       const orderedData = data.map((row) => {
         const orderedRow = {};
         orderedKeys.forEach((key) => {
@@ -1928,7 +2355,6 @@ const AdminUpcomingBatch = () => {
 
       const ws = XLSX.utils.json_to_sheet(orderedData, { header: orderedKeys });
 
-      // Auto-fit column widths
       const colWidths = orderedKeys.map((key) => ({
         wch: Math.max(key.length, 15),
       }));
@@ -1936,7 +2362,6 @@ const AdminUpcomingBatch = () => {
 
       XLSX.utils.book_append_sheet(wb, ws, "Students");
     } else {
-      // Empty data case
       const ws = XLSX.utils.json_to_sheet([]);
       XLSX.utils.book_append_sheet(wb, ws, "Students");
     }
@@ -1953,16 +2378,13 @@ const AdminUpcomingBatch = () => {
       return;
     }
 
-    // Ensure proper column order with S.No first
     const firstRow = data[0];
     const orderedKeys = [];
 
-    // Always start with S.No
     if (firstRow["S.No"] !== undefined) {
       orderedKeys.push("S.No");
     }
 
-    // Add priority fields in order
     const priorityLabels = [
       "Institute Roll Number",
       "JEE App. No.",
@@ -1975,7 +2397,6 @@ const AdminUpcomingBatch = () => {
       }
     });
 
-    // Add remaining fields
     Object.keys(firstRow).forEach((key) => {
       if (!orderedKeys.includes(key)) {
         orderedKeys.push(key);
@@ -2066,8 +2487,6 @@ const AdminUpcomingBatch = () => {
     });
   };
 
-  // Handle Excel upload completion - Now connected to backend
-  // Function to transform extracted data to proper database field names
   const transformDataForDatabase = (studentList) => {
     if (studentList?.length > 0) {
     }
@@ -2075,22 +2494,21 @@ const AdminUpcomingBatch = () => {
     return studentList.map((student) => {
       const transformedStudent = {};
 
-      // Map each field from the frontend format to the database format
       Object.keys(STUDENT_FIELDS_CONFIG).forEach((fieldKey) => {
         const fieldInfo = STUDENT_FIELDS_CONFIG[fieldKey];
 
-        // Try to find the field value from various possible field names
-        let fieldValue = student[fieldKey]; // Direct match first
+        let fieldValue = student[fieldKey];
 
-        // If not found, try the Excel column mappings (case-insensitive)
+        if (!fieldValue && fieldInfo.backendField) {
+          fieldValue = student[fieldInfo.backendField];
+        }
+
         if (!fieldValue && fieldInfo.excelColumns) {
           for (const excelCol of fieldInfo.excelColumns) {
-            // Try exact match first
             if (student[excelCol]) {
               fieldValue = student[excelCol];
               break;
             }
-            // Try case-insensitive match
             const exactMatch = Object.keys(student).find(
               (key) => key.toLowerCase() === excelCol.toLowerCase(),
             );
@@ -2101,7 +2519,6 @@ const AdminUpcomingBatch = () => {
           }
         }
 
-        // If still not found, try common variations
         if (!fieldValue) {
           const variations = [
             fieldKey.toLowerCase(),
@@ -2118,10 +2535,7 @@ const AdminUpcomingBatch = () => {
           }
         }
 
-        // Set the field value (use empty string instead of undefined to avoid issues)
         transformedStudent[fieldKey] = fieldValue || "";
-
-        // Debug logging for important fields
         if (
           ["phoneNumber", "email", "jeeAppNo", "dob", "jeeRank"].includes(
             fieldKey,
@@ -2130,18 +2544,129 @@ const AdminUpcomingBatch = () => {
         }
       });
 
-      // Apply case conversion rules - use Object.assign to modify the existing object
       Object.assign(
         transformedStudent,
         applyCaseConversion(transformedStudent),
       );
 
-      // Also preserve any additional fields that might be needed
       transformedStudent.id = student.id;
       transformedStudent._validation_error = student._validation_error;
 
       return transformedStudent;
     });
+  };
+
+  // Show missing batch requirement modal
+  const showBatchRequirementModal = (missingBatches) => {
+    const missingBatchesText = missingBatches?.map(batch => 
+      `• ${batch.acronym} - ${batch.discipline}\n  Action: ${batch.action_required}`
+    ).join('\n') || 'Some required batches are missing';
+
+    notifications.show({
+      title: "⚠️ Batches Required",
+      message: (
+        <div>
+          <Text size="sm" mb={8}>
+            <strong>The following batches must be created before uploading students:</strong>
+          </Text>
+          <Text size="xs" style={{ whiteSpace: 'pre-line', fontFamily: 'monospace', color: '#721c24' }}>
+            {missingBatchesText}
+          </Text>
+          <Text size="xs" mt={8} style={{ color: '#856404' }}>
+            Please create these batches first via the Batch Management section, then try uploading students again.
+          </Text>
+        </div>
+      ),
+      color: "orange",
+      autoClose: false,
+    });
+  };
+
+  // Enhanced Excel upload with workflow validation
+  const validateBatchPrerequisites = async (academicYear) => {
+    try {
+      const response = await fetch('/programme_curriculum/api/batches/validate_prerequisites/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ academic_year: academicYear })
+      });
+      
+      // Check if response is JSON (not HTML error page)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.log('Backend validation endpoint not ready, using frontend validation...');
+        return validateBatchPrerequisitesFrontend(academicYear);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.can_upload_students) {
+        const errorMessages = data.missing_batches.slice(0, 5).map(batch => 
+          `• ${batch.acronym} - ${batch.discipline}: ${batch.action_required}`
+        ).join('\n');
+        
+        const additionalErrors = data.missing_batches.length > 5 ? 
+          `\n... and ${data.missing_batches.length - 5} more missing batches` : '';
+        
+        notifications.show({
+          title: "❌ Batches Required",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Please create required batches first:</strong>
+              </Text>
+              <Text size="xs" style={{ whiteSpace: 'pre-line', color: '#721c24' }}>
+                {errorMessages}{additionalErrors}
+              </Text>
+            </div>
+          ),
+          color: "red",
+          autoClose: false,
+        });
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      if (error.message.includes('Unexpected token') || error.message.includes('<!doctype')) {
+        console.log('Backend validation not available, using frontend validation...');
+        return validateBatchPrerequisitesFrontend(academicYear);
+      }
+      
+      console.error('Batch validation error:', error);
+      return true; 
+    }
+  };
+
+  const validateBatchPrerequisitesFrontend = (academicYear) => {
+    const currentBatches = getCurrentBatches();
+    
+    if (!currentBatches || currentBatches.length === 0) {
+      notifications.show({
+        title: "❌ No Batches Found",
+        message: "Please create batches first before uploading students.",
+        color: "red",
+        autoClose: false,
+      });
+      return false;
+    }
+
+    const currentYear = getCurrentBatchYear();
+    const batchesForYear = currentBatches.filter(batch => batch.year === currentYear);
+    
+    if (batchesForYear.length === 0) {
+      notifications.show({
+        title: "❌ No Batches for Current Year",
+        message: `Please create batches for year ${currentYear} first.`,
+        color: "red",
+        autoClose: false,
+      });
+      return false;
+    }
+    
+    return true;
   };
 
   const handleExcelUpload = async () => {
@@ -2156,11 +2681,82 @@ const AdminUpcomingBatch = () => {
         });
         return;
       }
+      const currentAcademicYear = getCurrentBatchYear();
+      const canUpload = await validateBatchPrerequisites(currentAcademicYear);
+      
+      if (!canUpload) {
+        return;
+      }
 
-      // Transform the data to ensure proper field mapping for database
+      const currentBatches = getCurrentBatchesForValidation();
+      const batchValidationErrors = [];
+      const studentBatchMap = new Map();
+      
+      for (const student of dataToUpload) {
+        const studentBranch = student.branch || student.discipline || student.Branch || student.Discipline;
+        const studentYear = getCurrentBatchYear(); 
+        
+        // Find matching batch for this student
+        const matchingBatch = currentBatches.find(batch => {
+          const batchBranch = batch.discipline || batch.branch;
+          return (
+            batchBranch === studentBranch &&
+            batch.year === studentYear
+          );
+        });
+        
+        if (!matchingBatch) {
+          batchValidationErrors.push({
+            student: student.name || student.Name || 'Unknown',
+            branch: studentBranch,
+            year: studentYear,
+            message: `No existing batch found for ${studentBranch} ${studentYear}`
+          });
+        } else {
+          // Check if batch has available seats
+          const studentsForThisBatch = studentBatchMap.get(matchingBatch.id) || [];
+          studentsForThisBatch.push(student);
+          studentBatchMap.set(matchingBatch.id, studentsForThisBatch);
+          
+          const totalStudentsForBatch = (matchingBatch.filledSeats || 0) + studentsForThisBatch.length;
+          if (totalStudentsForBatch > matchingBatch.totalSeats) {
+            batchValidationErrors.push({
+              student: student.name || student.Name || 'Unknown',
+              branch: studentBranch,
+              year: studentYear,
+              message: `Batch ${studentBranch} ${studentYear} will exceed capacity (${totalStudentsForBatch}/${matchingBatch.totalSeats})`
+            });
+          }
+        }
+      }
+
+      if (batchValidationErrors.length > 0) {
+        const errorMessages = batchValidationErrors.slice(0, 5).map(error => 
+          `• ${error.student}: ${error.message}`
+        ).join('\n');
+        
+        const additionalErrors = batchValidationErrors.length > 5 ? 
+          `\n... and ${batchValidationErrors.length - 5} more errors` : '';
+        
+        notifications.show({
+          title: "❌ Upload Failed - Batch Validation Errors",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Cannot upload students. Please create required batches first:</strong>
+              </Text>
+              <Text size="xs" style={{ whiteSpace: 'pre-line', color: '#721c24' }}>
+                {errorMessages}{additionalErrors}
+              </Text>
+            </div>
+          ),
+          color: "red",
+          autoClose: false,
+        });
+        return;
+      }
+
       const transformedData = transformDataForDatabase(dataToUpload);
-
-      // Call backend API to save students batch with transformed data
       const response = await saveStudentsBatch(transformedData, activeSection);
 
       if (response.success) {
@@ -2168,12 +2764,11 @@ const AdminUpcomingBatch = () => {
           response.data.successful_uploads || response.data.saved_count || 0;
 
         notifications.show({
-          title: "Success",
-          message: `${uploadCount} students uploaded successfully!`,
+          title: "✅ Upload Successful",
+          message: `${uploadCount} students uploaded to existing batches successfully!`,
           color: "green",
         });
 
-        // Reset states and refresh data
         setShowAddModal(false);
         setAddMode(null);
         setUploadedFile(null);
@@ -2182,25 +2777,72 @@ const AdminUpcomingBatch = () => {
         setAllocationSummary(null);
         setShowBatchPreview(false);
         setShowPreview(false);
-        fetchBatchData(); // Refresh the batch data
+        fetchBatchData(); 
+        syncBatchData();
       } else {
-        throw new Error(response.message || "Failed to upload students");
+        // Handle specific error codes from backend
+        if (response.error_code === 'BATCH_NOT_FOUND') {
+          notifications.show({
+            title: "❌ Batch Required",
+            message: response.required_action || response.message,
+            color: "red",
+            autoClose: false,
+          });
+        } else if (response.error_code === 'BATCH_MATCHING_ERROR') {
+          notifications.show({
+            title: "❌ Configuration Error",
+            message: response.message,
+            color: "red",
+            autoClose: false,
+          });
+        } else {
+          throw new Error(response.message || "Failed to upload students");
+        }
       }
     } catch (error) {
-      // Parse duplicate error for user-friendly message
-      const { title, message } = parseDuplicateError(error, "upload students");
+      console.error("Save students batch error:", error);
+      
+      const errorData = error.response?.data;
+      const errorMessage = errorData?.message || errorData?.error || error.message;
 
-      notifications.show({
-        title,
-        message,
-        color: "red",
-        autoClose: 8000,
-      });
+      if (errorMessage?.includes("No working curriculums found")) {
+        showWorkflowGuidance('curriculum_required');
+      } else if (errorMessage?.includes("No active batches found")) {
+        showWorkflowGuidance('batches_required', { 
+          academicYear: getViewAcademicYearOptions()[0]?.label || 'current year'
+        });
+      } else if (errorMessage?.includes("have no curriculum assigned")) {
+        const batchMatch = errorMessage.match(/assigned: (.+?)\./);
+        const batchNames = batchMatch ? batchMatch[1] : "some batches";
+        
+        showWorkflowGuidance('curriculum_assignment_required', { batchNames });
+      } else if (errorMessage?.includes("validation") || errorMessage?.includes("prerequisite")) {
+        notifications.show({
+          title: "📋 Validation Error",
+          message: errorMessage,
+          color: "red",
+          autoClose: 8000,
+          style: {
+            backgroundColor: '#f8d7da',
+            borderColor: '#f5c6cb',
+            color: '#721c24',
+          },
+        });
+      } else {
+        // Parse duplicate error for user-friendly message
+        const { title, message } = parseDuplicateError(error, "upload students");
+
+        notifications.show({
+          title,
+          message,
+          color: "red",
+          autoClose: 8000,
+        });
+      }
     }
   };
 
-  // Manual form navigation and submission - Apply batch allocation algorithm
-  // Manual form navigation and submission - Now connected to backend
+  // Manual form navigation and submission
   const nextStep = async () => {
     if (currentStep < 3) {
       // Validate only the current step before proceeding
@@ -2223,7 +2865,6 @@ const AdminUpcomingBatch = () => {
       setCurrentStep(currentStep + 1);
     } else {
       try {
-        // Final validation before submission - validate required fields (excluding dropdowns in edit mode)
         const finalErrors = validateRequiredFields(
           manualFormData,
           !!editingStudent,
@@ -2241,26 +2882,92 @@ const AdminUpcomingBatch = () => {
         // Transform manual form data to database format (same as Excel data)
         const transformedData = transformDataForDatabase([manualFormData]);
 
+        // Validate workflow prerequisites for new students (not for updates)
+        if (!editingStudent) {
+          const currentAcademicYear = getCurrentBatchYear();
+          const canUpload = await validateBatchPrerequisites(currentAcademicYear);
+          
+          if (!canUpload) {
+            return;
+          }
+
+          const currentBatches = getCurrentBatchesForValidation();
+          const studentBranch = manualFormData.branch;
+          const studentYear = getCurrentBatchYear();
+
+          const matchingBatch = currentBatches.find(batch => {
+            const batchBranch = batch.discipline || batch.branch;
+            return (
+              batchBranch === studentBranch &&
+              batch.year === studentYear
+            );
+          });
+          
+          if (!matchingBatch) {
+            notifications.show({
+              title: "❌ Cannot Add Student",
+              message: (
+                <div>
+                  <Text size="sm" mb={8}>
+                    <strong>No existing batch found for this student.</strong>
+                  </Text>
+                  <Text size="xs" style={{ color: '#721c24' }}>
+                    Please create a batch for {studentBranch} {studentYear} first.
+                  </Text>
+                </div>
+              ),
+              color: "red",
+              autoClose: false,
+            });
+            return;
+          }
+          
+          // Check if batch has available seats
+          const totalStudentsForBatch = (matchingBatch.filledSeats || 0) + 1;
+          if (totalStudentsForBatch > matchingBatch.totalSeats) {
+            notifications.show({
+              title: "❌ Batch Full",
+              message: (
+                <div>
+                  <Text size="sm" mb={8}>
+                    <strong>Cannot add student - batch capacity exceeded.</strong>
+                  </Text>
+                  <Text size="xs" style={{ color: '#721c24' }}>
+                    Batch {studentBranch} {studentYear} is full ({matchingBatch.filledSeats}/{matchingBatch.totalSeats} seats)
+                  </Text>
+                </div>
+              ),
+              color: "red",
+              autoClose: false,
+            });
+            return;
+          }
+        }
+
         if (editingStudent) {
           // Edit mode - update existing student
-
-          // Remove dropdown fields from update data (keep original DB values)
-          const dropdownFields = [
-            "gender",
-            "category",
-            "allottedGender",
-            "allottedCategory",
-            "pwd",
-            "branch",
-          ];
+          
+          // Check if branch has changed for transfer logic
+          const oldBranch = editingStudent.branch || editingStudent.Branch || editingStudent.discipline || editingStudent.Discipline;
+          const newBranch = manualFormData.branch;
+          const branchChanged = oldBranch && newBranch && oldBranch.toLowerCase().trim() !== newBranch.toLowerCase().trim();
           const updateData = { ...transformedData[0] };
 
-          dropdownFields.forEach((field) => {
-            delete updateData[field];
-            // Also remove any database field variations
-            delete updateData[field.toLowerCase()];
-            delete updateData[field.toUpperCase()];
-          });
+          let targetBatch = null;
+          if (branchChanged) {
+            const currentBatches = activeSection === 'ug' ? ugBatches : 
+                                 activeSection === 'pg' ? pgBatches : phdBatches;
+            targetBatch = getBatchForBranch(newBranch, currentBatches);
+            
+            if (!targetBatch) {
+              notifications.show({
+                title: "Branch Transfer Warning",
+                message: `No batch found for branch "${newBranch}". Student will be updated but may need manual batch assignment.`,
+                color: "yellow",
+                autoClose: 7000,
+              });
+            }
+          }
 
           const response = await updateStudent(
             editingStudent.id || editingStudent.student_id,
@@ -2268,83 +2975,65 @@ const AdminUpcomingBatch = () => {
           );
 
           if (response.success) {
+            let successMessage = "Student updated successfully!";
+            
+            // Handle branch transfer if needed
+            if (branchChanged && targetBatch) {
+              console.log(`Branch transfer: ${oldBranch} → ${newBranch}`);
+              console.log(`From batch:`, selectedBatch);
+              console.log(`To batch:`, targetBatch);
+              
+              await handleBranchTransfer(updateData, selectedBatch, targetBatch);
+              successMessage = `Student successfully transferred from ${selectedBatch?.displayBranch || 'current batch'} to ${targetBatch.displayBranch} batch!`;
+            } else if (branchChanged) {
+              successMessage += ` Branch updated to "${newBranch}" but no matching batch found for automatic transfer.`;
+            }
+            
             notifications.show({
-              title: "Success",
-              message: `Student updated successfully!`,
+              title: branchChanged ? "Transfer Completed" : "Update Successful",
+              message: successMessage,
               color: "green",
+              autoClose: branchChanged ? 8000 : 4000,
             });
 
-            // Update the student in the current list, preserving dropdown fields
             setStudentList((prev) =>
               prev.map((student) => {
                 if (
                   (student.id || student.student_id) ===
                   (editingStudent.id || editingStudent.student_id)
                 ) {
-                  // Merge updated data while preserving original dropdown field values
-                  const dropdownFields = [
-                    "gender",
-                    "category",
-                    "allottedGender",
-                    "allottedCategory",
-                    "pwd",
-                    "branch",
-                  ];
                   const updatedStudent = { ...student, ...updateData };
-
-                  // Ensure dropdown fields retain their original values
-                  dropdownFields.forEach((field) => {
-                    if (student[field] !== undefined) {
-                      updatedStudent[field] = student[field];
-                    }
-                    // Also check for snake_case variations
-                    const snakeField = field
-                      .replace(/([A-Z])/g, "_$1")
-                      .toLowerCase();
-                    if (student[snakeField] !== undefined) {
-                      updatedStudent[snakeField] = student[snakeField];
-                    }
-                  });
-
-                  // Update editingStudent state as well for UI consistency
                   setEditingStudent(updatedStudent);
-
                   return updatedStudent;
                 }
                 return student;
               }),
             );
 
-            // Reset form and edit state
             setShowAddModal(false);
             setEditingStudent(null);
             setCurrentStep(0);
             setManualFormData(INITIAL_FORM_DATA);
             setErrors({});
 
-            // Close student modal and return to main batch list
             setShowStudentModal(false);
             setSelectedBatch(null);
 
-            // Refresh the main batch overview to reflect any changes
             try {
               const updatedOverview = await fetchAdminBatchesOverview();
               if (updatedOverview.success) {
-                // Update the appropriate batch arrays based on data structure
                 const batchData = updatedOverview.data;
-                if (batchData.ug) setUgBatches(batchData.ug);
-                if (batchData.pg) setPgBatches(batchData.pg);
-                if (batchData.phd) setPhdBatches(batchData.phd);
+                if (batchData.ug) setUgBatches(normalizeBatchData(batchData.ug));
+                if (batchData.pg) setPgBatches(normalizeBatchData(batchData.pg));
+                if (batchData.phd) setPhdBatches(normalizeBatchData(batchData.phd));
               }
             } catch (error) {}
 
-            // Refresh batch data
             fetchBatchData();
           } else {
             throw new Error(response.message || "Failed to update student");
           }
         } else {
-          // Add mode - create new student
           const response = await addSingleStudent(
             transformedData[0],
             activeSection,
@@ -2357,35 +3046,80 @@ const AdminUpcomingBatch = () => {
               color: "green",
             });
 
-            // Reset form and refresh data
             setShowAddModal(false);
             setAddMode(null);
             setCurrentStep(0);
             setManualFormData(INITIAL_FORM_DATA);
             setErrors({});
-            fetchBatchData(); // Refresh the batch data
+            fetchBatchData(); 
+            syncBatchData();
           } else {
-            throw new Error(response.message || "Failed to add student");
+            if (response.error_code === 'BATCH_NOT_FOUND') {
+              notifications.show({
+                title: "❌ Batch Required",
+                message: response.required_action || response.message,
+                color: "red",
+                autoClose: false,
+              });
+            } else if (response.error_code === 'BATCH_MATCHING_ERROR') {
+              notifications.show({
+                title: "❌ Configuration Error", 
+                message: response.message,
+                color: "red",
+                autoClose: false,
+              });
+            } else {
+              throw new Error(response.message || "Failed to add student");
+            }
           }
         }
       } catch (error) {
-        // Parse duplicate error for user-friendly message
-        const operationType = editingStudent ? "update student" : "add student";
-        const { title, message } = parseDuplicateError(error, operationType);
+        console.error("Add/Update student error:", error);
+        
+        const errorData = error.response?.data;
+        const errorMessage = errorData?.message || errorData?.error || error.message;
 
-        notifications.show({
-          title,
-          message,
-          color: "red",
-          autoClose: 8000, // Keep longer for duplicate errors so user can read
-        });
+        if (errorMessage?.includes("No working curriculums found")) {
+          showWorkflowGuidance('curriculum_required');
+        } else if (errorMessage?.includes("No active batches found")) {
+          showWorkflowGuidance('batches_required', { 
+            academicYear: getViewAcademicYearOptions()[0]?.label || 'current year'
+          });
+        } else if (errorMessage?.includes("have no curriculum assigned")) {
+          const batchMatch = errorMessage.match(/assigned: (.+?)\./);
+          const batchNames = batchMatch ? batchMatch[1] : "some batches";
+          
+          showWorkflowGuidance('curriculum_assignment_required', { batchNames });
+        } else if (errorMessage?.includes("validation") || errorMessage?.includes("prerequisite")) {
+          notifications.show({
+            title: "📋 Validation Error",
+            message: errorMessage,
+            color: "red",
+            autoClose: 8000,
+            style: {
+              backgroundColor: '#f8d7da',
+              borderColor: '#f5c6cb',
+              color: '#721c24',
+            },
+          });
+        } else {
+          const operationType = editingStudent ? "update student" : "add student";
+          const { title, message } = parseDuplicateError(error, operationType);
+
+          notifications.show({
+            title,
+            message,
+            color: "red",
+            autoClose: 8000,
+          });
+        }
       }
     }
   };
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setErrors({}); // Clear errors when going back
+      setErrors({}); 
       setCurrentStep(currentStep - 1);
     }
   };
@@ -2423,7 +3157,6 @@ const AdminUpcomingBatch = () => {
         programme_type: activeSection,
       };
 
-      // Call backend API to create new batch using the new API function
       const result = await createBatch(batchToAdd);
 
       if (result.success) {
@@ -2433,13 +3166,12 @@ const AdminUpcomingBatch = () => {
           color: "green",
         });
 
-        // Refresh data and close modal
         fetchBatchData();
         setShowAddBatchModal(false);
         setNewBatchData({
           programme: "",
           discipline: "",
-          year: getCurrentBatchYear(),
+          year: selectedBatchYear,
           totalSeats: 60,
         });
       } else {
@@ -2474,7 +3206,6 @@ const AdminUpcomingBatch = () => {
         totalSeats: parseInt(editFormData.totalSeats, 10),
       };
 
-      // Call backend API to update batch using the new API function
       const result = await updateBatch(editingRow, batchDataToUpdate);
 
       if (result.success) {
@@ -2484,7 +3215,6 @@ const AdminUpcomingBatch = () => {
           color: "green",
         });
 
-        // Refresh data and exit edit mode
         fetchBatchData();
         setEditingRow(null);
         setEditFormData({});
@@ -2520,28 +3250,106 @@ const AdminUpcomingBatch = () => {
 
       if (result.success) {
         notifications.show({
-          title: "Success",
-          message: "Batch deleted successfully",
+          title: "✅ Batch Deleted Successfully",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>{result.message || "Batch deleted successfully"}</strong>
+              </Text>
+              {result.deleted_batch && (
+                <Text size="xs" color="gray.7">
+                  Deleted: {result.deleted_batch.name} ({result.deleted_batch.discipline_acronym || result.deleted_batch.discipline}) - {result.deleted_batch.year}
+                </Text>
+              )}
+            </div>
+          ),
           color: "green",
+          autoClose: 6000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
         });
 
-        // Refresh data and close confirmation
         fetchBatchData();
+        syncBatchData();
         setShowDeleteConfirm(false);
         setDeletingBatchId(null);
       } else {
         throw new Error(result.message || "Failed to delete batch");
       }
     } catch (error) {
+      console.error("Delete batch error:", error);
+      
       let errorMessage = "Failed to delete batch";
+      let errorTitle = "❌ Delete Failed";
 
-      // Handle different types of errors
+      // Handle different types of errors with enhanced validation messages
       if (error.response) {
+        const errorData = error.response.data;
+        
         if (error.response.status === 400) {
-          errorMessage =
-            error.response.data?.message ||
-            error.response.data?.error ||
-            "Cannot delete batch - it may have associated students or dependencies";
+          if (errorData?.validation_error === "batch_has_students") {
+            errorTitle = "👥 Cannot Delete - Students Enrolled";
+            errorMessage = `${errorData.message || "This batch has students enrolled. Please transfer or remove students first."}`;
+            
+            notifications.show({
+              title: errorTitle,
+              message: (
+                <div>
+                  <Text size="sm" mb={8}>
+                    <strong>{errorMessage}</strong>
+                  </Text>
+                  <Text size="xs" color="gray.7">
+                    Student count: {errorData.student_count || "Unknown"}<br/>
+                    You must move these students to another batch or remove them before deletion.
+                  </Text>
+                </div>
+              ),
+              color: "orange",
+              autoClose: 10000,
+              style: {
+                backgroundColor: '#fff3cd',
+                borderColor: '#ffeaa7',
+                color: '#856404',
+              },
+            });
+            return;
+            
+          } else if (errorData?.validation_error === "discipline_has_students") {
+            errorTitle = "🚫 Cannot Delete - Discipline Protected";
+            errorMessage = `${errorData.message || "The discipline has students in the database."}`;
+            
+            notifications.show({
+              title: errorTitle,
+              message: (
+                <div>
+                  <Text size="sm" mb={8}>
+                    <strong>{errorMessage}</strong>
+                  </Text>
+                  <Text size="xs" color="gray.7">
+                    Discipline student count: {errorData.discipline_student_count || "Unknown"}<br/>
+                    The entire discipline must be empty before deleting any batch in this discipline.
+                  </Text>
+                </div>
+              ),
+              color: "red",
+              autoClose: 12000,
+              style: {
+                backgroundColor: '#f8d7da',
+                borderColor: '#f5c6cb',
+                color: '#721c24',
+              },
+            });
+            return;
+            
+          } else {
+            errorMessage =
+              errorData?.message ||
+              errorData?.error ||
+              "Cannot delete batch - it may have associated students or dependencies";
+          }
         } else if (error.response.status === 404) {
           errorMessage = "Batch not found";
         } else if (error.response.status === 403) {
@@ -2555,10 +3363,12 @@ const AdminUpcomingBatch = () => {
         errorMessage = error.message || "Unknown error occurred";
       }
 
+      // Default error notification for non-validation errors
       notifications.show({
-        title: "Error",
+        title: errorTitle,
         message: errorMessage,
         color: "red",
+        autoClose: 6000,
       });
     }
   };
@@ -2619,7 +3429,6 @@ const AdminUpcomingBatch = () => {
 
   // Generate Excel template with all unified fields
   const generateExcelTemplate = () => {
-    // Use your exact Excel column headers
     const headers = [
       "Sno",
       "Jee Main Application Number",
@@ -2647,7 +3456,6 @@ const AdminUpcomingBatch = () => {
       "Full Address",
     ];
 
-    // Indian dummy data samples
     const sampleData = [
       [
         1,
@@ -2704,6 +3512,82 @@ const AdminUpcomingBatch = () => {
     setEditTotalSeats("");
   };
 
+  // SYNC DATA: Ensure both "Batches" and "Upcoming Batches" tabs show identical data
+  const syncBatchDataBetweenTabs = () => {
+    if (!batchData) return;
+    
+    const allBatches = [
+      ...(batchData.upcoming_batches || []),
+      ...(batchData.current_batches || [])
+    ];
+
+    const uniqueBatches = allBatches.reduce((acc, batch) => {
+      const key = `${batch.programme}-${batch.discipline}-${batch.year}`;
+      if (!acc[key] || (acc[key].id > batch.id)) {
+        acc[key] = batch;
+      }
+      return acc;
+    }, {});
+    
+    const syncedBatches = Object.values(uniqueBatches);
+
+    setBatchData(prevData => ({
+      ...prevData,
+      upcoming_batches: syncedBatches,
+      current_batches: syncedBatches,
+    }));
+
+    const ugBatches = syncedBatches.filter(batch => batch.programme?.toLowerCase().includes('ug') || batch.programme?.toLowerCase().includes('b.'));
+    const pgBatches = syncedBatches.filter(batch => batch.programme?.toLowerCase().includes('pg') || batch.programme?.toLowerCase().includes('m.'));
+    const phdBatches = syncedBatches.filter(batch => batch.programme?.toLowerCase().includes('phd'));
+    
+    setUgBatches(ugBatches);
+    setPgBatches(pgBatches);
+    setPhdBatches(phdBatches);
+  };
+
+  // Synchronize total seats between tabs (both tabs get updated)
+  const syncTotalSeatsAcrossTabs = (batchToUpdate, newTotalSeats) => {
+    const syncBatches = (batches) => {
+      return batches.map((batch) => {
+        if (
+          batch.programme === batchToUpdate.programme &&
+          batch.discipline === batchToUpdate.discipline &&
+          batch.year === batchToUpdate.year
+        ) {
+          const availableSeats = Math.max(0, newTotalSeats - (batch.filledSeats || 0));
+          return {
+            ...batch,
+            totalSeats: newTotalSeats,
+            availableSeats: availableSeats,
+          };
+        }
+        return batch;
+      });
+    };
+
+    setBatchData(prevData => {
+      if (!prevData) return prevData;
+      
+      const syncedUpcoming = syncBatches(prevData.upcoming_batches || []);
+      const syncedCurrent = syncBatches(prevData.current_batches || []);
+      
+      return {
+        ...prevData,
+        upcoming_batches: syncedUpcoming,
+        current_batches: syncedCurrent, 
+      };
+    });
+
+    if (activeSection === PROGRAMME_TYPES.UG) {
+      setUgBatches(prev => syncBatches(prev));
+    } else if (activeSection === PROGRAMME_TYPES.PG) {
+      setPgBatches(prev => syncBatches(prev));
+    } else if (activeSection === PROGRAMME_TYPES.PHD) {
+      setPhdBatches(prev => syncBatches(prev));
+    }
+  };
+
   const handleSaveSeats = async (batch) => {
     const newTotalSeats = parseInt(editTotalSeats, 10);
 
@@ -2727,7 +3611,6 @@ const AdminUpcomingBatch = () => {
 
     setSeatsUpdateLoading(true);
     try {
-      // Call backend API to set total seats using the new API function
       const result = await setTotalSeats({
         programme: batch.programme,
         discipline: batch.discipline,
@@ -2736,7 +3619,6 @@ const AdminUpcomingBatch = () => {
       });
 
       if (result.success) {
-        // Update the batch data in state
         const updateBatches = (batches) => {
           return batches.map((b) => {
             if (b.id === batch.id) {
@@ -2751,7 +3633,6 @@ const AdminUpcomingBatch = () => {
           });
         };
 
-        // Update the appropriate batches array
         if (activeSection === PROGRAMME_TYPES.UG) {
           setUgBatches((prev) => updateBatches(prev));
         } else if (activeSection === PROGRAMME_TYPES.PG) {
@@ -2760,13 +3641,14 @@ const AdminUpcomingBatch = () => {
           setPhdBatches((prev) => updateBatches(prev));
         }
 
+        syncTotalSeatsAcrossTabs(batch, newTotalSeats);
+
         notifications.show({
           title: "Success",
           message: `Total seats updated to ${newTotalSeats} for ${batch.programme} - ${batch.discipline}`,
           color: "green",
         });
 
-        // Reset editing state
         setEditingBatchId(null);
         setEditTotalSeats("");
       } else {
@@ -2784,39 +3666,209 @@ const AdminUpcomingBatch = () => {
   };
 
   // Handle batch row click to show student list
-  const handleBatchRowClick = (batch) => {
+  const handleBatchRowClick = async (batch) => {
+    console.log('Batch row clicked:', {
+      batch: batch,
+      batchId: batch.id,
+      students: batch.students,
+      studentsLength: batch.students?.length || 0,
+      allBatchFields: Object.keys(batch)
+    });
+    
     setSelectedBatch(batch);
-    const students = batch.students || [];
-
-    // Debug: Log student data structure to see available fields
-    if (students.length > 0) {
+    setShowStudentModal(true);
+    
+    if (selectedBatch && selectedBatch.id === batch.id && showStudentModal) {
+      console.log('Same batch selected, preserving current student list state');
+      return;
     }
 
+    let students = batch.students || [];
+
+    // If no embedded students but filled seats > 0, fetch from your new API
+    if (students.length === 0 && batch.filledSeats > 0 && batch.id) {
+      console.log('No embedded students found, fetching from new batch students API...');
+      try {
+        const token = localStorage.getItem("authToken");
+        const response = await fetch(
+          `${host}/programme_curriculum/api/batches/${batch.id}/students/`,
+          {
+            headers: { Authorization: `Token ${token}` },
+          }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+
+          const uploadStudents = data.upload_students || [];
+          const academicStudents = data.academic_students || [];
+
+          const combinedStudents = [...uploadStudents, ...academicStudents];
+
+          const seenStudents = new Set();
+          students = combinedStudents.filter(student => {
+
+            const identifier = student.id || 
+                             student.student_id || 
+                             student.jee_app_no || 
+                             student.jeeAppNo ||
+                             student.roll_number || 
+                             student.rollNumber ||
+                             student.institute_email ||
+                             student.instituteEmail ||
+                             `${student.name}_${student.dob || student.date_of_birth}`;
+            
+            if (seenStudents.has(identifier)) {
+              console.log('🔄 DUPLICATE STUDENT REMOVED:', identifier, student.name);
+              return false;
+            }
+            
+            seenStudents.add(identifier);
+            return true;
+          });
+          
+          console.log('Fetched students from new API:', {
+            uploadStudents: uploadStudents.length,
+            academicStudents: academicStudents.length,
+            combinedBeforeDedup: combinedStudents.length,
+            totalStudentsAfterDedup: students.length,
+            totalCount: data.total_students
+          });
+        } else {
+          console.error('Failed to fetch students:', response.status);
+          console.log('Attempting to fetch batch with students from main API...');
+          await fetchBatchesWithStudents(batch);
+        }
+      } catch (error) {
+        console.error('Error fetching students:', error);
+        await fetchBatchesWithStudents(batch);
+      }
+    }
     setStudentList(students);
-    setShowStudentModal(true);
   };
 
-  // Handle reported status toggle for students
-  const handleReportedStatusToggle = async (studentId, currentStatus) => {
+  // Fallback function to fetch batch with students from main API
+  const fetchBatchesWithStudents = async (targetBatch) => {
+    try {
+      console.log('Fetching batch with students from main API as fallback...');
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(
+        `${host}/programme_curriculum/api/admin_batches/`,
+        {
+          headers: { Authorization: `Token ${token}` },
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        const batch = data.find(b => b.id === targetBatch.id);
+        
+        if (batch && (batch.students || batch.upload_students || batch.academic_students)) {
+          let students = batch.students || [];
+          
+          // If students are in separate arrays, combine and deduplicate
+          if (!students.length && (batch.upload_students || batch.academic_students)) {
+            const uploadStudents = batch.upload_students || [];
+            const academicStudents = batch.academic_students || [];
+            const combinedStudents = [...uploadStudents, ...academicStudents];
+            
+            const seenStudents = new Set();
+            students = combinedStudents.filter(student => {
+              const identifier = student.id || 
+                               student.student_id || 
+                               student.jee_app_no || 
+                               student.jeeAppNo ||
+                               student.roll_number || 
+                               student.rollNumber ||
+                               `${student.name}_${student.dob || student.date_of_birth}`;
+              
+              if (seenStudents.has(identifier)) {
+                return false;
+              }
+              seenStudents.add(identifier);
+              return true;
+            });
+          }
+          
+          console.log('Fallback: Found students from main API:', students.length);
+          setStudentList(students);
+        } else {
+          console.log('Fallback: No students found in main API response');
+          setStudentList([]);
+        }
+      } else {
+        console.error('Fallback API also failed:', response.status);
+        setStudentList([]);
+      }
+    } catch (error) {
+      console.error('Fallback fetch error:', error);
+      setStudentList([]);
+    }
+  };
+
+  // API function to update student reported status
+  const updateStudentStatus = async (requestData) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      
+      const payload = {
+        studentId: requestData.studentId,  
+        reportedStatus: requestData.newStatus || requestData.reportedStatus, 
+        batchId: requestData.batchId || selectedBatch?.id           
+      };
+      
+      console.log('🔍 FRONTEND DEBUG - Sending payload:', payload);
+
+      const response = await fetch(
+        `${host}/programme_curriculum/api/admin_update_student_status/`,
+        {
+          method: 'POST',
+          headers: { 
+            Authorization: `Token ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Student status updated successfully:', data);
+        return { success: true, data };
+      } else {
+        console.error('❌ Failed to update student status:', response.status);
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, error: errorData };
+      }
+      
+    } catch (error) {
+      console.error('❌ Error updating student status:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Handle reported status change for students (now supports three states)
+  const handleReportedStatusChange = async (studentId, newStatus) => {
     setUpdatingReportStatus(studentId);
 
     try {
-      const newStatus =
-        currentStatus === "REPORTED" ? "NOT_REPORTED" : "REPORTED";
-
       const requestData = {
         studentId: studentId,
-        reportedStatus: newStatus,
+        newStatus: newStatus,
+        batchId: selectedBatch.id,
       };
 
       const result = await updateStudentStatus(requestData);
 
       if (result.success) {
-        // Update student list state
         setStudentList((prev) =>
           prev.map((student) =>
-            student.id === studentId
-              ? { ...student, reportedStatus: newStatus }
+            (student.id === studentId || student.student_id === studentId)
+              ? { 
+                  ...student, 
+                  reportedStatus: newStatus,
+                  reported_status: newStatus 
+                }
               : student,
           ),
         );
@@ -2829,7 +3881,7 @@ const AdminUpcomingBatch = () => {
                 ...batch,
                 students: batch.students.map((student) =>
                   student.id === studentId
-                    ? { ...student, reportedStatus: newStatus }
+                    ? { ...student, reportedStatus: newStatus, reported_status: newStatus }
                     : student,
                 ),
               };
@@ -2865,7 +3917,173 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  // Handle export functionality - Now connected to backend
+  // Legacy toggle function for backward compatibility (simplified to 2-state toggle)
+  const handleReportedStatusToggle = async (studentId, currentStatus) => {
+    const newStatus = currentStatus === "REPORTED" ? "NOT_REPORTED" : "REPORTED";
+    await handleReportedStatusChange(studentId, newStatus);
+  };
+
+  // Helper function to get status display properties
+  const getStatusProperties = (status) => {
+    switch (status) {
+      case "REPORTED":
+        return { 
+          color: "green", 
+          variant: "filled", 
+          icon: "✓", 
+          label: "Reported" 
+        };
+      case "WITHDRAWAL":
+        return { 
+          color: "red", 
+          variant: "filled", 
+          icon: "⚠", 
+          label: "Withdrawal" 
+        };
+      case "NOT_REPORTED":
+      default:
+        return { 
+          color: "orange", 
+          variant: "outline", 
+          icon: "○", 
+          label: "Not Reported" 
+        };
+    }
+  };
+
+  // Bulk selection functionality
+  const handleSelectStudent = (studentId) => {
+    const newSelected = new Set(selectedStudents);
+    if (newSelected.has(studentId)) {
+      newSelected.delete(studentId);
+    } else {
+      newSelected.add(studentId);
+    }
+    setSelectedStudents(newSelected);
+    
+    // Update "select all" state
+    const allStudentIds = getFilteredStudents().map(student => student.id || student.student_id);
+    setIsAllSelected(allStudentIds.length > 0 && allStudentIds.every(id => newSelected.has(id)));
+  };
+
+  const handleSelectAll = () => {
+    const allStudentIds = getFilteredStudents().map(student => student.id || student.student_id);
+    if (isAllSelected) {
+      setSelectedStudents(new Set());
+      setIsAllSelected(false);
+    } else {
+      setSelectedStudents(new Set(allStudentIds));
+      setIsAllSelected(true);
+    }
+  };
+
+  // Generalized bulk status change function
+  const handleBulkStatusChange = async (newStatus) => {
+    if (selectedStudents.size === 0) {
+      notifications.show({
+        title: "No Selection",
+        message: "Please select at least one student to update.",
+        color: "orange",
+      });
+      return;
+    }
+
+    setIsBulkReporting(true);
+    let successCount = 0;
+    let failureCount = 0;
+
+    try {
+      // Process each selected student
+      for (const studentId of selectedStudents) {
+        const student = getFilteredStudents().find(s => (s.id || s.student_id) === studentId);
+        if (student) {
+          try {
+            const result = await updateStudentStatus({
+              studentId: studentId,
+              reportedStatus: newStatus,
+              batchId: selectedBatch.id,
+            });
+
+            if (result.success) {
+              successCount++;
+              setStudentList(prevList =>
+                prevList.map(student =>
+                  (student.id || student.student_id) === studentId
+                    ? { ...student, reportedStatus: newStatus, reported_status: newStatus }
+                    : student
+                )
+              );
+
+              const updateBatchData = (batchArray) =>
+                batchArray.map((batch) => ({
+                  ...batch,
+                  students: batch.students?.map((student) =>
+                    (student.id || student.student_id) === studentId
+                      ? { ...student, reportedStatus: newStatus, reported_status: newStatus }
+                      : student
+                  ),
+                }));
+
+              setUgBatches(updateBatchData);
+              setPgBatches(updateBatchData);
+              setPhdBatches(updateBatchData);
+            } else {
+              failureCount++;
+            }
+          } catch (error) {
+            failureCount++;
+          }
+        }
+      }
+
+      const statusLabel = newStatus.replace('_', ' ').toLowerCase();
+      
+      // Show results notification
+      if (successCount > 0 && failureCount === 0) {
+        notifications.show({
+          title: "Bulk Status Update Completed",
+          message: `Successfully updated ${successCount} students to ${statusLabel}.`,
+          color: "green",
+        });
+      } else if (successCount > 0 && failureCount > 0) {
+        notifications.show({
+          title: "Partial Success",
+          message: `Updated ${successCount} students to ${statusLabel} successfully. ${failureCount} failed.`,
+          color: "yellow",
+        });
+      } else {
+        notifications.show({
+          title: "Bulk Status Update Failed",
+          message: `Failed to update students to ${statusLabel}. Please try again.`,
+          color: "red",
+        });
+      }
+
+      // Clear selection after bulk operation
+      setSelectedStudents(new Set());
+      setIsAllSelected(false);
+
+    } catch (error) {
+      notifications.show({
+        title: "Error",
+        message: "An error occurred during bulk status update. Please try again.",
+        color: "red",
+      });
+    } finally {
+      setIsBulkReporting(false);
+    }
+  };
+
+  const handleBulkReport = async () => {
+    await handleBulkStatusChange("REPORTED");
+  };
+
+  // Clear selection when batch changes
+  useEffect(() => {
+    setSelectedStudents(new Set());
+    setIsAllSelected(false);
+  }, [selectedBatch]);
+
   const handleExport = async () => {
     try {
       notifications.show({
@@ -2874,18 +4092,16 @@ const AdminUpcomingBatch = () => {
         color: "blue",
       });
 
-      // Call backend API to export student data
       const response = await exportStudentData(activeSection, {
-        year: getCurrentBatchYear(),
+        year: selectedBatchYear,
       });
 
-      // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute(
         "download",
-        `${activeSection}_students_${getCurrentBatchYear()}.xlsx`,
+        `${activeSection}_students_${selectedBatchYear}.xlsx`,
       );
       document.body.appendChild(link);
       link.click();
@@ -2908,14 +4124,12 @@ const AdminUpcomingBatch = () => {
 
   // Handle Edit Student
   const handleEditStudent = (student) => {
-    // Set the editing student state - useEffect will handle form data mapping
     setEditingStudent(student);
 
-    // Close student list modal and open edit form
     setShowStudentModal(false);
     setShowAddModal(true);
     setAddMode("manual");
-    setCurrentStep(0); // Start at Basic Info (step 0)
+    setCurrentStep(0); 
 
     notifications.show({
       title: "Edit Mode",
@@ -2954,11 +4168,9 @@ const AdminUpcomingBatch = () => {
     setDeletingStudent(studentId);
 
     try {
-      // Call the real API to delete the student
       const response = await deleteStudent(studentId);
 
       if (response.success) {
-        // Remove student from the list immediately for better UX
         setStudentList((prev) => {
           const updated = prev.filter(
             (s) => (s.id || s.student_id) !== studentId,
@@ -2966,7 +4178,6 @@ const AdminUpcomingBatch = () => {
           return updated;
         });
 
-        // Update batch data in main state
         const updateBatchStudents = (batches) => {
           return batches.map((batch) => {
             if (batch.id === selectedBatch.id) {
@@ -2993,16 +4204,13 @@ const AdminUpcomingBatch = () => {
           setPhdBatches((prev) => updateBatchStudents(prev));
         }
 
-        // Refresh the student list from backend
         if (selectedBatch) {
           await fetchBatchData();
         }
 
-        // Close student modal and return to main batch list
         setShowStudentModal(false);
         setSelectedBatch(null);
 
-        // Refresh the main batch overview to reflect any changes
         try {
           const updatedOverview = await fetchAdminBatchesOverview();
           if (updatedOverview.success) {
@@ -3023,9 +4231,7 @@ const AdminUpcomingBatch = () => {
         throw new Error(response.message || "Failed to delete student");
       }
     } catch (error) {
-      // Revert the optimistic update if there was an error
 
-      // Check for specific error types and provide better user feedback
       let errorMessage = "Failed to delete student";
       let errorTitle = "Error";
 
@@ -3068,13 +4274,10 @@ const AdminUpcomingBatch = () => {
         title: errorTitle,
         message: errorMessage,
         color: "red",
-        autoClose: false, // Keep the error message visible longer
+        autoClose: false, 
       });
 
-      // Force refresh to get current state from backend
       if (selectedBatch) {
-        // TODO: Uncomment when backend is ready
-        // await fetchStudentList(selectedBatch.id);
       }
     } finally {
       setDeletingStudent(null);
@@ -3142,7 +4345,10 @@ const AdminUpcomingBatch = () => {
         >
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <Button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => {
+                setSelectedBatchYear(getCurrentBatchYear());
+                setShowAddModal(true);
+              }}
               style={{
                 backgroundColor: "#3498db",
                 color: "white",
@@ -3151,18 +4357,6 @@ const AdminUpcomingBatch = () => {
               leftSection={<Plus size={16} />}
             >
               Add Students
-            </Button>
-
-            <Button
-              onClick={() => setShowAddBatchModal(true)}
-              variant="outline"
-              style={{
-                borderColor: "#3498db",
-                color: "#3498db",
-              }}
-              leftSection={<Plus size={16} />}
-            >
-              Add Batch
             </Button>
           </div>
 
@@ -3197,23 +4391,42 @@ const AdminUpcomingBatch = () => {
               style={{ minWidth: 150 }}
             />
 
-            {/* Academic Year Indicator */}
+            {/* Academic Year Selector */}
             <div
               style={{
-                padding: "8px 16px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "6px 12px",
                 backgroundColor: "#e7f3ff",
                 border: "1px solid #3498db",
                 borderRadius: "6px",
-                color: "#2c5282",
-                fontSize: "14px",
-                fontWeight: "600",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
               }}
             >
-              <span>📅</span>
-              Academic Year: {getCurrentAcademicYear()}
+              <span style={{ fontSize: "14px", fontWeight: "600", color: "#2c5282" }}>
+                📅 Academic Year:
+              </span>
+              <Select
+                value={viewAcademicYear.toString()}
+                onChange={(value) => setViewAcademicYear(parseInt(value, 10))}
+                data={getViewAcademicYearOptions()}
+                style={{ width: "100px" }}
+                size="xs"
+                variant="unstyled"
+                styles={{
+                  input: {
+                    fontWeight: 600,
+                    color: "#2c5282",
+                    fontSize: "14px",
+                    padding: "0 4px",
+                    minHeight: "auto",
+                    height: "auto",
+                  },
+                  dropdown: {
+                    fontSize: "14px",
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
@@ -3241,7 +4454,7 @@ const AdminUpcomingBatch = () => {
                         borderRight: "1px solid #d3d3d3",
                       }}
                     >
-                      Programme
+                      Name
                     </th>
                     <th
                       style={{
@@ -3253,7 +4466,7 @@ const AdminUpcomingBatch = () => {
                         borderRight: "1px solid #d3d3d3",
                       }}
                     >
-                      Branch
+                      Discipline
                     </th>
                     <th
                       style={{
@@ -3265,7 +4478,19 @@ const AdminUpcomingBatch = () => {
                         borderRight: "1px solid #d3d3d3",
                       }}
                     >
-                      Academic Year
+                      Batch Year
+                    </th>
+                    <th
+                      style={{
+                        padding: "15px 20px",
+                        backgroundColor: "#C5E2F6",
+                        color: "#3498db",
+                        fontSize: "16px",
+                        textAlign: "center",
+                        borderRight: "1px solid #d3d3d3",
+                      }}
+                    >
+                      Curriculum
                     </th>
                     <th
                       style={{
@@ -3302,24 +4527,13 @@ const AdminUpcomingBatch = () => {
                     >
                       Available Seats
                     </th>
-                    <th
-                      style={{
-                        padding: "15px 20px",
-                        backgroundColor: "#C5E2F6",
-                        color: "#3498db",
-                        fontSize: "16px",
-                        textAlign: "center",
-                      }}
-                    >
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredBatches.length > 0 ? (
-                    filteredBatches.map((batch) => (
+                    filteredBatches.map((batch, index) => (
                       <tr
-                        key={batch.id}
+                        key={batch.id || `batch-${index}`}
                         style={{
                           cursor:
                             editingRow === batch.id ? "default" : "pointer",
@@ -3367,7 +4581,7 @@ const AdminUpcomingBatch = () => {
                               style={{ minWidth: "120px" }}
                             />
                           ) : (
-                            batch.programme
+                            batch.name || batch.programme
                           )}
                         </td>
                         <td
@@ -3424,8 +4638,21 @@ const AdminUpcomingBatch = () => {
                               max="2030"
                             />
                           ) : (
-                            getCurrentAcademicYear()
+                            batch.year
                           )}
+                        </td>
+                        <td
+                          style={{
+                            padding: "15px 20px",
+                            textAlign: "center",
+                            color: "black",
+                            borderRight: "1px solid #d3d3d3",
+                          }}
+                        >
+                          <Badge variant="light" color="cyan" size="sm">
+                            {batch.curriculum || batch.curriculum_name || "N/A"}
+                            {(batch.curriculumVersion || batch.curriculum_version) && ` v${batch.curriculumVersion || batch.curriculum_version}`}
+                          </Badge>
                         </td>
                         <td
                           style={{
@@ -3475,92 +4702,6 @@ const AdminUpcomingBatch = () => {
                           }}
                         >
                           {batch.availableSeats}
-                        </td>
-                        <td
-                          style={{
-                            padding: "15px 20px",
-                            textAlign: "center",
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {editingRow === batch.id ? (
-                            // Show save/cancel buttons when editing
-                            <Flex
-                              direction="row"
-                              justify="center"
-                              align="center"
-                              gap="xs"
-                            >
-                              <ActionIcon
-                                color="green"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation(); // Prevent row click event
-                                  saveEditedRow();
-                                }}
-                                title="Save changes"
-                              >
-                                <Check size={16} />
-                              </ActionIcon>
-                              <ActionIcon
-                                color="red"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation(); // Prevent row click event
-                                  cancelEditing();
-                                }}
-                                title="Cancel editing"
-                              >
-                                <X size={16} />
-                              </ActionIcon>
-                            </Flex>
-                          ) : (
-                            // Show CRUD action buttons when not editing
-                            <Flex
-                              direction="row"
-                              justify="center"
-                              align="center"
-                              gap="xs"
-                            >
-                              <Tooltip
-                                label="Edit Batch"
-                                position="top"
-                                withArrow
-                              >
-                                <ActionIcon
-                                  color="blue"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation(); // Prevent row click event
-                                    startEditingRow(batch);
-                                  }}
-                                  variant="light"
-                                  title="Edit this batch"
-                                >
-                                  <PencilSimple size={16} />
-                                </ActionIcon>
-                              </Tooltip>
-
-                              <Tooltip
-                                label="Delete Batch"
-                                position="top"
-                                withArrow
-                              >
-                                <ActionIcon
-                                  color="red"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation(); // Prevent row click event
-                                    confirmDeleteBatch(batch.id);
-                                  }}
-                                  variant="light"
-                                  title="Delete this batch"
-                                >
-                                  <X size={16} />
-                                </ActionIcon>
-                              </Tooltip>
-                            </Flex>
-                          )}
                         </td>
                       </tr>
                     ))
@@ -3648,35 +4789,22 @@ const AdminUpcomingBatch = () => {
                   Select Student Data Entry Method
                 </Text>
 
-                <Text
-                  size={isMobile ? "xs" : "sm"}
-                  ta="center"
-                  color="dimmed"
-                  style={{
-                    marginBottom: isMobile ? "5px" : "10px",
-                    lineHeight: 1.3,
-                  }}
-                >
-                  Choose your preferred method to add student information to the
-                  system
-                </Text>
-
-                {/* Field Synchronization Alert */}
-                <Alert
-                  color="green"
-                  icon={<Check size={16} />}
-                  style={{ width: "100%" }}
-                >
-                  <Text size="sm" weight={600}>
-                    ✅ Synchronized Field Structure
+                {/* Batch Year Selection */}
+                <Stack spacing="xs" style={{ width: "100%", marginBottom: "20px" }}>
+                  <Group position="center" spacing="md">
+                    <Select
+                      value={selectedBatchYear.toString()}
+                      onChange={(value) => setSelectedBatchYear(parseInt(value, 10))}
+                      data={getBatchYearOptions(activeSection)}
+                      style={{ width: isMobile ? "250px" : "300px" }}
+                      placeholder="Select batch year"
+                      size="sm"
+                    />
+                  </Group>
+                  <Text size="xs" color="dimmed" ta="center">
+                    {selectedBatchYear && `Academic Year: ${batchYearToAcademicYear(selectedBatchYear)}`}
                   </Text>
-                  <Text size="xs" mt={4}>
-                    Both Excel import and manual entry now use the same{" "}
-                    {Object.keys(STUDENT_FIELDS_CONFIG).length} fields. Any data
-                    entered through either method will have the same structure
-                    and compatibility.
-                  </Text>
-                </Alert>
+                </Stack>
 
                 <Grid
                   gutter={isMobile ? "md" : "lg"}
@@ -4579,11 +5707,9 @@ const AdminUpcomingBatch = () => {
                                   setIsProcessing(true);
                                   setShowPreview(false);
 
-                                  // Transform the data to ensure proper field mapping for database
                                   const transformedData =
                                     transformDataForDatabase(extractedData);
 
-                                  // Directly save students to database (with proper field mapping)
                                   const response = await saveStudentsBatch(
                                     transformedData,
                                     activeSection,
@@ -4596,10 +5722,9 @@ const AdminUpcomingBatch = () => {
                                       color: "green",
                                     });
 
-                                    // Reset the form and refresh batch data
                                     setExtractedData([]);
                                     setShowPreview(false);
-                                    fetchBatchData(); // Refresh the main batch overview
+                                    fetchBatchData(); 
                                   } else {
                                     throw new Error(
                                       response.message ||
@@ -4607,7 +5732,6 @@ const AdminUpcomingBatch = () => {
                                     );
                                   }
                                 } catch (error) {
-                                  // Parse duplicate error for user-friendly message
                                   const { title, message } =
                                     parseDuplicateError(
                                       error,
@@ -4683,7 +5807,6 @@ const AdminUpcomingBatch = () => {
                     size={isMobile ? "xs" : "sm"}
                     onClick={() => {
                       if (editingStudent) {
-                        // If we're editing, return to student list
                         setAddMode(null);
                         setEditingStudent(null);
                         setManualFormData(INITIAL_FORM_DATA);
@@ -4692,7 +5815,6 @@ const AdminUpcomingBatch = () => {
                         setShowAddModal(false);
                         setShowStudentModal(true);
                       } else {
-                        // If we're adding, just close the form
                         setAddMode(null);
                         setEditingStudent(null);
                         setManualFormData(INITIAL_FORM_DATA);
@@ -4780,88 +5902,48 @@ const AdminUpcomingBatch = () => {
                         {/* Gender and Category */}
                         <Grid>
                           <Grid.Col span={isMobile ? 12 : 6}>
-                            {editingStudent ? (
-                              <div>
-                                <Text size="sm" weight={500} mb={5}>
-                                  {STUDENT_FIELDS_CONFIG.gender.label}{" "}
-                                  (Read-only)
-                                </Text>
-                                <Text
-                                  size="sm"
-                                  p="xs"
-                                  style={{
-                                    border: "1px solid #ced4da",
-                                    borderRadius: "4px",
-                                    backgroundColor: "#f8f9fa",
-                                    color: "#6c757d",
-                                  }}
-                                >
-                                  {editingStudent.gender ||
-                                    editingStudent.Gender ||
-                                    "Not specified"}
-                                </Text>
-                              </div>
-                            ) : (
-                              <Select
-                                label={STUDENT_FIELDS_CONFIG.gender.label}
-                                placeholder={
-                                  STUDENT_FIELDS_CONFIG.gender.placeholder
-                                }
-                                value={manualFormData.gender}
-                                onChange={(value) =>
-                                  setManualFormData({
-                                    ...manualFormData,
-                                    gender: value,
-                                  })
-                                }
-                                data={STUDENT_FIELDS_CONFIG.gender.options}
-                                required={STUDENT_FIELDS_CONFIG.gender.required}
-                                error={errors.gender}
-                              />
-                            )}
+                            <Select
+                              label={STUDENT_FIELDS_CONFIG.gender.label}
+                              placeholder={
+                                STUDENT_FIELDS_CONFIG.gender.placeholder
+                              }
+                              value={manualFormData.gender || ""}
+                              onChange={(value) =>
+                                setManualFormData({
+                                  ...manualFormData,
+                                  gender: value,
+                                })
+                              }
+                              data={STUDENT_FIELDS_CONFIG.gender.options}
+                              required={STUDENT_FIELDS_CONFIG.gender.required}
+                              error={errors.gender}
+                            />
                           </Grid.Col>
                           <Grid.Col span={isMobile ? 12 : 6}>
-                            {editingStudent ? (
-                              <div>
-                                <Text size="sm" weight={500} mb={5}>
-                                  {STUDENT_FIELDS_CONFIG.category.label}{" "}
-                                  (Read-only)
-                                </Text>
-                                <Text
-                                  size="sm"
-                                  p="xs"
-                                  style={{
-                                    border: "1px solid #ced4da",
-                                    borderRadius: "4px",
-                                    backgroundColor: "#f8f9fa",
-                                    color: "#6c757d",
-                                  }}
-                                >
-                                  {editingStudent.category ||
-                                    editingStudent.Category ||
-                                    "Not specified"}
-                                </Text>
-                              </div>
-                            ) : (
-                              <Select
-                                label={STUDENT_FIELDS_CONFIG.category.label}
-                                placeholder={
-                                  STUDENT_FIELDS_CONFIG.category.placeholder
-                                }
-                                value={manualFormData.category}
-                                onChange={(value) =>
-                                  setManualFormData({
-                                    ...manualFormData,
+                            <Select
+                              label={STUDENT_FIELDS_CONFIG.category.label}
+                              placeholder={
+                                STUDENT_FIELDS_CONFIG.category.placeholder
+                              }
+                              value={manualFormData.category || ""}
+                              onChange={(value) => {
+                                if (editingStudent) {
+                                  setEditingStudent({
+                                    ...editingStudent,
                                     category: value,
-                                  })
+                                  });
                                 }
-                                data={STUDENT_FIELDS_CONFIG.category.options}
-                                required={
-                                  STUDENT_FIELDS_CONFIG.category.required
-                                }
-                                error={errors.category}
-                              />
-                            )}
+                                setManualFormData({
+                                  ...manualFormData,
+                                  category: value,
+                                });
+                              }}
+                              data={STUDENT_FIELDS_CONFIG.category.options}
+                              required={
+                                STUDENT_FIELDS_CONFIG.category.required
+                              }
+                              error={errors.category}
+                            />
                           </Grid.Col>
                         </Grid>
 
@@ -4921,44 +6003,22 @@ const AdminUpcomingBatch = () => {
                         {/* PWD and Date of Birth */}
                         <Grid>
                           <Grid.Col span={isMobile ? 12 : 6}>
-                            {editingStudent ? (
-                              <div>
-                                <Text size="sm" weight={500} mb={5}>
-                                  {STUDENT_FIELDS_CONFIG.pwd.label} (Read-only)
-                                </Text>
-                                <Text
-                                  size="sm"
-                                  p="xs"
-                                  style={{
-                                    border: "1px solid #ced4da",
-                                    borderRadius: "4px",
-                                    backgroundColor: "#f8f9fa",
-                                    color: "#6c757d",
-                                  }}
-                                >
-                                  {editingStudent.pwd ||
-                                    editingStudent.PWD ||
-                                    "Not specified"}
-                                </Text>
-                              </div>
-                            ) : (
-                              <Select
-                                label={STUDENT_FIELDS_CONFIG.pwd.label}
-                                placeholder={
-                                  STUDENT_FIELDS_CONFIG.pwd.placeholder
-                                }
-                                value={manualFormData.pwd}
-                                onChange={(value) =>
-                                  setManualFormData({
-                                    ...manualFormData,
-                                    pwd: value,
-                                  })
-                                }
-                                data={STUDENT_FIELDS_CONFIG.pwd.options}
-                                required={STUDENT_FIELDS_CONFIG.pwd.required}
-                                error={errors.pwd}
-                              />
-                            )}
+                            <Select
+                              label={STUDENT_FIELDS_CONFIG.pwd.label}
+                              placeholder={
+                                STUDENT_FIELDS_CONFIG.pwd.placeholder
+                              }
+                              value={manualFormData.pwd || ""}
+                              onChange={(value) =>
+                                setManualFormData({
+                                  ...manualFormData,
+                                  pwd: value,
+                                })
+                              }
+                              data={STUDENT_FIELDS_CONFIG.pwd.options}
+                              required={STUDENT_FIELDS_CONFIG.pwd.required}
+                              error={errors.pwd}
+                            />
                           </Grid.Col>
                           <Grid.Col span={isMobile ? 12 : 6}>
                             <TextInput
@@ -5137,123 +6197,19 @@ const AdminUpcomingBatch = () => {
                         </Title>
 
                         {/* Branch Selection */}
-                        {editingStudent ? (
-                          <div>
-                            <Text size="sm" weight={500} mb={5}>
-                              {STUDENT_FIELDS_CONFIG.branch.label} (Read-only)
-                            </Text>
-                            <Text
-                              size="sm"
-                              p="xs"
-                              style={{
-                                border: "1px solid #ced4da",
-                                borderRadius: "4px",
-                                backgroundColor: "#f8f9fa",
-                                color: "#6c757d",
-                              }}
-                            >
-                              {editingStudent.branch ||
-                                editingStudent.Branch ||
-                                editingStudent.discipline ||
-                                editingStudent.Discipline ||
-                                "Not specified"}
-                            </Text>
-                          </div>
-                        ) : (
-                          <Select
-                            label={STUDENT_FIELDS_CONFIG.branch.label}
-                            placeholder={
-                              STUDENT_FIELDS_CONFIG.branch.placeholder
-                            }
-                            value={manualFormData.branch}
-                            onChange={(value) =>
-                              setManualFormData({
-                                ...manualFormData,
-                                branch: value,
-                              })
-                            }
-                            data={
-                              activeSection === "ug"
-                                ? [
-                                    {
-                                      value:
-                                        "Computer Science and Engineering (B.Tech)",
-                                      label: "CSE",
-                                    },
-                                    {
-                                      value:
-                                        "Electronics and Communication Engineering (B.Tech)",
-                                      label: "ECE",
-                                    },
-                                    {
-                                      value: "Mechanical Engineering (B.Tech)",
-                                      label: "ME",
-                                    },
-                                    {
-                                      value: "Smart Manufacturing (B.Tech)",
-                                      label: "SM",
-                                    },
-                                    {
-                                      value: "Design (B.Des)",
-                                      label: "Design",
-                                    },
-                                  ]
-                                : activeSection === "pg"
-                                  ? [
-                                      {
-                                        value:
-                                          "Computer Science and Engineering (M.Tech)",
-                                        label: "CSE",
-                                      },
-                                      {
-                                        value:
-                                          "Electronics and Communication Engineering (M.Tech)",
-                                        label: "ECE",
-                                      },
-                                      {
-                                        value:
-                                          "Mechanical Engineering (M.Tech)",
-                                        label: "ME",
-                                      },
-                                      {
-                                        value: "Smart Manufacturing (M.Tech)",
-                                        label: "SM",
-                                      },
-                                      {
-                                        value: "Design (M.Des)",
-                                        label: "Design",
-                                      },
-                                    ]
-                                  : [
-                                      {
-                                        value:
-                                          "Computer Science and Engineering (PhD)",
-                                        label: "CSE",
-                                      },
-                                      {
-                                        value:
-                                          "Electronics and Communication Engineering (PhD)",
-                                        label: "ECE",
-                                      },
-                                      {
-                                        value: "Mechanical Engineering (PhD)",
-                                        label: "ME",
-                                      },
-                                      {
-                                        value: "Smart Manufacturing (PhD)",
-                                        label: "SM",
-                                      },
-                                      {
-                                        value: "Design (PhD)",
-                                        label: "Design",
-                                      },
-                                    ]
-                            }
-                            required={STUDENT_FIELDS_CONFIG.branch.required}
-                            error={errors.branch}
-                          />
-                        )}
-
+                        <TextInput
+                          label={STUDENT_FIELDS_CONFIG.branch.label}
+                          placeholder="Enter branch/discipline"
+                          value={manualFormData.branch || ""}
+                          onChange={(e) =>
+                            setManualFormData({
+                              ...manualFormData,
+                              branch: e.target.value,
+                            })
+                          }
+                          required={STUDENT_FIELDS_CONFIG.branch.required}
+                          error={errors.branch}
+                        />
                         {/* AI Rank and Category Rank */}
                         <Grid>
                           <Grid.Col span={isMobile ? 12 : 6}>
@@ -5299,104 +6255,47 @@ const AdminUpcomingBatch = () => {
                         {/* Allotted Category and Gender */}
                         <Grid>
                           <Grid.Col span={isMobile ? 12 : 6}>
-                            {editingStudent ? (
-                              <div>
-                                <Text size="sm" weight={500} mb={5}>
-                                  {STUDENT_FIELDS_CONFIG.allottedCategory.label}{" "}
-                                  (Read-only)
-                                </Text>
-                                <Text
-                                  size="sm"
-                                  p="xs"
-                                  style={{
-                                    border: "1px solid #ced4da",
-                                    borderRadius: "4px",
-                                    backgroundColor: "#f8f9fa",
-                                    color: "#6c757d",
-                                  }}
-                                >
-                                  {editingStudent.allottedCategory ||
-                                    editingStudent.allottedcat ||
-                                    editingStudent.allotted_category ||
-                                    editingStudent["Allotted Cat"] ||
-                                    "Not specified"}
-                                </Text>
-                              </div>
-                            ) : (
-                              <Select
-                                label={
-                                  STUDENT_FIELDS_CONFIG.allottedCategory.label
-                                }
-                                placeholder={
-                                  STUDENT_FIELDS_CONFIG.allottedCategory
-                                    .placeholder
-                                }
-                                value={manualFormData.allottedCategory}
-                                onChange={(value) =>
-                                  setManualFormData({
-                                    ...manualFormData,
-                                    allottedCategory: value,
-                                  })
-                                }
-                                data={
-                                  STUDENT_FIELDS_CONFIG.allottedCategory.options
-                                }
-                                required={
-                                  STUDENT_FIELDS_CONFIG.allottedCategory
-                                    .required
-                                }
-                                error={errors.allottedCategory}
-                              />
-                            )}
+                            <TextInput
+                              label={STUDENT_FIELDS_CONFIG.allottedCategory.label}
+                              placeholder={
+                                STUDENT_FIELDS_CONFIG.allottedCategory.placeholder
+                              }
+                              value={manualFormData.allottedCategory || ""}
+                              onChange={(e) =>
+                                setManualFormData({
+                                  ...manualFormData,
+                                  allottedCategory: e.target.value,
+                                })
+                              }
+                              required={
+                                STUDENT_FIELDS_CONFIG.allottedCategory.required
+                              }
+                              error={errors.allottedCategory}
+                            />
                           </Grid.Col>
                           <Grid.Col span={isMobile ? 12 : 6}>
-                            {editingStudent ? (
-                              <div>
-                                <Text size="sm" weight={500} mb={5}>
-                                  {STUDENT_FIELDS_CONFIG.allottedGender.label}{" "}
-                                  (Read-only)
-                                </Text>
-                                <Text
-                                  size="sm"
-                                  p="xs"
-                                  style={{
-                                    border: "1px solid #ced4da",
-                                    borderRadius: "4px",
-                                    backgroundColor: "#f8f9fa",
-                                    color: "#6c757d",
-                                  }}
-                                >
-                                  {editingStudent.allottedGender ||
-                                    editingStudent.allotted_gender ||
-                                    editingStudent["Allotted Gender"] ||
-                                    "Not specified"}
-                                </Text>
-                              </div>
-                            ) : (
-                              <Select
-                                label={
-                                  STUDENT_FIELDS_CONFIG.allottedGender.label
-                                }
-                                placeholder={
-                                  STUDENT_FIELDS_CONFIG.allottedGender
-                                    .placeholder
-                                }
-                                value={manualFormData.allottedGender}
-                                onChange={(value) =>
-                                  setManualFormData({
-                                    ...manualFormData,
-                                    allottedGender: value,
-                                  })
-                                }
-                                data={
-                                  STUDENT_FIELDS_CONFIG.allottedGender.options
-                                }
-                                required={
-                                  STUDENT_FIELDS_CONFIG.allottedGender.required
-                                }
-                                error={errors.allottedGender}
-                              />
-                            )}
+                            <Select
+                              label={
+                                STUDENT_FIELDS_CONFIG.allottedGender.label
+                              }
+                              placeholder={
+                                STUDENT_FIELDS_CONFIG.allottedGender.placeholder
+                              }
+                              value={manualFormData.allottedGender || ""}
+                              onChange={(value) =>
+                                setManualFormData({
+                                  ...manualFormData,
+                                  allottedGender: value,
+                                })
+                              }
+                              data={
+                                STUDENT_FIELDS_CONFIG.allottedGender.options
+                              }
+                              required={
+                                STUDENT_FIELDS_CONFIG.allottedGender.required
+                              }
+                              error={errors.allottedGender}
+                            />
                           </Grid.Col>
                         </Grid>
 
@@ -5450,155 +6349,277 @@ const AdminUpcomingBatch = () => {
                       description="Verify details"
                       icon={<Check size={18} />}
                     >
-                      <Stack spacing="md" mt="lg">
-                        <Title order={3} size="h4" weight={700} mb="md">
-                          Review & Submit
-                        </Title>
-
-                        <div
-                          style={{
-                            backgroundColor: "#f8f9fa",
-                            padding: "15px",
-                            borderRadius: "8px",
-                          }}
-                        >
-                          <Text weight={600} mb="xs">
-                            Basic Information
+                      <Stack spacing="lg" mt="lg">
+                        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+                          <Title order={2} size="h3" weight={700} mb="xs" color="#2c3e50">
+                            📋 Review & Submit
+                          </Title>
+                          <Text size="md" color="dimmed">
+                            Please review all the information below before submitting
                           </Text>
-                          <Text size="sm">
-                            <strong>Name:</strong> {manualFormData.name}
-                          </Text>
-                          <Text size="sm">
-                            <strong>Father Name:</strong> {manualFormData.fname}
-                          </Text>
-                          <Text size="sm">
-                            <strong>Mother Name:</strong> {manualFormData.mname}
-                          </Text>
-                          <Text size="sm">
-                            <strong>Gender:</strong> {manualFormData.gender}
-                          </Text>
-                          <Text size="sm">
-                            <strong>Category:</strong> {manualFormData.category}
-                          </Text>
-                          {manualFormData.phoneNumber && (
-                            <Text size="sm">
-                              <strong>Phone Number:</strong>{" "}
-                              {manualFormData.phoneNumber}
-                            </Text>
-                          )}
-                          {manualFormData.email && (
-                            <Text size="sm">
-                              <strong>Personal Email:</strong>{" "}
-                              {manualFormData.email}
-                            </Text>
-                          )}
                         </div>
 
+                        {/* Basic Information Card */}
                         <div
                           style={{
-                            backgroundColor: "#f8f9fa",
-                            padding: "15px",
-                            borderRadius: "8px",
+                            backgroundColor: "#ffffff",
+                            padding: "20px",
+                            borderRadius: "12px",
+                            border: "1px solid #e9ecef",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                           }}
                         >
-                          <Text weight={600} mb="xs">
-                            Additional Information
-                          </Text>
-                          <Text size="sm">
-                            <strong>PWD:</strong> {manualFormData.pwd}
-                          </Text>
-                          {manualFormData.dob && (
-                            <Text size="sm">
-                              <strong>Date of Birth:</strong>{" "}
-                              {manualFormData.dob}
-                            </Text>
-                          )}
-                          <Text size="sm">
-                            <strong>JEE App. No.:</strong>{" "}
-                            {manualFormData.jeeAppNo}
-                          </Text>
-                          <Text size="sm">
-                            <strong>Address:</strong> {manualFormData.address}
-                          </Text>
-                          {manualFormData.fatherOccupation && (
-                            <Text size="sm">
-                              <strong>Father's Occupation:</strong>{" "}
-                              {manualFormData.fatherOccupation}
-                            </Text>
-                          )}
-                          {manualFormData.fatherMobile && (
-                            <Text size="sm">
-                              <strong>Father's Mobile:</strong>{" "}
-                              {manualFormData.fatherMobile}
-                            </Text>
-                          )}
-                          {manualFormData.motherOccupation && (
-                            <Text size="sm">
-                              <strong>Mother's Occupation:</strong>{" "}
-                              {manualFormData.motherOccupation}
-                            </Text>
-                          )}
-                          {manualFormData.motherMobile && (
-                            <Text size="sm">
-                              <strong>Mother's Mobile:</strong>{" "}
-                              {manualFormData.motherMobile}
-                            </Text>
-                          )}
-                          {manualFormData.state && (
-                            <Text size="sm">
-                              <strong>State:</strong> {manualFormData.state}
-                            </Text>
-                          )}
+                          <div style={{ display: "flex", alignItems: "center", marginBottom: "15px" }}>
+                            <div style={{ 
+                              backgroundColor: "#3498db", 
+                              borderRadius: "50%", 
+                              width: "32px", 
+                              height: "32px", 
+                              display: "flex", 
+                              alignItems: "center", 
+                              justifyContent: "center",
+                              marginRight: "12px"
+                            }}>
+                              <Text color="white" size="sm" weight={700}>👤</Text>
+                            </div>
+                            <Title order={4} weight={600} color="#2c3e50">
+                              Basic Information
+                            </Title>
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "12px" }}>
+                            <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                              <Text size="xs" weight={600} color="dimmed" mb={2}>FULL NAME</Text>
+                              <Text size="sm" weight={500}>{manualFormData.name || "Not provided"}</Text>
+                            </div>
+                            <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                              <Text size="xs" weight={600} color="dimmed" mb={2}>FATHER'S NAME</Text>
+                              <Text size="sm" weight={500}>{manualFormData.fname || "Not provided"}</Text>
+                            </div>
+                            <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                              <Text size="xs" weight={600} color="dimmed" mb={2}>MOTHER'S NAME</Text>
+                              <Text size="sm" weight={500}>{manualFormData.mname || "Not provided"}</Text>
+                            </div>
+                            <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                              <Text size="xs" weight={600} color="dimmed" mb={2}>GENDER</Text>
+                              <Text size="sm" weight={500}>{manualFormData.gender || "Not selected"}</Text>
+                            </div>
+                            <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                              <Text size="xs" weight={600} color="dimmed" mb={2}>CATEGORY</Text>
+                              <Text size="sm" weight={500}>{manualFormData.category || "Not selected"}</Text>
+                            </div>
+                            {manualFormData.phoneNumber && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>PHONE NUMBER</Text>
+                                <Text size="sm" weight={500}>{manualFormData.phoneNumber}</Text>
+                              </div>
+                            )}
+                            {manualFormData.email && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>PERSONAL EMAIL</Text>
+                                <Text size="sm" weight={500}>{manualFormData.email}</Text>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
+                        {/* Additional Information Card */}
                         <div
                           style={{
-                            backgroundColor: "#f8f9fa",
-                            padding: "15px",
-                            borderRadius: "8px",
+                            backgroundColor: "#ffffff",
+                            padding: "20px",
+                            borderRadius: "12px",
+                            border: "1px solid #e9ecef",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                           }}
                         >
-                          <Text weight={600} mb="xs">
-                            Academic Information
+                          <div style={{ display: "flex", alignItems: "center", marginBottom: "15px" }}>
+                            <div style={{ 
+                              backgroundColor: "#27ae60", 
+                              borderRadius: "50%", 
+                              width: "32px", 
+                              height: "32px", 
+                              display: "flex", 
+                              alignItems: "center", 
+                              justifyContent: "center",
+                              marginRight: "12px"
+                            }}>
+                              <Text color="white" size="sm" weight={700}>📄</Text>
+                            </div>
+                            <Title order={4} weight={600} color="#2c3e50">
+                              Additional Information
+                            </Title>
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "12px" }}>
+                            <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                              <Text size="xs" weight={600} color="dimmed" mb={2}>PWD STATUS</Text>
+                              <Text size="sm" weight={500}>{manualFormData.pwd || "Not specified"}</Text>
+                            </div>
+                            {manualFormData.dob && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>DATE OF BIRTH</Text>
+                                <Text size="sm" weight={500}>{manualFormData.dob}</Text>
+                              </div>
+                            )}
+                            <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                              <Text size="xs" weight={600} color="dimmed" mb={2}>JEE APPLICATION NO.</Text>
+                              <Text size="sm" weight={500}>{manualFormData.jeeAppNo || "Not provided"}</Text>
+                            </div>
+                            {manualFormData.address && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px", gridColumn: "1 / -1" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>ADDRESS</Text>
+                                <Text size="sm" weight={500}>{manualFormData.address}</Text>
+                              </div>
+                            )}
+                            {manualFormData.state && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>STATE</Text>
+                                <Text size="sm" weight={500}>{manualFormData.state}</Text>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Family Information Card */}
+                        {(manualFormData.fatherOccupation || manualFormData.fatherMobile || manualFormData.motherOccupation || manualFormData.motherMobile) && (
+                          <div
+                            style={{
+                              backgroundColor: "#ffffff",
+                              padding: "20px",
+                              borderRadius: "12px",
+                              border: "1px solid #e9ecef",
+                              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", marginBottom: "15px" }}>
+                              <div style={{ 
+                                backgroundColor: "#e67e22", 
+                                borderRadius: "50%", 
+                                width: "32px", 
+                                height: "32px", 
+                                display: "flex", 
+                                alignItems: "center", 
+                                justifyContent: "center",
+                                marginRight: "12px"
+                              }}>
+                                <Text color="white" size="sm" weight={700}>👨‍👩‍👧‍👦</Text>
+                              </div>
+                              <Title order={4} weight={600} color="#2c3e50">
+                                Family Information
+                              </Title>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "12px" }}>
+                              {manualFormData.fatherOccupation && (
+                                <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                  <Text size="xs" weight={600} color="dimmed" mb={2}>FATHER'S OCCUPATION</Text>
+                                  <Text size="sm" weight={500}>{manualFormData.fatherOccupation}</Text>
+                                </div>
+                              )}
+                              {manualFormData.fatherMobile && (
+                                <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                  <Text size="xs" weight={600} color="dimmed" mb={2}>FATHER'S MOBILE</Text>
+                                  <Text size="sm" weight={500}>{manualFormData.fatherMobile}</Text>
+                                </div>
+                              )}
+                              {manualFormData.motherOccupation && (
+                                <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                  <Text size="xs" weight={600} color="dimmed" mb={2}>MOTHER'S OCCUPATION</Text>
+                                  <Text size="sm" weight={500}>{manualFormData.motherOccupation}</Text>
+                                </div>
+                              )}
+                              {manualFormData.motherMobile && (
+                                <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                  <Text size="xs" weight={600} color="dimmed" mb={2}>MOTHER'S MOBILE</Text>
+                                  <Text size="sm" weight={500}>{manualFormData.motherMobile}</Text>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Academic Information Card */}
+                        <div
+                          style={{
+                            backgroundColor: "#ffffff",
+                            padding: "20px",
+                            borderRadius: "12px",
+                            border: "1px solid #e9ecef",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", marginBottom: "15px" }}>
+                            <div style={{ 
+                              backgroundColor: "#9b59b6", 
+                              borderRadius: "50%", 
+                              width: "32px", 
+                              height: "32px", 
+                              display: "flex", 
+                              alignItems: "center", 
+                              justifyContent: "center",
+                              marginRight: "12px"
+                            }}>
+                              <Text color="white" size="sm" weight={700}>🎓</Text>
+                            </div>
+                            <Title order={4} weight={600} color="#2c3e50">
+                              Academic Information
+                            </Title>
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "12px" }}>
+                            <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                              <Text size="xs" weight={600} color="dimmed" mb={2}>BRANCH</Text>
+                              <Text size="sm" weight={500}>{manualFormData.branch || "Not selected"}</Text>
+                            </div>
+                            {manualFormData.jeeRank && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>AI RANK</Text>
+                                <Text size="sm" weight={500}>{manualFormData.jeeRank}</Text>
+                              </div>
+                            )}
+                            {manualFormData.categoryRank && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>CATEGORY RANK</Text>
+                                <Text size="sm" weight={500}>{manualFormData.categoryRank}</Text>
+                              </div>
+                            )}
+                            {manualFormData.allottedCategory && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>ALLOTTED CATEGORY</Text>
+                                <Text size="sm" weight={500}>{manualFormData.allottedCategory}</Text>
+                              </div>
+                            )}
+                            {manualFormData.allottedGender && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>ALLOTTED GENDER</Text>
+                                <Text size="sm" weight={500}>{manualFormData.allottedGender}</Text>
+                              </div>
+                            )}
+                            {manualFormData.rollNumber && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>INSTITUTE ROLL NUMBER</Text>
+                                <Text size="sm" weight={500}>{manualFormData.rollNumber}</Text>
+                              </div>
+                            )}
+                            {manualFormData.instituteEmail && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>INSTITUTE EMAIL ID</Text>
+                                <Text size="sm" weight={500}>{manualFormData.instituteEmail}</Text>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Confirmation Message */}
+                        <div
+                          style={{
+                            backgroundColor: "#d4edda",
+                            padding: "15px",
+                            borderRadius: "8px",
+                            border: "1px solid #c3e6cb",
+                            textAlign: "center",
+                          }}
+                        >
+                          <Text size="sm" color="#155724" weight={500}>
+                            ✅ Please verify all the information above is correct before submitting
                           </Text>
-                          <Text size="sm">
-                            <strong>Branch:</strong> {manualFormData.branch}
-                          </Text>
-                          {manualFormData.jeeRank && (
-                            <Text size="sm">
-                              <strong>AI Rank:</strong> {manualFormData.jeeRank}
-                            </Text>
-                          )}
-                          {manualFormData.categoryRank && (
-                            <Text size="sm">
-                              <strong>Category Rank:</strong>{" "}
-                              {manualFormData.categoryRank}
-                            </Text>
-                          )}
-                          {manualFormData.allottedCategory && (
-                            <Text size="sm">
-                              <strong>Allotted Category:</strong>{" "}
-                              {manualFormData.allottedCategory}
-                            </Text>
-                          )}
-                          {manualFormData.allottedGender && (
-                            <Text size="sm">
-                              <strong>Allotted Gender:</strong>{" "}
-                              {manualFormData.allottedGender}
-                            </Text>
-                          )}
-                          {manualFormData.rollNumber && (
-                            <Text size="sm">
-                              <strong>Institute Roll Number:</strong>{" "}
-                              {manualFormData.rollNumber}
-                            </Text>
-                          )}
-                          {manualFormData.instituteEmail && (
-                            <Text size="sm">
-                              <strong>Institute Email ID:</strong>{" "}
-                              {manualFormData.instituteEmail}
-                            </Text>
-                          )}
                         </div>
                       </Stack>
                     </Stepper.Step>
@@ -5746,6 +6767,47 @@ const AdminUpcomingBatch = () => {
                     Showing {getFilteredStudents().length} of{" "}
                     {studentList.length} students
                   </Text>
+                  {/* Bulk Status Change Buttons */}
+                  {isViewingCurrentYear() && selectedStudents.size > 0 && (
+                    <Group spacing="sm">
+                      <Button
+                        leftSection={<Check size={18} />}
+                        onClick={() => handleBulkStatusChange("REPORTED")}
+                        disabled={isBulkReporting}
+                        loading={isBulkReporting}
+                        variant="filled"
+                        color="green"
+                        size="md"
+                        radius="md"
+                        style={{
+                          fontWeight: 500,
+                          backgroundColor: "#16a34a",
+                          minWidth: "130px",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        Report ({selectedStudents.size})
+                      </Button>
+                      <Button
+                        leftSection={<Warning size={18} />}
+                        onClick={() => handleBulkStatusChange("WITHDRAWAL")}
+                        disabled={isBulkReporting}
+                        loading={isBulkReporting}
+                        variant="filled"
+                        color="red"
+                        size="md"
+                        radius="md"
+                        style={{
+                          fontWeight: 500,
+                          backgroundColor: "#dc2626",
+                          minWidth: "130px",
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        Withdraw ({selectedStudents.size})
+                      </Button>
+                    </Group>
+                  )}
                   <Button
                     leftSection={<Download size={18} />}
                     onClick={() => setShowExportModal(true)}
@@ -5800,7 +6862,7 @@ const AdminUpcomingBatch = () => {
                             color: "#1e293b",
                             width: "60px",
                             position: "sticky",
-                            left: 0,
+                            left: "0px",
                             backgroundColor: "#f8fafc",
                             zIndex: 20,
                             borderRight: "2px solid #e2e8f0",
@@ -5816,24 +6878,30 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "160px",
+                            width: "140px",
+                            position: "sticky",
+                            left: "60px", // Position after S.No column
+                            backgroundColor: "#f8fafc",
+                            zIndex: 20,
+                            borderRight: "2px solid #e2e8f0",
                             fontWeight: "bold",
                             fontSize: "13px",
+                            borderBottom: "2px solid #e2e8f0",
                           }}
                         >
-                          JEE Application
+                          Roll Number
                         </th>
                         <th
                           style={{
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "140px",
+                            width: "160px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
                         >
-                          Roll Number
+                          JEE Application
                         </th>
                         <th
                           style={{
@@ -6087,36 +7155,62 @@ const AdminUpcomingBatch = () => {
                         >
                           Address
                         </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            width: "130px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Status
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            width: "150px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Actions
-                        </th>
+                        {isViewingCurrentYear() && (
+                          <th
+                            style={{
+                              padding: "16px 12px",
+                              textAlign: "center",
+                              color: "#1e293b",
+                              width: "150px",
+                              fontWeight: "bold",
+                              fontSize: "13px",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                              <span>Status</span>
+                              <Checkbox
+                                checked={isAllSelected}
+                                indeterminate={
+                                  selectedStudents.size > 0 && !isAllSelected
+                                }
+                                onChange={handleSelectAll}
+                                size="sm"
+                                color="blue"
+                                label=""
+                                aria-label="Select all students"
+                              />
+                            </div>
+                          </th>
+                        )}
+                        {isViewingCurrentYear() && (
+                          <th
+                            style={{
+                              padding: "16px 12px",
+                              textAlign: "center",
+                              color: "#1e293b",
+                              width: "150px",
+                              fontWeight: "bold",
+                              fontSize: "13px",
+                            }}
+                          >
+                            Actions
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
-                      {getFilteredStudents().map((student, index) => (
+                      {getFilteredStudents().map((student, index) => {
+                        const uniqueKey = student.id || 
+                                        student.student_id || 
+                                        student.jee_app_no || 
+                                        student.jeeAppNo ||
+                                        student.roll_number || 
+                                        student.rollNumber ||
+                                        `student_${index}_${student.name}_${student.dob || student.date_of_birth}`;
+                        
+                        return (
                         <tr
-                          key={student.id || student.student_id || index}
+                          key={uniqueKey}
                           style={{
                             cursor: "pointer",
                             transition: "background-color 0.2s ease",
@@ -6135,7 +7229,7 @@ const AdminUpcomingBatch = () => {
                               padding: "14px 12px",
                               textAlign: "center",
                               position: "sticky",
-                              left: 0,
+                              left: "0px",
                               backgroundColor: "#ffffff",
                               zIndex: 10,
                               fontWeight: "bold",
@@ -6145,6 +7239,25 @@ const AdminUpcomingBatch = () => {
                             }}
                           >
                             {index + 1}
+                          </td>
+                          <td
+                            style={{
+                              padding: "14px 12px",
+                              textAlign: "center",
+                              fontSize: "12px",
+                              position: "sticky",
+                              left: "60px",
+                              backgroundColor: "#ffffff",
+                              zIndex: 10,
+                              borderRight: "2px solid #e5e7eb",
+                            }}
+                          >
+                            <Badge color="blue" variant="light" size="sm">
+                              {student["Institute Roll Number"] ||
+                                student.rollNumber ||
+                                student.roll_number ||
+                                "-"}
+                            </Badge>
                           </td>
                           <td
                             style={{
@@ -6161,20 +7274,6 @@ const AdminUpcomingBatch = () => {
                               student.jee_app_no ||
                               student["JEE Main Application Number"] ||
                               "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                            }}
-                          >
-                            <Badge color="blue" variant="light" size="sm">
-                              {student["Institute Roll Number"] ||
-                                student.rollNumber ||
-                                student.roll_number ||
-                                "-"}
-                            </Badge>
                           </td>
                           <td
                             style={{
@@ -6468,85 +7567,110 @@ const AdminUpcomingBatch = () => {
                               student.Address ||
                               "-"}
                           </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                            }}
-                          >
-                            <Button
-                              size="xs"
-                              variant={
-                                student.reportedStatus === "REPORTED"
-                                  ? "filled"
-                                  : "outline"
-                              }
-                              color={
-                                student.reportedStatus === "REPORTED"
-                                  ? "green"
-                                  : "orange"
-                              }
-                              loading={updatingReportStatus === student.id}
-                              onClick={() =>
-                                handleReportedStatusToggle(
-                                  student.id,
-                                  student.reportedStatus,
-                                )
-                              }
+                          {isViewingCurrentYear() && (
+                            <td
                               style={{
-                                minWidth: "110px",
-                                fontSize: "11px",
-                                fontWeight: "500",
+                                padding: "14px 12px",
+                                textAlign: "center",
+                                fontSize: "12px",
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                                {/* Status Display and Selection */}
+                                <div style={{ minWidth: "120px" }}>
+                                  <Select
+                                    size="xs"
+                                    variant="filled"
+                                    data={[
+                                      { value: "NOT_REPORTED", label: "○ Not Reported" },
+                                      { value: "REPORTED", label: "✓ Reported" },
+                                      { value: "WITHDRAWAL", label: "⚠ Withdrawal" }
+                                    ]}
+                                    value={student.reportedStatus || student.reported_status || "NOT_REPORTED"}
+                                    onChange={(value) => handleReportedStatusChange(
+                                      student.id || student.student_id, 
+                                      value
+                                    )}
+                                    disabled={updatingReportStatus === (student.id || student.student_id)}
+                                    styles={(theme) => {
+                                      const currentStatus = student.reportedStatus || student.reported_status || "NOT_REPORTED";
+                                      const statusProps = getStatusProperties(currentStatus);
+                                      return {
+                                        input: {
+                                          backgroundColor: statusProps.color === "green" ? "#d4f7dc" : 
+                                                         statusProps.color === "red" ? "#fde8e8" : "#fef3c7",
+                                          color: statusProps.color === "green" ? "#047857" : 
+                                                statusProps.color === "red" ? "#dc2626" : "#d97706",
+                                          fontSize: "11px",
+                                          fontWeight: "500",
+                                          border: `1px solid ${statusProps.color === "green" ? "#10b981" : 
+                                                               statusProps.color === "red" ? "#ef4444" : "#f59e0b"}`,
+                                          cursor: "pointer"
+                                        },
+                                        dropdown: {
+                                          fontSize: "11px"
+                                        }
+                                      };
+                                    }}
+                                  />
+                                </div>
+                                <Checkbox
+                                  checked={selectedStudents.has(student.id || student.student_id)}
+                                  onChange={() => handleSelectStudent(student.id || student.student_id)}
+                                  size="sm"
+                                  color="blue"
+                                  label=""
+                                  aria-label={`Select student ${student.name || student.Name}`}
+                                />
+                              </div>
+                            </td>
+                          )}
+                          {isViewingCurrentYear() && (
+                            <td
+                              style={{
+                                padding: "14px 12px",
+                                textAlign: "center",
+                                fontSize: "12px",
                               }}
                             >
-                              {student.reportedStatus === "REPORTED"
-                                ? "✓ Reported"
-                                : "○ Not Reported"}
-                            </Button>
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                            }}
-                          >
-                            <Flex gap="8px" justify="center">
-                              <ActionIcon
-                                size="sm"
-                                variant="outline"
-                                color="blue"
-                                loading={
-                                  editingStudent ===
-                                  (student.id || student.student_id)
-                                }
-                                onClick={() => handleEditStudent(student)}
-                                style={{
-                                  borderRadius: "6px",
-                                }}
-                              >
-                                <PencilSimple size={14} />
-                              </ActionIcon>
-                              <ActionIcon
-                                size="sm"
-                                variant="outline"
-                                color="red"
-                                loading={
-                                  deletingStudent ===
-                                  (student.id || student.student_id)
-                                }
-                                onClick={() => handleDeleteStudent(student)}
-                                style={{
-                                  borderRadius: "6px",
-                                }}
-                              >
-                                <X size={14} />
-                              </ActionIcon>
-                            </Flex>
-                          </td>
+                              <Flex gap="8px" justify="center">
+                                <ActionIcon
+                                  size="sm"
+                                  variant="outline"
+                                  color="blue"
+                                  loading={
+                                    editingStudent ===
+                                    (student.id || student.student_id)
+                                  }
+                                  onClick={() => handleEditStudent(student)}
+                                  style={{
+                                    borderRadius: "6px",
+                                  }}
+                                >
+                                  <PencilSimple size={14} />
+                                </ActionIcon>
+                                <ActionIcon
+                                  size="sm"
+                                  variant="outline"
+                                  color="red"
+                                  loading={
+                                    deletingStudent ===
+                                    (student.id || student.student_id)
+                                  }
+                                  onClick={() => handleDeleteStudent(student)}
+                                  style={{
+                                    borderRadius: "6px",
+                                  }}
+                                >
+                                  <X size={14} />
+                                </ActionIcon>
+                              </Flex>
+                            </td>
+                          )}
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </Table>
                 </ScrollArea>
@@ -6565,38 +7689,6 @@ const AdminUpcomingBatch = () => {
                 </Text>
               </Paper>
             )}
-
-            {/* TODO: Backend Implementation Notes for Student List Modal
-                1. API: GET /programme_curriculum/api/students/{batch_id}/
-                   - Fetch all students for a specific batch
-                   - Include pagination for large batches
-                   - Response: { success: true, students: [...], total: number }
-                
-                2. API: PUT /programme_curriculum/api/update-student-status/
-                   - Update student reported status
-                   - Body: { studentId, reportedStatus }
-                   - Log changes with admin user and timestamp
-                   - Response: { success: true, message: "Status updated" }
-                
-                3. CRUD Operations APIs:
-                   - GET /programme_curriculum/api/student/{student_id}/
-                     Response: { success: true, student: {...} }
-                   
-                   - PUT /programme_curriculum/api/student/{student_id}/
-                     Body: { all student fields as per STUDENT_FIELDS_CONFIG }
-                     Response: { success: true, message: "Student updated", student: {...} }
-                   
-                   - DELETE /programme_curriculum/api/student/{student_id}/
-                     Response: { success: true, message: "Student deleted" }
-                     Should also update batch student count and related data
-                
-                4. Additional features to implement in backend:
-                   - Export student list for specific batch
-                   - Send bulk notifications to students
-                   - Generate attendance reports
-                   - Filter students by reported status
-                   - Audit logging for all CRUD operations with user and timestamp
-            */}
           </Stack>
         </Modal>
 
@@ -6689,18 +7781,64 @@ const AdminUpcomingBatch = () => {
         <Modal
           opened={showDeleteConfirm}
           onClose={() => setShowDeleteConfirm(false)}
-          title="Confirm Delete"
-          size="sm"
+          title={
+            <Flex align="center" gap="sm">
+              <ThemeIcon color="red" size="lg">
+                <Trash size={20} />
+              </ThemeIcon>
+              <Text size="lg" weight={600}>
+                Confirm Delete Batch
+              </Text>
+            </Flex>
+          }
+          size="md"
           centered
         >
           <Stack spacing="md">
-            <Text>
-              Are you sure you want to delete this batch? This action cannot be
-              undone.
-            </Text>
-            <Text size="sm" color="dimmed">
-              Note: You can only delete batches with no enrolled students.
-            </Text>
+            {(() => {
+              // Find the batch being deleted to show its details
+              const batchToDelete = [...ugBatches, ...pgBatches, ...phdBatches]
+                .find(batch => batch.id === deletingBatchId);
+              
+              return (
+                <>
+                  <Text>
+                    Are you sure you want to delete this batch? This action cannot be undone.
+                  </Text>
+                  
+                  {batchToDelete && (
+                    <Card withBorder p="md" bg="gray.1">
+                      <Text size="sm" weight={500} mb={8}>
+                        Batch Details:
+                      </Text>
+                      <Text size="sm">
+                        <strong>Name:</strong> {batchToDelete.name || `${batchToDelete.programme} ${batchToDelete.displayBranch || batchToDelete.discipline}`}
+                      </Text>
+                      <Text size="sm">
+                        <strong>Discipline:</strong> {batchToDelete.displayBranch || batchToDelete.discipline}
+                      </Text>
+                      <Text size="sm">
+                        <strong>Year:</strong> {batchToDelete.year}
+                      </Text>
+                      <Text size="sm">
+                        <strong>Total Seats:</strong> {batchToDelete.totalSeats || 0}
+                      </Text>
+                      <Text size="sm">
+                        <strong>Filled Seats:</strong> {batchToDelete.filledSeats || 0}
+                      </Text>
+                    </Card>
+                  )}
+
+                  <Alert icon={<Warning size={16} />} title="Deletion Restrictions" color="orange">
+                    <Text size="sm">
+                      • Cannot delete if this batch has enrolled students<br/>
+                      • Cannot delete if ANY students exist in this discipline across ALL batches<br/>
+                      • The entire discipline must be empty before deletion
+                    </Text>
+                  </Alert>
+                </>
+              );
+            })()}
 
             <Group justify="flex-end" mt="md">
               <Button
@@ -6709,7 +7847,11 @@ const AdminUpcomingBatch = () => {
               >
                 Cancel
               </Button>
-              <Button color="red" onClick={handleDeleteBatch}>
+              <Button 
+                color="red" 
+                onClick={handleDeleteBatch}
+                leftSection={<Trash size={16} />}
+              >
                 Delete Batch
               </Button>
             </Group>

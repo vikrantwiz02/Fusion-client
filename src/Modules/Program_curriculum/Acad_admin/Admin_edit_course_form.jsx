@@ -13,7 +13,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useNavigate, useParams } from "react-router-dom";
-// import { useNavigate } from "react-router-dom";
+import { notifications } from "@mantine/notifications";
 import {
   fetchDisciplinesData,
   fetchAllCourses,
@@ -64,14 +64,18 @@ function Admin_edit_course_form() {
         }));
         setDisciplines(disciplineList);
       } catch (fetchError) {
-        console.error("Error fetching disciplines: ", fetchError);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load disciplines. Please refresh the page.",
+          color: "red",
+          autoClose: 4000,
+        });
       }
     };
 
     const fetchCourses = async () => {
       try {
         const response = await fetchAllCourses();
-        console.log("Courses data:", response);
 
         const courseList = response.map((c) => ({
           name: `${c.name} (${c.code})`,
@@ -79,14 +83,18 @@ function Admin_edit_course_form() {
         }));
         setCourses(courseList);
       } catch (error) {
-        console.error("Error fetching courses: ", error);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load courses. Please refresh the page.",
+          color: "red",
+          autoClose: 4000,
+        });
       }
     };
 
     const loadCourseDetails = async () => {
       try {
         const data = await fetchCourseDetails(id);
-        console.log(data);
         setCourse(data);
         form.setValues({
           courseName: data.name,
@@ -113,7 +121,12 @@ function Admin_edit_course_form() {
           maxSeats: data.max_seats,
         });
       } catch (err) {
-        console.error("Error fetching course details: ", err);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load course details. Please refresh the page.",
+          color: "red",
+          autoClose: 4000,
+        });
       }
     };
 
@@ -121,7 +134,7 @@ function Admin_edit_course_form() {
     fetchCourses();
     loadCourseDetails();
   }, [id]);
-  // console.log(form.values);
+  
   const handleSubmit = async (values) => {
     const apiUrl = `${host}/programme_curriculum/api/admin_update_course/${id}/`;
     const token = localStorage.getItem("authToken");
@@ -161,26 +174,82 @@ function Admin_edit_course_form() {
 
       if (response.ok) {
         const data = await response.json();
-        alert("Course updated successfully!");
-        navigate(`/programme_curriculum/admin_course/${data.course_id}`);
+        
+        notifications.show({
+          title: "✅ Course Updated Successfully!",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Course "{values.courseName}" ({values.courseCode}) has been updated.</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                Credits: {values.courseCredit} | Version: {values.courseVersion}
+              </Text>
+            </div>
+          ),
+          color: "green",
+          autoClose: 5000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
+        });
+        
+        setTimeout(() => {
+          navigate(`/programme_curriculum/admin_course/${data.course_id}`);
+        }, 1500);
       } else {
         const errorData = await response.json();
-        console.error("Error:", errorData);
-        alert(
-          `Failed to update course: ${errorData.error || response.statusText}`,
-        );
+        
+        notifications.show({
+          title: "❌ Failed to Update Course",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Failed to update course: {errorData.error || response.statusText}</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                Please check your inputs and try again.
+              </Text>
+            </div>
+          ),
+          color: "red",
+          autoClose: 7000,
+          style: {
+            backgroundColor: '#f8d7da',
+            borderColor: '#f5c6cb',
+            color: '#721c24',
+          },
+        });
       }
     } catch (error) {
-      console.error("Network Error:", error);
-      alert("An error occurred. Please try again.");
+      notifications.show({
+        title: "🚨 Network Error",
+        message: (
+          <div>
+            <Text size="sm" mb={8}>
+              <strong>Connection error occurred while updating course.</strong>
+            </Text>
+            <Text size="xs" color="gray.7">
+              Please check your internet connection and try again.
+            </Text>
+          </div>
+        ),
+        color: "red",
+        autoClose: 7000,
+        style: {
+          backgroundColor: '#f8d7da',
+          borderColor: '#f5c6cb',
+          color: '#721c24',
+        },
+      });
     }
   };
   return (
     <div
       style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
     >
-     
-
       <Container
         fluid
         style={{
@@ -367,7 +436,6 @@ function Admin_edit_course_form() {
                   </tbody>
                 </Table>
 
-                {/* Contact Hours */}
                 <Group
                   grow
                   style={{
@@ -489,22 +557,21 @@ function Admin_edit_course_form() {
                     step={1}
                   />
                 </Group>
-                {/* Discipline and Others */}
                 <MultiSelect
                   label="From Discipline"
                   placeholder="Select Discipline"
                   data={disciplines.map((discipline) => ({
                     label: discipline.name,
-                    value: discipline.id.toString(), // Ensure value is a string for the MultiSelect component
+                    value: discipline.id.toString(),
                     ...discipline,
                   }))}
                   value={
                     Array.isArray(form.values.discipline)
-                      ? form.values.discipline.map(String) // Convert integers to strings for the MultiSelect component
+                      ? form.values.discipline.map(String)
                       : []
                   }
                   onChange={(value) => {
-                    const integerValues = value ? value.map(Number) : []; // Convert selected strings back to integers
+                    const integerValues = value ? value.map(Number) : [];
                     form.setFieldValue("discipline", integerValues);
                   }}
                   required

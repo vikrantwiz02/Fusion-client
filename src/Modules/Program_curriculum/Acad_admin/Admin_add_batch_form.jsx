@@ -13,6 +13,7 @@ import { useForm } from "@mantine/form";
 import axios from "axios";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useMediaQuery } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import {
   fetchDisciplines,
   fetchBatchName,
@@ -49,9 +50,14 @@ function Admin_add_batch_form() {
       batchYear: 2024,
       disciplineBatch: curriculumId || "",
       runningBatch: false,
+      totalSeats: 0,
+    },
+    validate: {
+      batchName: (value) => (!value ? "Batch name is required" : null),
+      discipline: (value) => (!value ? "Discipline is required" : null),
+      totalSeats: (value) => (value < 0 ? "Total seats cannot be negative" : null),
     },
   });
-  console.log(form.values);
 
   // Fetch batch names and disciplines on component mount
   useEffect(() => {
@@ -59,7 +65,7 @@ function Admin_add_batch_form() {
       try {
         // Fetch batch names
         const batchData = await fetchBatchName();
-        setBatchNames(batchData.choices); // Use the 'choices' array from the API response
+        setBatchNames(batchData.choices);
 
         // Fetch disciplines
         const disciplineData = await fetchDisciplines();
@@ -68,9 +74,9 @@ function Admin_add_batch_form() {
         const unlinkedCurriculumData = await fetchGetUnlinkedCurriculum();
         setUnlinkedCurriculums(unlinkedCurriculumData);
       } catch (err) {
-        setError("Failed to load data."); // Handle errors
+        setError("Failed to load data.");
       } finally {
-        setLoading(false); // Stop the loader
+        setLoading(false);
       }
     };
 
@@ -79,19 +85,32 @@ function Admin_add_batch_form() {
 
   const handleSubmit = async () => {
     try {
+      // Validate form data
+      if (!form.values.batchName) {
+        throw new Error("Batch name is required");
+      }
+      if (!form.values.discipline) {
+        throw new Error("Discipline is required");
+      }
+      if (form.values.totalSeats < 0) {
+        throw new Error("Total seats cannot be negative");
+      }
+
       localStorage.setItem("AdminBatchesCachechange", "true");
       const token = localStorage.getItem("authToken");
       if (!token) {
         throw new Error("Authorization token is required");
       }
+      
       const payload = {
         batch_name: form.values.batchName,
         discipline: form.values.discipline,
         batchYear: form.values.batchYear,
         disciplineBatch: form.values.disciplineBatch,
         runningBatch: form.values.runningBatch,
+        totalSeats: form.values.totalSeats || 0,
       };
-      console.log(payload);
+      
       const response = await axios.post(
         `${host}/programme_curriculum/api/admin_add_batch/`,
         payload,
@@ -101,24 +120,60 @@ function Admin_add_batch_form() {
           },
         },
       );
-      console.log(response);
       if (response.data.message) {
-        alert("Batch added successfully!");
-        navigate("/programme_curriculum/admin_batches/"); // Redirect to batches page
+        notifications.show({
+          title: "✅ Batch Added Successfully!",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Batch "{form.values.batchName}" has been created.</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                Year: {form.values.batchYear} | Discipline: {form.values.discipline} | Total Seats: {form.values.totalSeats}
+              </Text>
+            </div>
+          ),
+          color: "green",
+          autoClose: 5000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
+        });
+        
+        form.reset();
+        setTimeout(() => {
+          navigate("/programme_curriculum/admin_batches/");
+        }, 1500);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to add batch");
       }
     } catch (err) {
+      notifications.show({
+        title: "❌ Failed to Add Batch",
+        message: (
+          <div>
+            <Text size="sm" mb={8}>
+              <strong>{err.message || "Unable to create batch. Please try again."}</strong>
+            </Text>
+            <Text size="xs" color="gray.7">
+              Please check your inputs and try again.
+            </Text>
+          </div>
+        ),
+        color: "red",
+        autoClose: 7000,
+        style: {
+          backgroundColor: '#f8d7da',
+          borderColor: '#f5c6cb',
+          color: '#721c24',
+        },
+      });
       setError(err.message);
     }
   };
-  // // Function to get CSRF token from cookies
-  // const getCookie = (name) => {
-  //   const value = `; ${document.cookie}`;
-  //   const parts = value.split(`; ${name}=`);
-  //   if (parts.length === 2) return parts.pop().split(";").shift();
-  // };
 
   if (loading) {
     return <Text>Loading...</Text>;
@@ -127,6 +182,7 @@ function Admin_add_batch_form() {
   if (error) {
     return <Text color="red">{error}</Text>;
   }
+  
   const handleCancel = () => {
     navigate("/programme_curriculum/admin_batches");
   };
@@ -145,7 +201,7 @@ function Admin_add_batch_form() {
           margin: "0 0 0 -3.2vw",
         }}
       >
-        {/* Buttons Section (Moves Above Form on Small Screens) */}
+        {/* Buttons Section for Mobile Layout */}
         {isMobile && (
           <Group
             spacing="md"
@@ -179,7 +235,7 @@ function Admin_add_batch_form() {
             gap: "2rem",
             padding: "2rem",
             flex: 4,
-            flexDirection: isMobile ? "column" : "row", // Stack on small screens
+            flexDirection: isMobile ? "column" : "row",
           }}
         >
           {/* Form Section */}
@@ -251,6 +307,16 @@ function Admin_add_batch_form() {
                     )
                   }
                 />
+
+                <NumberInput
+                  label="Total Seats"
+                  placeholder="Enter total number of seats"
+                  value={form.values.totalSeats}
+                  onChange={(value) => form.setFieldValue("totalSeats", value)}
+                  min={0}
+                  required
+                  error={form.errors.totalSeats}
+                />
               </Stack>
 
               <Group position="right" mt="lg">
@@ -268,7 +334,7 @@ function Admin_add_batch_form() {
             </form>
           </div>
 
-          {/* Right Panel Buttons (Only Show on Large Screens) */}
+          {/* Right Panel Buttons for Desktop Layout */}
           {!isMobile && (
             <div
               style={{

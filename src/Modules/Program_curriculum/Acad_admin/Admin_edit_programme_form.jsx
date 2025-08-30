@@ -12,13 +12,11 @@ import {
 } from "@mantine/core";
 import { useParams, useNavigate } from "react-router-dom";
 import { useForm } from "@mantine/form";
-// import { useMediaQuery } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import { fetchCurriculumData } from "../api/api";
 import { host } from "../../../routes/globalRoutes";
-// import { useMediaQuery } from "@mantine/hooks";
 
 function Admin_edit_programme_form() {
-  // const isMobile = useMediaQuery("(max-width: 768px)");
   const { id } = useParams();
   const navigate = useNavigate();
   const [programmeData, setProgrammeData] = useState([]);
@@ -26,7 +24,6 @@ function Admin_edit_programme_form() {
   useEffect(() => {
     const fetchProgrammeData = async () => {
       try {
-        console.log(id);
         const response = await fetchCurriculumData(id);
         const data = {
           id: response.program.id,
@@ -35,10 +32,13 @@ function Admin_edit_programme_form() {
           category: response.program.category,
         };
         setProgrammeData(data);
-        console.log(response);
-        // console.log("The programme data is: ", programmeData);
       } catch (error) {
-        console.log("Error fetching data");
+        notifications.show({
+          title: "Error",
+          message: "Failed to load programme data. Please refresh the page.",
+          color: "red",
+          autoClose: 4000,
+        });
       }
     };
     fetchProgrammeData();
@@ -70,7 +70,7 @@ function Admin_edit_programme_form() {
         programme_begin_year: values.year,
         id: programmeData.id,
       };
-      console.log("Edited Programme Data Submitted:", submitData);
+      
       const response = await fetch(
         `${host}/programme_curriculum/api/admin_edit_programme/${id}/`,
         {
@@ -81,17 +81,56 @@ function Admin_edit_programme_form() {
       const result = await response.json();
       if (response.ok) {
         localStorage.setItem("AdminProgrammesCachechange", "true");
-        alert("Programme updated successfully!");
-        console.log(response);
-        navigate("/programme_curriculum/acad_view_all_programme");
+        
+        notifications.show({
+          title: "✅ Programme Updated Successfully!",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Programme "{submitData.name}" has been updated.</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                Category: {submitData.category} | Begin Year: {submitData.programme_begin_year}
+              </Text>
+            </div>
+          ),
+          color: "green",
+          autoClose: 5000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
+        });
+        
+        setTimeout(() => {
+          navigate("/programme_curriculum/acad_view_all_programme");
+        }, 1500);
       } else {
         throw new Error(result.status);
       }
     } catch (error) {
-      console.log(error.status);
-      // alert(error.message);
+      notifications.show({
+        title: "❌ Failed to Update Programme",
+        message: (
+          <div>
+            <Text size="sm" mb={8}>
+              <strong>Unable to update programme. Please try again.</strong>
+            </Text>
+            <Text size="xs" color="gray.7">
+              Please check your inputs and try again.
+            </Text>
+          </div>
+        ),
+        color: "red",
+        autoClose: 7000,
+        style: {
+          backgroundColor: '#f8d7da',
+          borderColor: '#f5c6cb',
+          color: '#721c24',
+        },
+      });
     }
-    // Add API call or logic for submitting the updated programme data
   };
   const handleCancel = () => {
     navigate("/programme_curriculum/acad_view_all_programme");
@@ -101,22 +140,6 @@ function Admin_edit_programme_form() {
     <div
       style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
     >
-      {(() => {
-        console.log("The programme data is: ", programmeData);
-        return null; // Returning null because we don't want anything to be displayed
-      })()}
-
-      {/* <Breadcrumbs>{breadcrumbItems}</Breadcrumbs> */}
-
-      {/* Options Section */}
-      {/* <Group spacing="xs" className="program-options" position="center" mt="md">
-        <Text>Programs</Text>
-        <Text className="active">Curriculums</Text>
-        <Text>Courses</Text>
-        <Text>Disciplines</Text>
-        <Text>Batches</Text>
-      </Group> */}
-
       <Container
         fluid
         style={{
@@ -197,8 +220,6 @@ function Admin_edit_programme_form() {
               </Group>
             </form>
           </div>
-
-          {/* Right Panel Buttons */}
         </div>
       </Container>
 
