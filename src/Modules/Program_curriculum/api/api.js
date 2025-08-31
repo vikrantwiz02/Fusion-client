@@ -128,6 +128,54 @@ export const fetchBatchesData = async () => {
   }
 };
 
+export const fetchBatchesSync = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    const response = await axios.get(
+      `${BASE_URL}/programme_curriculum/api/batches/sync/`,
+      {
+        headers: {
+          Authorization: `Token ${token}`,
+        },
+      },
+    );
+
+    if (response.data.success) {
+      const mappedBatches = response.data.batches.map(batch => ({
+        id: batch.batch_id,
+        name: batch.name,
+        programme: batch.name,
+        discipline: batch.discipline,
+        displayBranch: batch.discipline,
+        year: batch.year,
+        totalSeats: batch.total_seats,
+        total_seats: batch.total_seats,
+        filledSeats: batch.filled_seats,
+        filled_seats: batch.filled_seats,
+        student_count: batch.filled_seats,
+        availableSeats: batch.available_seats,
+        available_seats: batch.available_seats,
+        curriculum: batch.curriculum,
+        curriculum_name: batch.curriculum,
+        curriculumId: batch.curriculum_id,
+        curriculum_id: batch.curriculum_id,
+        status: batch.status
+      }));
+
+      return {
+        runningBatches: mappedBatches,
+        finishedBatches: [],
+        filter: response.data.filter || {},
+        total_batches: response.data.total_batches
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to sync batch data');
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const fetchCourseSlotData = async (courseslotId) => {
   try {
     const token = localStorage.getItem("authToken");

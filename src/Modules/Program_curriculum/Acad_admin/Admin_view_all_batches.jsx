@@ -56,19 +56,41 @@ function AdminViewAllBatches() {
         if (!token) throw new Error("Authorization token not found");
 
         const response = await axios.get(
-          `${host}/programme_curriculum/api/admin_batches/`,
+          `${host}/programme_curriculum/api/batches/sync/`,
           {
             headers: { Authorization: `Token ${token}` },
           },
         );
 
-        setBatches(response.data.batches || []);
-        setFinishedBatches(response.data.finished_batches || []);
+
+        const mappedBatches = response.data.batches?.map(batch => ({
+          id: batch.batch_id,
+          name: batch.name,
+          programme: batch.name,
+          discipline: batch.discipline,
+          displayBranch: batch.discipline,
+          year: batch.year,
+          totalSeats: batch.total_seats,
+          total_seats: batch.total_seats,
+          filledSeats: batch.filled_seats,
+          filled_seats: batch.filled_seats,
+          student_count: batch.filled_seats,
+          availableSeats: batch.available_seats,
+          available_seats: batch.available_seats,
+          curriculum: batch.curriculum,
+          curriculum_name: batch.curriculum,
+          curriculumId: batch.curriculum_id,
+          curriculum_id: batch.curriculum_id,
+          status: batch.status
+        })) || [];
+
+        setBatches(mappedBatches);
+        setFinishedBatches([]);
 
         localStorage.setItem("AdminBatchesCachechange", "false");
         localStorage.setItem(
           "AdminBatchesCache",
-          JSON.stringify(response.data),
+          JSON.stringify({ batches: mappedBatches, finished_batches: [] }),
         );
         localStorage.setItem("AdminBatchesTimestamp", Date.now().toString());
       }

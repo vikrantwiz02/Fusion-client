@@ -1489,19 +1489,38 @@ const AdminUpcomingBatch = () => {
     try {
       const token = localStorage.getItem("authToken");
       if (!token) throw new Error("Authorization token not found");
-
       const response = await axios.get(
-        `${host}/programme_curriculum/api/admin_batches/?include_students=true`,
+        `${host}/programme_curriculum/api/batches/sync/`,
         {
           headers: { Authorization: `Token ${token}` },
         },
       );
 
       if (response.data && response.data.success) {
-
         const allBatches = response.data.batches || [];
 
-        const categorizedBatches = categorizeBatchesByProgramme(allBatches);
+        const mappedBatches = allBatches.map(batch => ({
+          id: batch.batch_id,
+          name: batch.name,
+          programme: batch.name,
+          discipline: batch.discipline,
+          displayBranch: batch.discipline,
+          year: batch.year,
+          totalSeats: batch.total_seats,
+          total_seats: batch.total_seats,
+          filledSeats: batch.filled_seats,
+          filled_seats: batch.filled_seats,
+          student_count: batch.filled_seats,
+          availableSeats: batch.available_seats,
+          available_seats: batch.available_seats,
+          curriculum: batch.curriculum,
+          curriculum_name: batch.curriculum,
+          curriculumId: batch.curriculum_id,
+          curriculum_id: batch.curriculum_id,
+          status: batch.status
+        }));
+
+        const categorizedBatches = categorizeBatchesByProgramme(mappedBatches);
 
         setUgBatches(categorizedBatches.ug);
         setPgBatches(categorizedBatches.pg);
@@ -1860,12 +1879,21 @@ const AdminUpcomingBatch = () => {
   // Automatically sync batch data using backend API
   const syncBatchData = async () => {
     try {
+      const token = localStorage.getItem("authToken");
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add authorization header if token exists
+      if (token) {
+        headers['Authorization'] = `Token ${token}`;
+      }
+
       const response = await fetch(`${host}/programme_curriculum/api/batches/sync/`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        headers: headers
       });
+      
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         console.log('Sync endpoint not available yet, skipping auto-sync...');
@@ -1874,7 +1902,36 @@ const AdminUpcomingBatch = () => {
       
       const data = await response.json();
       if (data.success) {
-        setBatchData(data.batches);
+        // Map the sync API response to the expected format
+        const mappedBatches = data.batches.map(batch => ({
+          id: batch.batch_id,
+          name: batch.name,
+          programme: batch.name,
+          discipline: batch.discipline,
+          displayBranch: batch.discipline,
+          year: batch.year,
+          totalSeats: batch.total_seats,
+          total_seats: batch.total_seats,
+          filledSeats: batch.filled_seats, // Accurate count from sync API
+          filled_seats: batch.filled_seats,
+          student_count: batch.filled_seats,
+          availableSeats: batch.available_seats,
+          available_seats: batch.available_seats,
+          curriculum: batch.curriculum,
+          curriculum_name: batch.curriculum,
+          curriculumId: batch.curriculum_id,
+          curriculum_id: batch.curriculum_id,
+          status: batch.status
+        }));
+        
+        setBatchData({
+          upcoming_batches: mappedBatches,
+          current_batches: mappedBatches,
+          ug: mappedBatches.filter(b => b.name.includes('B.')),
+          pg: mappedBatches.filter(b => b.name.includes('M.')),
+          phd: mappedBatches.filter(b => b.name.toLowerCase().includes('phd'))
+        });
+        
         console.log('Batch data synchronized automatically');
       } else {
         console.warn('Sync failed:', data.message);
@@ -1888,7 +1945,6 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  // Helper function to get current batches for validation (upcoming batches)
   const getCurrentBatchesForValidation = () => {
     return getCurrentBatches();
   };
@@ -2813,6 +2869,10 @@ const AdminUpcomingBatch = () => {
         if (showStudentModal && selectedBatch) {
           handleBatchRowClick(selectedBatch);
         }
+
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
         // Handle specific error codes from backend
         if (response.error_code === 'BATCH_NOT_FOUND') {
@@ -2991,9 +3051,6 @@ const AdminUpcomingBatch = () => {
         }
 
         if (editingStudent) {
-          // Edit mode - update existing student
-          
-          // Check if branch has changed for transfer logic
           const oldBranch = editingStudent.branch || editingStudent.Branch || editingStudent.discipline || editingStudent.Discipline;
           const newBranch = manualFormData.branch;
           const branchChanged = oldBranch && newBranch && oldBranch.toLowerCase().trim() !== newBranch.toLowerCase().trim();
@@ -3062,6 +3119,11 @@ const AdminUpcomingBatch = () => {
             setSelectedBatch(null);
 
             fetchBatchData();
+
+            // Refresh the entire window to ensure all data is up to date
+            setTimeout(() => {
+              window.location.reload();
+            }, branchChanged ? 2000 : 1500); // Longer delay for branch transfers
           } else {
             throw new Error(response.message || "Failed to update student");
           }
@@ -3111,6 +3173,11 @@ const AdminUpcomingBatch = () => {
             if (showStudentModal && selectedBatch) {
               handleBatchRowClick(selectedBatch);
             }
+
+            // Refresh the entire window to ensure all data is up to date
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
           } else {
             if (response.error_code === 'BATCH_NOT_FOUND') {
               notifications.show({
@@ -3723,7 +3790,6 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  // Handle batch row click to show student list
   const handleBatchRowClick = async (batch) => {
     setSelectedBatch(batch);
     setShowStudentModal(true);
@@ -3733,8 +3799,6 @@ const AdminUpcomingBatch = () => {
     }
 
     let students = batch.students || [];
-
-    // Always fetch from API to get fresh data
     try {
       const token = localStorage.getItem("authToken");
       const response = await fetch(
@@ -3784,11 +3848,13 @@ const AdminUpcomingBatch = () => {
     setStudentList(students);
   };
 
-  // Fallback function to fetch batch with students from main API
+  // Fallback function to fetch batch with students from main API (only for student details, not counts)
   const fetchBatchesWithStudents = async (targetBatch) => {
     try {
       console.log('Fetching batch with students from main API as fallback...');
       const token = localStorage.getItem("authToken");
+      // Note: Using admin_batches here only for fetching individual student records, 
+      // not for filled_seats counts which should use batches/sync/ endpoint
       const response = await fetch(
         `${host}/programme_curriculum/api/admin_batches/?include_students=true`,
         {
@@ -3938,6 +4004,9 @@ const AdminUpcomingBatch = () => {
           message: `Student status updated to ${newStatus.replace("_", " ")}`,
           color: "green",
         });
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         throw new Error(result.message || "Failed to update student status");
       }
@@ -3952,7 +4021,6 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  // Legacy toggle function for backward compatibility (simplified to 2-state toggle)
   const handleReportedStatusToggle = async (studentId, currentStatus) => {
     const newStatus = currentStatus === "REPORTED" ? "NOT_REPORTED" : "REPORTED";
     await handleReportedStatusChange(studentId, newStatus);
@@ -4080,12 +4148,22 @@ const AdminUpcomingBatch = () => {
           message: `Successfully updated ${successCount} students to ${statusLabel}.`,
           color: "green",
         });
+
+        // Refresh the entire window after successful bulk update
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000); // Slightly longer delay for bulk operations
       } else if (successCount > 0 && failureCount > 0) {
         notifications.show({
           title: "Partial Success",
           message: `Updated ${successCount} students to ${statusLabel} successfully. ${failureCount} failed.`,
           color: "yellow",
         });
+
+        // Refresh the window even for partial success to show updated data
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
         notifications.show({
           title: "Bulk Status Update Failed",
@@ -4251,6 +4329,11 @@ const AdminUpcomingBatch = () => {
           message: `Student "${studentName}" deleted successfully`,
           color: "green",
         });
+
+        // Refresh the entire window to ensure all data is up to date
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
         throw new Error(response.message || "Failed to delete student");
       }
@@ -5748,7 +5831,11 @@ const AdminUpcomingBatch = () => {
 
                                     setExtractedData([]);
                                     setShowPreview(false);
-                                    fetchBatchData(); 
+                                    fetchBatchData();
+
+                                    setTimeout(() => {
+                                      window.location.reload();
+                                    }, 2000);
                                   } else {
                                     throw new Error(
                                       response.message ||
