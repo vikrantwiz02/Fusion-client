@@ -50,6 +50,13 @@ function Faculty_add_course_proposal_form() {
       Title: "",
       Description: "",
     },
+    validate: {
+      courseName: (value) => (!value ? "Course name is required" : null),
+      courseCode: (value) => (!value ? "Course code is required" : null),
+      discipline: (value) => (!value ? "Discipline is required" : null),
+      syllabus: (value) => (!value ? "Syllabus is required" : null),
+      references: (value) => (!value ? "References are required" : null),
+    },
   });
   const role = useSelector((state) => state.user.role);
   const uploader_fullname = useSelector((state) => state.user.username);
@@ -607,6 +614,8 @@ function Faculty_add_course_proposal_form() {
                   onChange={(event) =>
                     form.setFieldValue("syllabus", event.currentTarget.value)
                   }
+                  error={form.errors.syllabus}
+                  required
                 />
                 <Textarea
                   label="References"
@@ -615,6 +624,8 @@ function Faculty_add_course_proposal_form() {
                   onChange={(event) =>
                     form.setFieldValue("references", event.currentTarget.value)
                   }
+                  error={form.errors.references}
+                  required
                 />
                 <Group
                   grow

@@ -103,7 +103,7 @@ function Admin_edit_batch_form() {
         batchYear: form.values.batchYear,
         disciplineBatch: form.values.disciplineBatch || "",
         runningBatch: form.values.runningBatch,
-        totalSeats: form.values.totalSeats,
+        total_seats: form.values.totalSeats,
       };
       
       const response = await axios.put(

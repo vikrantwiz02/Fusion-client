@@ -42,6 +42,13 @@ function Admin_add_course_proposal_form() {
       labEvaluation: 15,
       attendance: 5,
     },
+    validate: {
+      courseName: (value) => (!value ? "Course name is required" : null),
+      courseCode: (value) => (!value ? "Course code is required" : null),
+      discipline: (value) => (!value ? "Discipline is required" : null),
+      syllabus: (value) => (!value ? "Syllabus is required" : null),
+      references: (value) => (!value ? "References are required" : null),
+    },
   });
 
   const navigate = useNavigate();
@@ -570,6 +577,8 @@ function Admin_add_course_proposal_form() {
                   onChange={(event) =>
                     form.setFieldValue("syllabus", event.currentTarget.value)
                   }
+                  error={form.errors.syllabus}
+                  required
                 />
                 <Textarea
                   label="References"
@@ -578,6 +587,8 @@ function Admin_add_course_proposal_form() {
                   onChange={(event) =>
                     form.setFieldValue("references", event.currentTarget.value)
                   }
+                  error={form.errors.references}
+                  required
                 />
                 <Group
                   grow

@@ -108,7 +108,7 @@ function Admin_add_batch_form() {
         batchYear: form.values.batchYear,
         disciplineBatch: form.values.disciplineBatch,
         runningBatch: form.values.runningBatch,
-        totalSeats: form.values.totalSeats || 0,
+        total_seats: form.values.totalSeats || 0,
       };
       
       const response = await axios.post(

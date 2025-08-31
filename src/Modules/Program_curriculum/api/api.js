@@ -493,24 +493,6 @@ export const fetchFacultyCourseProposalCourseData = async (id) => {
   }
 };
 
-// Admin Batches Overview - GET /programme_curriculum/api/batches/{programme_type}/
-export const fetchAdminBatchesOverview = async () => {
-  try {
-    const token = localStorage.getItem("authToken");
-    const response = await axios.get(
-      `${BASE_URL}/programme_curriculum/api/admin_batches_overview/`,
-      {
-        headers: {
-          Authorization: `Token ${token}`,
-        },
-      },
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
-
 // Process Excel Upload - POST /programme_curriculum/api/process_excel_upload/
 export const processExcelUpload = async (file, programmeType) => {
   try {
@@ -982,31 +964,6 @@ export const getBulkOperationStatus = async (operationId) => {
 // =============================================================================
 // CORRECTED API FUNCTIONS BASED ON ACTUAL BACKEND ENDPOINTS
 // =============================================================================
-
-/**
- * Admin Batches Overview
- * GET /programme_curriculum/api/admin_batches_overview/
- */
-export const adminBatchesOverview = async () => {
-  try {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      throw new Error("Authorization token is required");
-    }
-
-    const response = await axios.get(
-      `${BASE_URL}/programme_curriculum/api/admin_batches_overview/`,
-      {
-        headers: {
-          Authorization: `Token ${token}`,
-        },
-      },
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-};
 
 /**
  * Process Excel Upload
