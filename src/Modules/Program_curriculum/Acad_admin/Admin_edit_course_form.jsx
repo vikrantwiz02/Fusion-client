@@ -10,10 +10,15 @@ import {
   TextInput,
   Table,
   MultiSelect,
+  Checkbox,
+  Badge,
+  Alert,
+  Modal,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useNavigate, useParams } from "react-router-dom";
 import { notifications } from "@mantine/notifications";
+import { showVersioningNotification } from "../../../utils/notifications";
 import {
   fetchDisciplinesData,
   fetchAllCourses,
@@ -53,6 +58,14 @@ function Admin_edit_course_form() {
   const [disciplines, setDisciplines] = useState([]);
   const [courses, setCourses] = useState([]);
   const [course, setCourse] = useState([]);
+  
+  // New state for intelligent versioning
+  const [versionInfo, setVersionInfo] = useState(null);
+  const [showVersionOverride, setShowVersionOverride] = useState(false);
+  const [customVersion, setCustomVersion] = useState("");
+  const [showVersionPreview, setShowVersionPreview] = useState(false);
+  const [previewInfo, setPreviewInfo] = useState(null);
+  const [originalFormData, setOriginalFormData] = useState(null);
 
   useEffect(() => {
     const fetchDisciplines = async () => {
@@ -96,7 +109,9 @@ function Admin_edit_course_form() {
       try {
         const data = await fetchCourseDetails(id);
         setCourse(data);
-        form.setValues({
+        
+        // Store original form data for version comparison
+        const formData = {
           courseName: data.name,
           courseCode: data.code,
           courseCredit: data.credit,
@@ -119,7 +134,10 @@ function Admin_edit_course_form() {
           labEvaluation: data.percent_lab_evaluation,
           attendance: data.percent_course_attendance,
           maxSeats: data.max_seats,
-        });
+        };
+        
+        form.setValues(formData);
+        setOriginalFormData(formData);
       } catch (err) {
         notifications.show({
           title: "Error",
@@ -135,15 +153,79 @@ function Admin_edit_course_form() {
     loadCourseDetails();
   }, [id]);
   
+  // Preview version changes before submitting
+  const previewVersionChanges = async () => {
+    if (!originalFormData) return;
+    
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${host}/programme_curriculum/api/test_intelligent_versioning/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Token ${token}`,
+        },
+        body: JSON.stringify({
+          old_course_data: {
+            name: originalFormData.courseName,
+            code: originalFormData.courseCode,
+            credit: originalFormData.courseCredit,
+            lecture_hours: originalFormData.lectureHours,
+            tutorial_hours: originalFormData.tutorialHours,
+            pratical_hours: originalFormData.practicalHours,
+            discussion_hours: originalFormData.discussionHours,
+            project_hours: originalFormData.projectHours,
+            syllabus: originalFormData.syllabus,
+            ref_books: originalFormData.references,
+            percent_quiz_1: originalFormData.quiz1,
+            percent_midsem: originalFormData.midsem,
+            percent_quiz_2: originalFormData.quiz2,
+            percent_endsem: originalFormData.endsem,
+            percent_project: originalFormData.project,
+            percent_lab_evaluation: originalFormData.labEvaluation,
+            percent_course_attendance: originalFormData.attendance,
+          },
+          new_course_data: {
+            name: form.values.courseName,
+            code: form.values.courseCode,
+            credit: form.values.courseCredit,
+            lecture_hours: form.values.lectureHours,
+            tutorial_hours: form.values.tutorialHours,
+            pratical_hours: form.values.practicalHours,
+            discussion_hours: form.values.discussionHours,
+            project_hours: form.values.projectHours,
+            syllabus: form.values.syllabus,
+            ref_books: form.values.references,
+            percent_quiz_1: form.values.quiz1,
+            percent_midsem: form.values.midsem,
+            percent_quiz_2: form.values.quiz2,
+            percent_endsem: form.values.endsem,
+            percent_project: form.values.project,
+            percent_lab_evaluation: form.values.labEvaluation,
+            percent_course_attendance: form.values.attendance,
+          }
+        }),
+      });
+      
+      if (response.ok) {
+        const preview = await response.json();
+        setPreviewInfo(preview);
+        setShowVersionPreview(true);
+      }
+    } catch (error) {
+      console.error("Error previewing version changes:", error);
+    }
+  };
+  
   const handleSubmit = async (values) => {
     const apiUrl = `${host}/programme_curriculum/api/admin_update_course/${id}/`;
     const token = localStorage.getItem("authToken");
     localStorage.setItem("AdminCoursesCachechange", "true");
+    
     const payload = {
       name: values.courseName,
       code: values.courseCode,
       credit: values.courseCredit,
-      version: values.courseVersion,
       lecture_hours: values.lectureHours,
       tutorial_hours: values.tutorialHours,
       pratical_hours: values.practicalHours,
@@ -161,12 +243,16 @@ function Admin_edit_course_form() {
       disciplines: values.discipline,
       pre_requisit_courses: values.preRequisiteCourse,
       pre_requisits: values.preRequisites,
+      // Add intelligent versioning support
+      admin_override_version: showVersionOverride,
+      ...(showVersionOverride && customVersion ? { version: customVersion } : {}),
     };
 
     try {
       const response = await fetch(apiUrl, {
         method: "PUT",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Token ${token}`,
         },
         body: JSON.stringify(payload),
@@ -175,25 +261,26 @@ function Admin_edit_course_form() {
       if (response.ok) {
         const data = await response.json();
         
-        notifications.show({
-          title: "✅ Course Updated Successfully!",
-          message: (
-            <div>
-              <Text size="sm" mb={8}>
-                <strong>Course "{values.courseName}" ({values.courseCode}) has been updated.</strong>
-              </Text>
-              <Text size="xs" color="gray.7">
-                Credits: {values.courseCredit} | Version: {values.courseVersion}
-              </Text>
-            </div>
-          ),
-          color: "green",
-          autoClose: 5000,
-          style: {
-            backgroundColor: '#d4edda',
-            borderColor: '#c3e6cb',
-            color: '#155724',
-          },
+        // Store version information for display
+        if (data.old_version && data.new_version) {
+          setVersionInfo({
+            oldVersion: data.old_version,
+            newVersion: data.new_version,
+            bumpType: data.version_bump_type,
+            changedFields: data.changed_academic_fields || [],
+            reason: data.reason || "Course updated successfully",
+          });
+        }
+        
+        // Enhanced notification with version information using utility function
+        showVersioningNotification({
+          entityName: values.courseName,
+          entityCode: values.courseCode,
+          oldVersion: data.old_version,
+          newVersion: data.new_version,
+          versionBumpType: data.version_bump_type,
+          reason: data.reason,
+          changedFields: data.changed_academic_fields || [],
         });
         
         setTimeout(() => {
@@ -754,14 +841,144 @@ function Admin_edit_course_form() {
                   />
                 </Group>
 
-                <Button type="submit" mt="md">
-                  Submit
-                </Button>
+                {/* Intelligent Versioning Controls */}
+                <Stack spacing="md" style={{ 
+                  backgroundColor: '#f8f9fa', 
+                  padding: '1rem', 
+                  borderRadius: '8px',
+                  border: '1px solid #e9ecef'
+                }}>
+                  <Text size="md" weight={600} color="#495057">
+                    🔄 Intelligent Version Control
+                  </Text>
+                  
+                  {versionInfo && (
+                    <Alert color="green" variant="light">
+                      <Text size="sm" weight={500}>
+                        Version Update: {versionInfo.oldVersion} → {versionInfo.newVersion}
+                      </Text>
+                      <Text size="xs" color="gray.7">
+                        {versionInfo.reason}
+                      </Text>
+                      {versionInfo.changedFields.length > 0 && (
+                        <Text size="xs" color="gray.6">
+                          Changed fields: {versionInfo.changedFields.join(', ')}
+                        </Text>
+                      )}
+                    </Alert>
+                  )}
+                  
+                  <Group>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={previewVersionChanges}
+                      disabled={!originalFormData}
+                    >
+                      🔍 Preview Version Changes
+                    </Button>
+                    
+                    <Checkbox
+                      label="Admin Override (Manual Version Control)"
+                      checked={showVersionOverride}
+                      onChange={(event) => setShowVersionOverride(event.currentTarget.checked)}
+                      size="sm"
+                    />
+                  </Group>
+                  
+                  {showVersionOverride && (
+                    <TextInput
+                      label="Custom Version"
+                      placeholder="Enter version (e.g., 2.5)"
+                      value={customVersion}
+                      onChange={(event) => setCustomVersion(event.currentTarget.value)}
+                      size="sm"
+                      styles={{
+                        input: { borderRadius: "8px" },
+                        label: { fontSize: "14px", fontWeight: 500 },
+                      }}
+                    />
+                  )}
+                  
+                  <Text size="xs" color="gray.6">
+                    💡 The system automatically determines version increments based on academic significance:
+                    <br />• <Badge color="red" size="xs">Major</Badge> changes (credits, hours, course identity)
+                    <br />• <Badge color="orange" size="xs">Minor</Badge> changes (evaluation scheme, references)  
+                    <br />• <Badge color="green" size="xs">Patch</Badge> changes (syllabus, project hours)
+                    <br />• <Badge color="gray" size="xs">No bump</Badge> for typo corrections and non-academic changes
+                  </Text>
+                </Stack>
+
+                <Group position="apart">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate(-1)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" mt="md">
+                    Save Changes
+                  </Button>
+                </Group>
               </Stack>
             </form>
           </div>
         </div>
       </Container>
+      
+      {/* Version Preview Modal */}
+      <Modal
+        opened={showVersionPreview}
+        onClose={() => setShowVersionPreview(false)}
+        title="📋 Version Change Preview"
+        size="lg"
+      >
+        {previewInfo && (
+          <Stack spacing="md">
+            <Alert 
+              color={previewInfo.version_bump_type === 'MAJOR' ? 'red' : 
+                     previewInfo.version_bump_type === 'MINOR' ? 'orange' : 
+                     previewInfo.version_bump_type === 'PATCH' ? 'green' : 'gray'}
+              variant="light"
+            >
+              <Text weight={600}>
+                {previewInfo.version_bump_type === 'NONE' ? 
+                  '✏️ No version bump required' : 
+                  `🔄 ${previewInfo.version_bump_type} version bump detected`
+                }
+              </Text>
+              <Text size="sm" mt={4}>
+                {previewInfo.reason}
+              </Text>
+            </Alert>
+            
+            {previewInfo.changed_academic_fields && previewInfo.changed_academic_fields.length > 0 && (
+              <div>
+                <Text size="sm" weight={500}>Changed Academic Fields:</Text>
+                <Group spacing="xs" mt={4}>
+                  {previewInfo.changed_academic_fields.map((field, index) => (
+                    <Badge key={index} variant="outline" size="sm">
+                      {field}
+                    </Badge>
+                  ))}
+                </Group>
+              </div>
+            )}
+            
+            {previewInfo.old_version && previewInfo.new_version && (
+              <Text size="sm">
+                <strong>Version Change:</strong> {previewInfo.old_version} → {previewInfo.new_version}
+              </Text>
+            )}
+            
+            <Group position="right" mt="lg">
+              <Button variant="outline" onClick={() => setShowVersionPreview(false)}>
+                Close
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
     </div>
   );
 }

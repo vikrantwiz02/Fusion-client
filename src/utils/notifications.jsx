@@ -1,5 +1,5 @@
 import { notifications } from "@mantine/notifications";
-import { Text } from "@mantine/core";
+import { Text, Badge } from "@mantine/core";
 
 /**
  * Utility functions for consistent notification styling across the application
@@ -241,6 +241,80 @@ export const showApiErrorNotification = (error, itemType = "item", refreshCallba
       backgroundColor: color === "orange" ? '#fff3cd' : '#f8d7da',
       borderColor: color === "orange" ? '#ffeaa7' : '#f5c6cb',
       color: color === "orange" ? '#856404' : '#721c24',
+    },
+  });
+};
+
+/**
+ * Show notification with intelligent versioning information
+ */
+export const showVersioningNotification = ({
+  entityName,
+  entityCode,
+  oldVersion,
+  newVersion,
+  versionBumpType,
+  reason,
+  changedFields = [],
+  autoClose = 7000,
+}) => {
+  const bumpTypeColors = {
+    'MAJOR': '#d32f2f',
+    'MINOR': '#f57c00', 
+    'PATCH': '#388e3c',
+    'NONE': '#757575'
+  };
+
+  const bumpTypeEmojis = {
+    'MAJOR': '🚨',
+    'MINOR': '⚠️',
+    'PATCH': '✏️',
+    'NONE': '📝'
+  };
+
+  const versionMessage = oldVersion && newVersion && oldVersion !== newVersion
+    ? `Version ${oldVersion} → ${newVersion}`
+    : "Updated successfully";
+
+  notifications.show({
+    title: "✅ Course Updated Successfully!",
+    message: (
+      <div>
+        <Text size="sm" mb={8}>
+          <strong>Course "{entityName}" ({entityCode}) has been updated.</strong>
+        </Text>
+        {versionMessage && (
+          <Text size="xs" mb={4} style={{ color: bumpTypeColors[versionBumpType] || '#388e3c' }}>
+            {bumpTypeEmojis[versionBumpType] || '🔄'} {versionMessage} 
+            {versionBumpType && versionBumpType !== 'NONE' && (
+              <Badge size="xs" ml={4} color={
+                versionBumpType === 'MAJOR' ? 'red' :
+                versionBumpType === 'MINOR' ? 'orange' :
+                versionBumpType === 'PATCH' ? 'green' : 'gray'
+              }>
+                {versionBumpType}
+              </Badge>
+            )}
+          </Text>
+        )}
+        {reason && (
+          <Text size="xs" color="gray.7" mb={4}>
+            {reason}
+          </Text>
+        )}
+        {changedFields.length > 0 && (
+          <Text size="xs" color="gray.6">
+            Changed: {changedFields.join(', ')}
+          </Text>
+        )}
+      </div>
+    ),
+    color: "green",
+    autoClose,
+    style: {
+      backgroundColor: '#d4edda',
+      borderColor: '#c3e6cb',
+      color: '#155724',
     },
   });
 };
