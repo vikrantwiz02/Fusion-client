@@ -19,7 +19,6 @@ import SwayamRegistration from "./SwayamRegistration";
 import AllotCourses from "./AllotCourses";
 import { setActiveTab_ } from "../../redux/moduleslice";
 import { Faculty_TA_Dashboard } from "./Faculty_TA_Dashboard";
-import AcadCourseBacklogMapping from "./AcadCourseBacklogMapping";
 import StudentAddDropReplace from "./StudentAddDropReplace";
 import AdminReplacementDashboard from "./AdminReplacementDashboard";
 import StudentCalendar from "./StudentCalendar";
@@ -51,7 +50,6 @@ function AcademicPage() {
       { title: "Allocate Courses" },
       { title: "Verify Student Registration" },
       { title: "Allot Courses" },
-      { title: "Backlog Mapping" },
       { title: "Replacement Allocation" },
       { title: "Student Dashboard"},
       { title: "Feedback Responses"},
@@ -66,7 +64,6 @@ function AcademicPage() {
       AllocateCourses,
       VerifyStudentRegistration,
       AllotCourses,
-      AcadCourseBacklogMapping,
       AdminReplacementDashboard,
       AdminStudentDashboard,
       AdminFeedbackView,

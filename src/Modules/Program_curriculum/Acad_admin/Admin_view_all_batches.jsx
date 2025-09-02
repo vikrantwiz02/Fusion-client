@@ -397,7 +397,7 @@ function AdminViewAllBatches() {
                             }}
                           >
                             <Link
-                              to={`/programme_curriculum/view_curriculum?curriculum=${batch.id}`}
+                              to={`/programme_curriculum/view_curriculum?curriculum=${batch.curriculumId || batch.curriculum_id}`}
                               className="course-link"
                               style={{
                                 color: "#3498db",
@@ -672,7 +672,7 @@ function AdminViewAllBatches() {
                             }}
                           >
                             <Link
-                              to={`/programme_curriculum/view_curriculum?curriculum=${batch.id}`}
+                              to={`/programme_curriculum/view_curriculum?curriculum=${batch.curriculumId || batch.curriculum_id}`}
                               className="course-link"
                               style={{ textDecoration: "none" }}
                             >

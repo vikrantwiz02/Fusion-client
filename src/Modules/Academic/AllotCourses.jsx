@@ -66,11 +66,34 @@ export default function AllotCourses() {
     }
     axios
       .get(batchesRoute, { headers: { Authorization: `Token ${token}` } })
-      .then((res) =>
-        setProgrammeOptions(
-          res.data.batches.map((bat) => ({ value: bat.batch_id.toString(), label: `${bat.name} ${bat.discipline} ${bat.year}` }))
-        )
-      )
+      .then((res) => {
+        if (res.data && res.data.batches && Array.isArray(res.data.batches)) {
+          // Filter out invalid batches and create unique options
+          const validBatches = res.data.batches.filter(bat => 
+            bat.batch_id && bat.name && bat.discipline && bat.year
+          );
+          
+          const uniqueOptions = validBatches.map((bat) => ({
+            value: String(bat.batch_id),
+            label: `${bat.name} ${bat.discipline} ${bat.year}`
+          }));
+          
+          // Remove any potential duplicates by value
+          const seenValues = new Set();
+          const deduplicatedOptions = uniqueOptions.filter(option => {
+            if (seenValues.has(option.value)) {
+              return false;
+            }
+            seenValues.add(option.value);
+            return true;
+          });
+          
+          setProgrammeOptions(deduplicatedOptions);
+        } else {
+          console.error("Invalid batches data received:", res.data);
+          showNotification({ title: "Error", message: "Invalid data format received", color: "red" });
+        }
+      })
       .catch((err) => showNotification({ title: "Error fetching batches", message: err.message, color: "red" }))
       .finally(() => setLoading(false));
   }, []);
@@ -136,9 +159,15 @@ export default function AllotCourses() {
   const handleSemesterChange = (value) => {
     setSemesterValue(value || null);
     if (value) {
-      const { no, type } = JSON.parse(value);
-      setSemester(String(no));
-      setSemesterType(type);
+      try {
+        const { no, type } = JSON.parse(value);
+        setSemester(String(no));
+        setSemesterType(type);
+      } catch (error) {
+        console.error("Error parsing semester value:", error);
+        setSemester("");
+        setSemesterType("");
+      }
     } else {
       setSemester("");
       setSemesterType("");
@@ -147,11 +176,11 @@ export default function AllotCourses() {
 
   return (
     <Card>
-      <LoadingOverlay visible={loading} overlayBlur={3} />
+      <LoadingOverlay visible={loading} />
       <Text size="2xl" weight={700} align="center" mb="md">
         Allot Student Courses
       </Text>
-      <Button leftIcon={<IconDownload />} variant="light" onClick={downloadTemplate} mb="md">
+      <Button leftSection={<IconDownload />} variant="light" onClick={downloadTemplate} mb="md">
         Download Template
       </Button>
       <Text size="sm" color="dimmed" mb="sm">
@@ -167,7 +196,6 @@ export default function AllotCourses() {
           value={programme}
           onChange={setProgramme}
           searchable
-          nothingFound="No programmes"
         />
         <Select
           clearable
@@ -177,7 +205,6 @@ export default function AllotCourses() {
           value={semesterValue}
           onChange={handleSemesterChange}
           searchable
-          nothingFound="No semesters"
         />
         <Select
           clearable
@@ -190,7 +217,7 @@ export default function AllotCourses() {
       </Stack>
       <FileButton key={fileKey} onChange={setSelectedFile} accept=".xlsx,.xls">
         {(props) => (
-          <Button {...props} leftIcon={<IconUpload />} variant="outline" fullWidth mb="md">
+          <Button {...props} leftSection={<IconUpload />} variant="outline" fullWidth mb="md">
             {selectedFile ? selectedFile.name : "Choose Excel file"}
           </Button>
         )}
@@ -198,7 +225,7 @@ export default function AllotCourses() {
       <Button
         fullWidth
         size="md"
-        leftIcon={<IconUpload />}
+        leftSection={<IconUpload />}
         loading={isUploading}
         onClick={handleUpload}
         disabled={!isFormValid || isUploading}

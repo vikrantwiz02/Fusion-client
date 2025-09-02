@@ -115,7 +115,7 @@ export default function CheckResult() {
             name: data.student_info.name || data.student_info.student_name || '',
             rollNumber: data.student_info.roll_number || data.student_info.roll_no || '',
             programme: data.student_info.programme || 'B.Tech',
-            branch: data.student_info.department || data.student_info.branch || 'Computer Science & Engineering',
+            branch: data.student_info.department || data.student_info.branch || '',
             academicYear: data.student_info.academic_year || ''
           };
           console.log('Setting student data:', studentData);
@@ -128,7 +128,7 @@ export default function CheckResult() {
               name: userData.name || userData.username || '',
               rollNumber: userData.roll_no || '',
               programme: userData.programme || 'B.Tech',
-              branch: userData.department || 'Computer Science & Engineering',
+              branch: userData.department || '',
               academicYear: ''
             });
           }
@@ -183,7 +183,24 @@ export default function CheckResult() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `result_${studentInfo.rollNumber}_sem${semester_no}.pdf`;
+      
+      // Create proper filename with summer semester mapping
+      let semesterLabel;
+      if (semester_type && semester_type.toLowerCase().includes('summer')) {
+        const summerMapping = {
+          2: "Summer1",
+          4: "Summer2", 
+          6: "Summer3",
+          8: "Summer4"
+        };
+        semesterLabel = summerMapping[semester_no] || `Summer${semester_no}`;
+      } else {
+        semesterLabel = `sem${semester_no}`;
+      }
+      
+      const fileName = `result_${studentInfo.rollNumber}_${semesterLabel}.pdf`;
+      link.download = fileName;
+      link.title = `Result - ${studentInfo.name} - ${semesterLabel}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -335,7 +352,21 @@ export default function CheckResult() {
                         <span style={{ fontWeight: 'bold' }}>Programme:</span> {studentInfo.programme}
                       </Text>
                       <Text style={{ fontSize: isMobile ? '10px' : '12px', color: '#000000', margin: '0', lineHeight: '1.4' }}>
-                        <span style={{ fontWeight: 'bold' }}>Semester:</span> {JSON.parse(selection || '{}').no || 'VI'}
+                        <span style={{ fontWeight: 'bold' }}>Semester:</span> {(() => {
+                          if (!selection) return 'VI';
+                          const selectedOption = semesterOptions.find(option => option.value === selection);
+                          if (selectedOption) {
+                            const label = selectedOption.label;
+                            if (label.toLowerCase().includes('summer')) {
+                              return label;
+                            } else {
+                              const selectedSemester = JSON.parse(selection);
+                              return selectedSemester.no || 'VI';
+                            }
+                          }
+                          const selectedSemester = JSON.parse(selection);
+                          return selectedSemester.no || 'VI';
+                        })()}
                       </Text>
                     </Stack>
                   </Grid.Col>
@@ -522,17 +553,17 @@ export default function CheckResult() {
                         Total Credits Registered: {tu}
                       </Text>
                       <Text style={{ fontSize: isMobile ? '10px' : '12px', fontWeight: 'bold', margin: '0', color: '#000000' }}>
-                        Total Credits Earned: {su}
+                        Semester Credits Earned: {su}
                       </Text>
                     </Box>
                     
                     {/* Right side - SPI and CPI stacked */}
                     <Box style={{ flex: 1, textAlign: isMobile ? 'left' : 'right' }}>
                       <Text style={{ fontSize: isMobile ? '10px' : '12px', fontWeight: 'bold', margin: '0 0 8px 0', color: '#000000' }}>
-                        SPI (Semester Performance Index): {spi.toFixed(2)}
+                        SPI: {spi.toFixed(1)}
                       </Text>
                       <Text style={{ fontSize: isMobile ? '10px' : '12px', fontWeight: 'bold', margin: '0', color: '#000000' }}>
-                        CPI (Cumulative Performance Index): {cpi.toFixed(2)}
+                        CPI: {cpi.toFixed(1)}
                       </Text>
                     </Box>
                   </Box>

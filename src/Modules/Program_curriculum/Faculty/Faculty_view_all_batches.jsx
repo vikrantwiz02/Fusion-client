@@ -223,7 +223,7 @@ function Batches() {
                         }}
                       >
                         <Link
-                          to={`/programme_curriculum/stud_curriculum_view/${batch.id}`}
+                          to={`/programme_curriculum/stud_curriculum_view/${batch.curriculumId || batch.curriculum_id}`}
                           style={{
                             color: "#3498db",
                             textDecoration: "none",
