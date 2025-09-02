@@ -123,16 +123,7 @@ function Admin_add_batch_form() {
       if (response.data.message) {
         notifications.show({
           title: "✅ Batch Added Successfully!",
-          message: (
-            <div>
-              <Text size="sm" mb={8}>
-                <strong>Batch "{form.values.batchName}" has been created.</strong>
-              </Text>
-              <Text size="xs" color="gray.7">
-                Year: {form.values.batchYear} | Discipline: {form.values.discipline} | Total Seats: {form.values.totalSeats}
-              </Text>
-            </div>
-          ),
+          message: `Batch "${form.values.batchName}" has been created.`,
           color: "green",
           autoClose: 5000,
           style: {

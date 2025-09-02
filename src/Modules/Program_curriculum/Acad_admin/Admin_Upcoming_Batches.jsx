@@ -87,12 +87,33 @@ const customTableStyles = `
   .student-allocation-table td {
     vertical-align: top !important;
     word-wrap: break-word !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
   }
   
   .student-allocation-table th {
     text-align: center !important;
     font-weight: 600 !important;
     background-color: #f8f9fa !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+  }
+  
+  .auto-width-table {
+    table-layout: auto !important;
+    width: 100% !important;
+  }
+  
+  .auto-width-table td,
+  .auto-width-table th {
+    width: auto !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    word-wrap: break-word !important;
+    max-width: none !important;
+  }
   }
 `;
 
@@ -184,6 +205,18 @@ const STUDENT_FIELDS_CONFIG = {
     ],
     excelColumns: ["category", "caste", "reservation"],
   },
+  minority: {
+    label: "Minority",
+    placeholder: "Select minority status",
+    required: false,
+    type: "select",
+    backendField: "minority",
+    options: [
+      { value: "Not Applicable", label: "Not Applicable" },
+      { value: "Applicable", label: "Applicable" },
+    ],
+    excelColumns: ["minority", "minority status", "religious minority"],
+  },
   allottedGender: {
     label: "Allotted Gender",
     placeholder: "Select allotted gender",
@@ -198,10 +231,21 @@ const STUDENT_FIELDS_CONFIG = {
   },
   allottedCategory: {
     label: "Allotted Category",
-    placeholder: "Enter allotted category",
+    placeholder: "Select allotted category",
     required: false,
-    type: "text",
+    type: "select",
     backendField: "allotted_category",
+    options: [
+      { value: "OPNO", label: "OPNO" },
+      { value: "OPPH", label: "OPPH" },
+      { value: "EWNO", label: "EWNO" },
+      { value: "EWPH", label: "EWPH" },
+      { value: "BCNO", label: "BCNO" },
+      { value: "BCPH", label: "BCPH" },
+      { value: "SCNO", label: "SCNO" },
+      { value: "SCPH", label: "SCPH" },
+      { value: "STNO", label: "STNO" },
+    ],
     excelColumns: ["allottedcat", "allotted category"],
   },
   pwd: {
@@ -404,6 +448,7 @@ const INITIAL_FORM_DATA = {
   mname: "",
   gender: "",
   category: "",
+  minority: "Not Applicable",
   pwd: "NO",
   branch: "",
   address: "",
@@ -2002,7 +2047,6 @@ const AdminUpcomingBatch = () => {
         console.log("Checking success condition:", response.success);
 
         if (response.success) {
-          console.log("Success path taken - processing student data");
           setExtractedData(response.valid_students);
           setUploadProgress(100);
 
@@ -3562,6 +3606,7 @@ const AdminUpcomingBatch = () => {
       "Discipline",
       "Gender",
       "Category",
+      "Minority",
       "PwD",
       "MobileNo",
       "Institute Email ID",
@@ -3590,6 +3635,7 @@ const AdminUpcomingBatch = () => {
         "Computer Science and Engineering (4 Years, Bachelor of Technology)",
         "Male",
         "General",
+        "Applicable",
         "NO",
         "9229109424",
         "25bcs001@iiitdmj.ac.in",
@@ -5480,43 +5526,6 @@ const AdminUpcomingBatch = () => {
                           <Card
                             withBorder
                             padding="md"
-                            style={{ backgroundColor: "#e8f5e8" }}
-                          >
-                            <Text
-                              size="md"
-                              weight={600}
-                              color="#2d8659"
-                              mb="sm"
-                            >
-                              📊 Discipline-wise Distribution:
-                            </Text>
-                            <Grid>
-                              {Object.entries(
-                                extractedData.reduce((groups, student) => {
-                                  const discipline =
-                                    student.discipline || "Unknown";
-                                  groups[discipline] =
-                                    (groups[discipline] || 0) + 1;
-                                  return groups;
-                                }, {}),
-                              ).map(([discipline, count]) => (
-                                <Grid.Col span={6} key={discipline}>
-                                  <Text size="sm">
-                                    <strong>{discipline}:</strong> {count}{" "}
-                                    students
-                                  </Text>
-                                </Grid.Col>
-                              ))}
-                            </Grid>
-                            <Text size="xs" color="dimmed" mt="sm">
-                              💡 Students will be saved in separate branches
-                              based on their discipline within the same batch.
-                            </Text>
-                          </Card>
-
-                          <Card
-                            withBorder
-                            padding="md"
                             style={{ backgroundColor: "#f8f9fa" }}
                           >
                             <Text
@@ -5546,6 +5555,9 @@ const AdminUpcomingBatch = () => {
                                     <th style={{ minWidth: "80px" }}>Gender</th>
                                     <th style={{ minWidth: "80px" }}>
                                       Category
+                                    </th>
+                                    <th style={{ minWidth: "80px" }}>
+                                      Minority
                                     </th>
                                     <th style={{ minWidth: "60px" }}>PWD</th>
                                     <th style={{ minWidth: "120px" }}>
@@ -5658,6 +5670,15 @@ const AdminUpcomingBatch = () => {
                                         <td>
                                           {student.category ||
                                             student["Category"] ||
+                                            "-"}
+                                        </td>
+                                        <td>
+                                          {student.minority ||
+                                            student["Minority"] ||
+                                            student.minority_status ||
+                                            student["Minority Status"] ||
+                                            student.minority_applicable ||
+                                            student["Minority Applicable"] ||
                                             "-"}
                                         </td>
                                         <td>
@@ -6058,6 +6079,54 @@ const AdminUpcomingBatch = () => {
                           </Grid.Col>
                         </Grid>
 
+                        {/* Minority and PWD */}
+                        <Grid>
+                          <Grid.Col span={isMobile ? 12 : 6}>
+                            <Select
+                              label={STUDENT_FIELDS_CONFIG.minority.label}
+                              placeholder={
+                                STUDENT_FIELDS_CONFIG.minority.placeholder
+                              }
+                              value={manualFormData.minority || ""}
+                              onChange={(value) => {
+                                if (editingStudent) {
+                                  setEditingStudent({
+                                    ...editingStudent,
+                                    minority: value,
+                                  });
+                                }
+                                setManualFormData({
+                                  ...manualFormData,
+                                  minority: value,
+                                });
+                              }}
+                              data={STUDENT_FIELDS_CONFIG.minority.options}
+                              required={
+                                STUDENT_FIELDS_CONFIG.minority.required
+                              }
+                              error={errors.minority}
+                            />
+                          </Grid.Col>
+                          <Grid.Col span={isMobile ? 12 : 6}>
+                            <Select
+                              label={STUDENT_FIELDS_CONFIG.pwd.label}
+                              placeholder={
+                                STUDENT_FIELDS_CONFIG.pwd.placeholder
+                              }
+                              value={manualFormData.pwd || ""}
+                              onChange={(value) =>
+                                setManualFormData({
+                                  ...manualFormData,
+                                  pwd: value,
+                                })
+                              }
+                              data={STUDENT_FIELDS_CONFIG.pwd.options}
+                              required={STUDENT_FIELDS_CONFIG.pwd.required}
+                              error={errors.pwd}
+                            />
+                          </Grid.Col>
+                        </Grid>
+
                         {/* Contact Information */}
                         <Grid>
                           <Grid.Col span={isMobile ? 12 : 6}>
@@ -6111,26 +6180,8 @@ const AdminUpcomingBatch = () => {
                           Additional Info
                         </Title>
 
-                        {/* PWD and Date of Birth */}
+                        {/* Date of Birth */}
                         <Grid>
-                          <Grid.Col span={isMobile ? 12 : 6}>
-                            <Select
-                              label={STUDENT_FIELDS_CONFIG.pwd.label}
-                              placeholder={
-                                STUDENT_FIELDS_CONFIG.pwd.placeholder
-                              }
-                              value={manualFormData.pwd || ""}
-                              onChange={(value) =>
-                                setManualFormData({
-                                  ...manualFormData,
-                                  pwd: value,
-                                })
-                              }
-                              data={STUDENT_FIELDS_CONFIG.pwd.options}
-                              required={STUDENT_FIELDS_CONFIG.pwd.required}
-                              error={errors.pwd}
-                            />
-                          </Grid.Col>
                           <Grid.Col span={isMobile ? 12 : 6}>
                             <TextInput
                               type="date"
@@ -6374,22 +6425,28 @@ const AdminUpcomingBatch = () => {
                         {/* Allotted Category and Gender */}
                         <Grid>
                           <Grid.Col span={isMobile ? 12 : 6}>
-                            <TextInput
+                            <Select
                               label={STUDENT_FIELDS_CONFIG.allottedCategory.label}
                               placeholder={
                                 STUDENT_FIELDS_CONFIG.allottedCategory.placeholder
                               }
                               value={manualFormData.allottedCategory || ""}
-                              onChange={(e) =>
+                              onChange={(value) =>
                                 setManualFormData({
                                   ...manualFormData,
-                                  allottedCategory: e.target.value,
+                                  allottedCategory: value,
                                 })
                               }
+                              data={STUDENT_FIELDS_CONFIG.allottedCategory.options.map(option => ({
+                                value: option.value,
+                                label: option.label
+                              }))}
                               required={
                                 STUDENT_FIELDS_CONFIG.allottedCategory.required
                               }
                               error={errors.allottedCategory}
+                              searchable
+                              clearable
                             />
                           </Grid.Col>
                           <Grid.Col span={isMobile ? 12 : 6}>
@@ -6525,6 +6582,10 @@ const AdminUpcomingBatch = () => {
                             <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
                               <Text size="xs" weight={600} color="dimmed" mb={2}>CATEGORY</Text>
                               <Text size="sm" weight={500}>{manualFormData.category || "Not selected"}</Text>
+                            </div>
+                            <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                              <Text size="xs" weight={600} color="dimmed" mb={2}>MINORITY</Text>
+                              <Text size="sm" weight={500}>{manualFormData.minority || "Not selected"}</Text>
                             </div>
                             {manualFormData.phoneNumber && (
                               <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
@@ -6961,10 +7022,11 @@ const AdminUpcomingBatch = () => {
                   <Table
                     striped
                     highlightOnHover
+                    className="auto-width-table"
                     style={{
-                      minWidth: "2000px",
+                      minWidth: "1800px",
                       fontSize: "13px",
-                      tableLayout: "fixed",
+                      tableLayout: "auto",
                     }}
                   >
                     <thead style={{ position: "sticky", top: 0, zIndex: 15 }}>
@@ -6979,7 +7041,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "60px",
+                            minWidth: "60px",
                             position: "sticky",
                             left: "0px",
                             backgroundColor: "#f8fafc",
@@ -6997,7 +7059,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "140px",
+                            minWidth: "140px",
                             position: "sticky",
                             left: "60px", // Position after S.No column
                             backgroundColor: "#f8fafc",
@@ -7015,7 +7077,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "160px",
+                            minWidth: "160px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7027,7 +7089,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "180px",
+                            minWidth: "180px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7039,7 +7101,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "120px",
+                            minWidth: "200px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7051,7 +7113,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "80px",
+                            minWidth: "80px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7063,7 +7125,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "90px",
+                            minWidth: "90px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7075,7 +7137,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "60px",
+                            minWidth: "60px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7087,7 +7149,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "120px",
+                            minWidth: "120px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7099,7 +7161,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "200px",
+                            minWidth: "250px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7111,7 +7173,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "180px",
+                            minWidth: "220px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7123,7 +7185,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "150px",
+                            minWidth: "150px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7135,7 +7197,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "140px",
+                            minWidth: "140px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7147,7 +7209,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "120px",
+                            minWidth: "120px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7159,7 +7221,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "150px",
+                            minWidth: "150px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7171,7 +7233,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "140px",
+                            minWidth: "140px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7183,7 +7245,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "120px",
+                            minWidth: "120px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7195,7 +7257,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "100px",
+                            minWidth: "100px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7207,7 +7269,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "80px",
+                            minWidth: "80px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7219,7 +7281,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "100px",
+                            minWidth: "100px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7231,7 +7293,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "100px",
+                            minWidth: "100px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7243,7 +7305,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "100px",
+                            minWidth: "100px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7255,7 +7317,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "80px",
+                            minWidth: "80px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7267,7 +7329,7 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
-                            width: "250px",
+                            minWidth: "250px",
                             fontWeight: "bold",
                             fontSize: "13px",
                           }}
@@ -7280,7 +7342,7 @@ const AdminUpcomingBatch = () => {
                               padding: "16px 12px",
                               textAlign: "center",
                               color: "#1e293b",
-                              width: "150px",
+                              minWidth: "150px",
                               fontWeight: "bold",
                               fontSize: "13px",
                             }}
@@ -7307,7 +7369,7 @@ const AdminUpcomingBatch = () => {
                               padding: "16px 12px",
                               textAlign: "center",
                               color: "#1e293b",
-                              width: "150px",
+                              minWidth: "150px",
                               fontWeight: "bold",
                               fontSize: "13px",
                             }}

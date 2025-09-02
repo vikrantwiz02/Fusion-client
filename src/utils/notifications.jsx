@@ -8,7 +8,6 @@ import { Text, Badge } from "@mantine/core";
 export const showSuccessNotification = ({
   title = "✅ Success!",
   message,
-  details = "",
   autoClose = 5000,
 }) => {
   notifications.show({
@@ -18,11 +17,6 @@ export const showSuccessNotification = ({
         <Text size="sm" mb={8}>
           <strong>{message}</strong>
         </Text>
-        {details && (
-          <Text size="xs" color="gray.7">
-            {details}
-          </Text>
-        )}
       </div>
     ),
     color: "green",
@@ -38,7 +32,6 @@ export const showSuccessNotification = ({
 export const showErrorNotification = ({
   title = "❌ Error!",
   message,
-  details = "",
   autoClose = 7000,
 }) => {
   notifications.show({
@@ -48,11 +41,6 @@ export const showErrorNotification = ({
         <Text size="sm" mb={8}>
           <strong>{message}</strong>
         </Text>
-        {details && (
-          <Text size="xs" color="gray.7">
-            {details}
-          </Text>
-        )}
       </div>
     ),
     color: "red",
@@ -68,7 +56,6 @@ export const showErrorNotification = ({
 export const showWarningNotification = ({
   title = "⚠️ Warning!",
   message,
-  details = "",
   autoClose = 5000,
 }) => {
   notifications.show({
@@ -78,11 +65,6 @@ export const showWarningNotification = ({
         <Text size="sm" mb={8}>
           <strong>{message}</strong>
         </Text>
-        {details && (
-          <Text size="xs" color="gray.7">
-            {details}
-          </Text>
-        )}
       </div>
     ),
     color: "orange",
@@ -99,32 +81,28 @@ export const showNetworkErrorNotification = (customMessage = "") => {
   showErrorNotification({
     title: "🚨 Network Error",
     message: customMessage || "Connection error occurred.",
-    details: "Please check your internet connection and try again.",
   });
 };
 
 // Specific notification types for common actions
-export const showAddSuccessNotification = (itemType, itemName, additionalDetails = "") => {
+export const showAddSuccessNotification = (itemType, itemName) => {
   showSuccessNotification({
     title: `✅ ${itemType} Added Successfully!`,
     message: `${itemType} "${itemName}" has been created successfully.`,
-    details: additionalDetails,
   });
 };
 
-export const showUpdateSuccessNotification = (itemType, itemName, additionalDetails = "") => {
+export const showUpdateSuccessNotification = (itemType, itemName) => {
   showSuccessNotification({
     title: `✅ ${itemType} Updated Successfully!`,
     message: `${itemType} "${itemName}" has been updated successfully.`,
-    details: additionalDetails,
   });
 };
 
-export const showDeleteSuccessNotification = (itemType, itemName, additionalDetails = "") => {
+export const showDeleteSuccessNotification = (itemType, itemName) => {
   showSuccessNotification({
     title: `✅ ${itemType} Deleted Successfully!`,
     message: `${itemType} "${itemName}" has been deleted successfully.`,
-    details: additionalDetails,
   });
 };
 
@@ -132,7 +110,6 @@ export const showAddFailureNotification = (itemType) => {
   showErrorNotification({
     title: `❌ Failed to Add ${itemType}`,
     message: `Unable to create ${itemType.toLowerCase()}. Please try again.`,
-    details: "Please check your inputs and try again.",
   });
 };
 
@@ -140,7 +117,6 @@ export const showUpdateFailureNotification = (itemType) => {
   showErrorNotification({
     title: `❌ Failed to Update ${itemType}`,
     message: `Unable to update ${itemType.toLowerCase()}. Please try again.`,
-    details: "Please check your inputs and try again.",
   });
 };
 
@@ -148,13 +124,12 @@ export const showDeleteFailureNotification = (itemType) => {
   showErrorNotification({
     title: `❌ Failed to Delete ${itemType}`,
     message: `Unable to delete ${itemType.toLowerCase()}. Please try again.`,
-    details: "Please check if there are dependencies or try again later.",
   });
 };
 
 // API Error handling with specific actions
 export const showApiErrorNotification = (error, itemType = "item", refreshCallback = null) => {
-  let title, message, details, color, autoClose;
+  let title, message, color, autoClose;
 
   if (error.response) {
     const status = error.response.status;
@@ -164,9 +139,6 @@ export const showApiErrorNotification = (error, itemType = "item", refreshCallba
       case 404:
         title = `🔍 ${itemType} Not Found`;
         message = errorData?.message || `The ${itemType.toLowerCase()} you're trying to access doesn't exist.`;
-        details = refreshCallback 
-          ? "Refreshing data to sync with server..." 
-          : "It may have been deleted or moved.";
         color = "orange";
         autoClose = 8000;
         
@@ -179,7 +151,6 @@ export const showApiErrorNotification = (error, itemType = "item", refreshCallba
       case 400:
         title = `❌ Invalid ${itemType} Operation`;
         message = errorData?.message || `The ${itemType.toLowerCase()} operation is not valid.`;
-        details = errorData?.validation_error || "Please check your inputs and try again.";
         color = "red";
         autoClose = 7000;
         break;
@@ -187,7 +158,6 @@ export const showApiErrorNotification = (error, itemType = "item", refreshCallba
       case 403:
         title = `🚫 Permission Denied`;
         message = `You don't have permission to perform this ${itemType.toLowerCase()} operation.`;
-        details = "Please contact your administrator for access.";
         color = "red";
         autoClose = 6000;
         break;
@@ -195,7 +165,6 @@ export const showApiErrorNotification = (error, itemType = "item", refreshCallba
       case 500:
         title = `🛠️ Server Error`;
         message = `Server error occurred while processing ${itemType.toLowerCase()}.`;
-        details = "Please try again later or contact support.";
         color = "red";
         autoClose = 8000;
         break;
@@ -203,20 +172,17 @@ export const showApiErrorNotification = (error, itemType = "item", refreshCallba
       default:
         title = `❌ ${itemType} Operation Failed`;
         message = errorData?.message || `Failed to process ${itemType.toLowerCase()}.`;
-        details = `Server responded with status: ${status}`;
         color = "red";
         autoClose = 6000;
     }
   } else if (error.request) {
     title = "🚨 Network Error";
     message = "Unable to connect to server.";
-    details = "Please check your internet connection and try again.";
     color = "red";
     autoClose = 8000;
   } else {
     title = `❌ ${itemType} Error`;
     message = error.message || "An unexpected error occurred.";
-    details = "Please try again.";
     color = "red";
     autoClose = 6000;
   }
@@ -228,11 +194,6 @@ export const showApiErrorNotification = (error, itemType = "item", refreshCallba
         <Text size="sm" mb={8}>
           <strong>{message}</strong>
         </Text>
-        {details && (
-          <Text size="xs" color="gray.7">
-            {details}
-          </Text>
-        )}
       </div>
     ),
     color,
@@ -258,20 +219,6 @@ export const showVersioningNotification = ({
   changedFields = [],
   autoClose = 7000,
 }) => {
-  const bumpTypeColors = {
-    'MAJOR': '#d32f2f',
-    'MINOR': '#f57c00', 
-    'PATCH': '#388e3c',
-    'NONE': '#757575'
-  };
-
-  const bumpTypeEmojis = {
-    'MAJOR': '🚨',
-    'MINOR': '⚠️',
-    'PATCH': '✏️',
-    'NONE': '📝'
-  };
-
   const versionMessage = oldVersion && newVersion && oldVersion !== newVersion
     ? `Version ${oldVersion} → ${newVersion}`
     : "Updated successfully";
@@ -283,30 +230,6 @@ export const showVersioningNotification = ({
         <Text size="sm" mb={8}>
           <strong>Course "{entityName}" ({entityCode}) has been updated.</strong>
         </Text>
-        {versionMessage && (
-          <Text size="xs" mb={4} style={{ color: bumpTypeColors[versionBumpType] || '#388e3c' }}>
-            {bumpTypeEmojis[versionBumpType] || '🔄'} {versionMessage} 
-            {versionBumpType && versionBumpType !== 'NONE' && (
-              <Badge size="xs" ml={4} color={
-                versionBumpType === 'MAJOR' ? 'red' :
-                versionBumpType === 'MINOR' ? 'orange' :
-                versionBumpType === 'PATCH' ? 'green' : 'gray'
-              }>
-                {versionBumpType}
-              </Badge>
-            )}
-          </Text>
-        )}
-        {reason && (
-          <Text size="xs" color="gray.7" mb={4}>
-            {reason}
-          </Text>
-        )}
-        {changedFields.length > 0 && (
-          <Text size="xs" color="gray.6">
-            Changed: {changedFields.join(', ')}
-          </Text>
-        )}
       </div>
     ),
     color: "green",

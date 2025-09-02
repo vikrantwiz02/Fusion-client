@@ -97,7 +97,7 @@ function Admin_replicate_curriculum_form({ existingData }) {
             // Set the programme value using the ID from the response
             programme: response.programme_id.toString(),
             workingCurriculum: response.working_curriculum || false,
-            versionNo: response.version || 1.0,
+            versionNo: response.version ? parseFloat((parseFloat(response.version) + 0.1).toFixed(1)) : 1.0,
             numSemesters: response.semesters ? response.semesters.length : 1,
             numCredits: response.num_credits || 0,
           });
@@ -306,6 +306,9 @@ function Admin_replicate_curriculum_form({ existingData }) {
                   label="Curriculum Version No"
                   value={form.values.versionNo}
                   onChange={(value) => form.setFieldValue("versionNo", value)}
+                  step={0.1}
+                  precision={1}
+                  min={0.1}
                   required
                 />
 

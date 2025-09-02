@@ -535,7 +535,7 @@ function StudentTranscript({ student, semester, onBack }) {
         >
           <Box style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
             <Text style={{ fontSize: isMobile ? '10px' : '12px', color: '#000000', fontWeight: 'bold' }}>
-              Total Credits Registered: {courses.reduce((sum, course) => sum + (course.course_id?.credits || course.credits || 0), 0)}
+              Total Credits Registered: {tu}
             </Text>
             <Text style={{ fontSize: isMobile ? '10px' : '12px', color: '#000000', fontWeight: 'bold' }}>
               Semester Credits Earned: {su}
