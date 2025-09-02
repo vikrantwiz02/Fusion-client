@@ -85,7 +85,6 @@ export default function CheckResult() {
     const fetchStudentInfo = async () => {
       try {
         const userData = JSON.parse(localStorage.getItem('user'));
-        console.log('Retrieved user data:', userData);
         
         if (userData) {
           // Try to fetch complete profile from API
@@ -110,7 +109,6 @@ export default function CheckResult() {
               });
             }
           } catch (apiError) {
-            console.log('API call failed, using localStorage data:', apiError);
             // Fallback to localStorage data
             setStudentInfo({
               rollNumber: userData.roll_no || '',

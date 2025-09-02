@@ -7137,6 +7137,18 @@ const AdminUpcomingBatch = () => {
                             padding: "16px 12px",
                             textAlign: "center",
                             color: "#1e293b",
+                            minWidth: "90px",
+                            fontWeight: "bold",
+                            fontSize: "13px",
+                          }}
+                        >
+                          Minority
+                        </th>
+                        <th
+                          style={{
+                            padding: "16px 12px",
+                            textAlign: "center",
+                            color: "#1e293b",
                             minWidth: "60px",
                             fontWeight: "bold",
                             fontSize: "13px",
@@ -7500,6 +7512,23 @@ const AdminUpcomingBatch = () => {
                           >
                             <Badge variant="outline" size="sm" color="indigo">
                               {student.Category || student.category || "-"}
+                            </Badge>
+                          </td>
+                          <td
+                            style={{
+                              padding: "14px 12px",
+                              textAlign: "center",
+                              fontSize: "12px",
+                            }}
+                          >
+                            <Badge variant="outline" size="sm" color="cyan">
+                              {student.minority ||
+                                student["Minority"] ||
+                                student.minority_status ||
+                                student["Minority Status"] ||
+                                student.minority_applicable ||
+                                student["Minority Applicable"] ||
+                                "Not Applicable"}
                             </Badge>
                           </td>
                           <td

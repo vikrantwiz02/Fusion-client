@@ -68,8 +68,6 @@ function Profile() {
     fetchProfile();
   }, []);
 
-  console.log(profileData);
-
   const tabItems = [
     { title: "Profile" },
     { title: "Skills & Technologies" },

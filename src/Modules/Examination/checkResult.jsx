@@ -15,6 +15,7 @@ import {
   Stack,
 } from "@mantine/core";
 import axios from "axios";
+import InstiLogo from "../../assets/Insti_logo.svg";
 import { get_result_semesters, check_result, download_grades_prof } from "./routes/examinationRoutes";
 
 export default function CheckResult() {
@@ -101,9 +102,6 @@ export default function CheckResult() {
       if (!data.success) {
         setError(data.message || "Cannot fetch results.");
       } else {
-        console.log('API Response:', data);
-        console.log('Student Info from API:', data.student_info);
-
         setCourses(data.courses || []);
         setSpi(parseFloat(data.spi) || 0);
         setCpi(parseFloat(data.cpi) || 0);
@@ -118,10 +116,8 @@ export default function CheckResult() {
             branch: data.student_info.department || data.student_info.branch || '',
             academicYear: data.student_info.academic_year || ''
           };
-          console.log('Setting student data:', studentData);
           setStudentInfo(studentData);
         } else {
-          console.log('No student_info in API response, using localStorage');
           const userData = JSON.parse(localStorage.getItem('user'));
           if (userData) {
             setStudentInfo({
@@ -286,7 +282,7 @@ export default function CheckResult() {
               >
 
                 <img 
-                  src="/src/assets/Insti_logo.svg" 
+                  src={InstiLogo} 
                   alt="College Logo" 
                   className="responsive-logo"
                   style={{ 

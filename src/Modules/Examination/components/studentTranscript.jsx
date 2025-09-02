@@ -24,6 +24,7 @@ import {
 } from "@tabler/icons-react";
 import { useSelector } from "react-redux";
 import "../styles/transcript.css";
+import InstiLogo from "../../../assets/Insti_logo.svg";
 
 function StudentTranscript({ student, semester, onBack }) {
   const userRole = useSelector((state) => state.user.role);
@@ -79,7 +80,6 @@ function StudentTranscript({ student, semester, onBack }) {
       )
       .then((response) => {
         const data = response.data;
-        console.log('Transcript API Response:', data);
         
         if (!data) {
           setError("No data received from server.");
@@ -279,19 +279,19 @@ function StudentTranscript({ student, semester, onBack }) {
           }}
         >
           <img 
-            src="/src/assets/Insti_logo.svg" 
-            alt="College Logo" 
-            className="responsive-logo"
-            style={{ 
-              position: 'absolute',
-              left: isMobile ? '10px' : '120px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: isMobile ? '35px' : '60px', 
-              height: isMobile ? '35px' : '60px',
-              objectFit: 'contain'
-            }} 
-          />
+                  src={InstiLogo} 
+                  alt="College Logo" 
+                  className="responsive-logo"
+                  style={{ 
+                    position: 'absolute',
+                    left: isMobile ? '10px' : '120px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: isMobile ? '35px' : '60px', 
+                    height: isMobile ? '35px' : '60px',
+                    objectFit: 'contain'
+                  }} 
+                />
           
           <Box style={{ textAlign: 'center', margin: '0 auto', padding: isMobile ? '0 45px' : '0 80px' }}>
             <Title 

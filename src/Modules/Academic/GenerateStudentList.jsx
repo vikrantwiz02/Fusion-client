@@ -330,13 +330,16 @@ export default function GenerateStudentList() {
 
           <Select
             label="List Type (Optional)"
-            placeholder="All Registration Types"
+            placeholder="Leave empty for all enrolled students"
             data={LIST_TYPE_CHOICES}
             value={listType}
             onChange={setListType}
             clearable
-            mb="md"
+            mb="xs"
           />
+          <Text size="xs" color="dimmed" mb="md">
+            💡 If no list type is selected, the system will generate a complete roll list of all students enrolled in the course (Regular, Backlog, Improvement, etc.)
+          </Text>
 
           {error ? (
             <Alert color="red">{error}</Alert>
@@ -426,7 +429,9 @@ export default function GenerateStudentList() {
               <Text size="sm" weight={500}>Course No.: <Text span>{courseOptions.find(c => c.value === course)?.label?.split(' - ')[0] || 'N/A'}</Text></Text>
               <Text size="sm" weight={500}>Course Title: <Text span>{courseOptions.find(c => c.value === course)?.label?.split(' - ')[1] || courseOptions.find(c => c.value === course)?.label || 'N/A'}</Text></Text>
               <Text size="sm" weight={500}>Instructor: <Text span>TBA</Text></Text>
-              <Text size="sm" weight={500}>List Type: <Text span>{listType || "All Registrations"}</Text></Text>
+              <Text size="sm" weight={500}>List Type: <Text span color={listType ? "blue" : "green"}>
+                {listType || "Complete Roll List (All Registration Types)"}
+              </Text></Text>
             </Box>
 
             {previewLoading ? (
@@ -476,7 +481,10 @@ export default function GenerateStudentList() {
               </ScrollArea>
             ) : (
               <Alert color="blue">
-                No students found for {listType || 'any registration type'} in this course.
+                {listType 
+                  ? `No students found with "${listType}" registration type in this course.`
+                  : 'No students enrolled in this course (checked all registration types: Regular, Backlog, Improvement, etc.).'
+                }
               </Alert>
             )}
 
