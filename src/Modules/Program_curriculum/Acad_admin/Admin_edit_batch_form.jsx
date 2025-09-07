@@ -9,27 +9,28 @@ import {
   Container,
   Stack,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { useForm } from "@mantine/form";
 import axios from "axios";
-import { useNavigate, useSearchParams } from "react-router-dom"; // For handling URL parameters and navigation
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   fetchDisciplines,
   fetchBatchName,
   fetchGetUnlinkedCurriculum,
-  fetchBatchData, // Add this function to fetch batch data by ID
+  fetchBatchData,
 } from "../api/api";
 import { host } from "../../../routes/globalRoutes";
 
 function Admin_edit_batch_form() {
   const [searchParams] = useSearchParams();
-  const batchId = searchParams.get("batch"); // Get the batch ID from the URL
+  const batchId = searchParams.get("batch");
   const curriculumId = searchParams.get("curriculum_id");
-  const navigate = useNavigate(); // For navigation after form submission
-  const [batchNames, setBatchNames] = useState([]); // State for batch names
-  const [disciplines, setDisciplines] = useState([]); // State for disciplines
-  const [unlinkedCurriculums, setUnlinkedCurriculums] = useState([]); // State for unlinked curriculums
-  const [loading, setLoading] = useState(true); // State for loading
-  const [error, setError] = useState(null); // State for error handling
+  const navigate = useNavigate();
+  const [batchNames, setBatchNames] = useState([]);
+  const [disciplines, setDisciplines] = useState([]);
+  const [unlinkedCurriculums, setUnlinkedCurriculums] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const form = useForm({
     initialValues: {
@@ -38,35 +39,31 @@ function Admin_edit_batch_form() {
       batchYear: 2024,
       disciplineBatch: "",
       runningBatch: false,
+      totalSeats: 0,
     },
   });
 
-  // Fetch batch names, disciplines, unlinked curriculums, and existing batch data on component mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Fetch batch names
         const batchData = await fetchBatchName();
         setBatchNames(batchData.choices);
 
-        // Fetch disciplines
         const disciplineData = await fetchDisciplines();
         setDisciplines(disciplineData);
 
-        // Fetch unlinked curriculums
         const unlinkedCurriculumData = await fetchGetUnlinkedCurriculum();
         setUnlinkedCurriculums(unlinkedCurriculumData);
-        console.log(unlinkedCurriculums);
-        // Fetch existing batch data
+        
         const existingBatchData = await fetchBatchData(batchId);
-        console.log(existingBatchData.curriculum);
+        
         if (existingBatchData.curriculum) {
           setUnlinkedCurriculums((prevUnlinkedCurriculums) => [
             ...prevUnlinkedCurriculums,
             ...existingBatchData.curriculum.map((curriculum) => curriculum),
           ]);
         }
-        console.log(unlinkedCurriculums);
+        
         form.setValues({
           batchName: existingBatchData.batch.name,
           discipline: existingBatchData.batch.discipline.toString(),
@@ -75,17 +72,23 @@ function Admin_edit_batch_form() {
             ? existingBatchData.batch.curriculum_id.toString()
             : curriculumId || "",
           runningBatch: existingBatchData.batch.running_batch,
+          totalSeats: existingBatchData.batch.total_seats || 0,
         });
       } catch (err) {
-        setError("Failed to load data."); // Handle errors
+        setError("Failed to load data.");
+        notifications.show({
+          title: "Error",
+          message: "Failed to load batch data. Please refresh the page.",
+          color: "red",
+          autoClose: 4000,
+        });
       } finally {
-        setLoading(false); // Stop the loader
+        setLoading(false);
       }
     };
 
-    loadData(); // Fetch data on component mount
+    loadData();
   }, [batchId]);
-  console.log(unlinkedCurriculums);
 
   const handleSubmit = async () => {
     try {
@@ -98,12 +101,13 @@ function Admin_edit_batch_form() {
         batch_name: form.values.batchName,
         discipline: form.values.discipline,
         batchYear: form.values.batchYear,
-        disciplineBatch: form.values.disciplineBatch || "", // Send empty string if no curriculum is selected
+        disciplineBatch: form.values.disciplineBatch || "",
         runningBatch: form.values.runningBatch,
+        total_seats: form.values.totalSeats,
       };
-      console.log(payload);
+      
       const response = await axios.put(
-        `${host}/programme_curriculum/api/admin_edit_batch/${batchId}/`, // Use PUT request for editing
+        `${host}/programme_curriculum/api/admin_edit_batch/${batchId}/`,
         payload,
         {
           headers: {
@@ -111,14 +115,34 @@ function Admin_edit_batch_form() {
           },
         },
       );
-      console.log(response);
       if (response.data.message) {
-        alert("Batch updated successfully!");
-        navigate("/programme_curriculum/admin_batches/"); // Redirect to batches page
+        notifications.show({
+          title: '✅ Success',
+          message: 'Batch updated successfully!',
+          color: 'green',
+          autoClose: 4000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
+        });
+        navigate("/programme_curriculum/admin_batches/");
       } else {
         throw new Error(response.data.message || "Failed to update batch");
       }
     } catch (err) {
+      notifications.show({
+        title: '❌ Error',
+        message: err.message || 'Failed to update batch',
+        color: 'red',
+        autoClose: 5000,
+        style: {
+          backgroundColor: '#f8d7da',
+          borderColor: '#f5c6cb',
+          color: '#721c24',
+        },
+      });
       setError(err.message);
     }
   };
@@ -155,7 +179,6 @@ function Admin_edit_batch_form() {
             flex: 4,
           }}
         >
-          {/* Form Section */}
           <div style={{ flex: 4 }}>
             <form
               onSubmit={form.onSubmit(handleSubmit)}
@@ -171,7 +194,6 @@ function Admin_edit_batch_form() {
                   Edit Batch Form
                 </Text>
 
-                {/* Batch Name Dropdown */}
                 <Select
                   label="Batch Name"
                   placeholder="-- Select Batch Name --"
@@ -181,7 +203,6 @@ function Admin_edit_batch_form() {
                   required
                 />
 
-                {/* Discipline Dropdown */}
                 <Select
                   label="Select Discipline"
                   placeholder="-- Select Discipline --"
@@ -224,6 +245,15 @@ function Admin_edit_batch_form() {
                     )
                   }
                 />
+
+                <NumberInput
+                  label="Total Seats"
+                  placeholder="Enter total number of seats"
+                  value={form.values.totalSeats}
+                  onChange={(value) => form.setFieldValue("totalSeats", value)}
+                  min={0}
+                  required
+                />
               </Stack>
 
               <Group position="right" mt="lg">
@@ -242,37 +272,6 @@ function Admin_edit_batch_form() {
               </Group>
             </form>
           </div>
-
-          {/* Right Panel Buttons */}
-          {/* <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-start",
-            }}
-          >
-            <Group spacing="md" direction="column" style={{ width: "100%" }}>
-              <Link
-                to="/programme_curriculum/acad_admin_add_curriculum_form"
-                style={{ textDecoration: "none" }}
-              >
-                <Button className="right-btn-batch">Add Curriculum</Button>
-              </Link>
-              <Link
-                to="/programme_curriculum/acad_admin_add_batch_form"
-                style={{ textDecoration: "none" }}
-              >
-                <Button className="right-btn-batch">Add Another Batch</Button>
-              </Link>
-              <Link
-                to="/programme_curriculum/acad_admin_add_discipline_form"
-                style={{ textDecoration: "none" }}
-              >
-                <Button className="right-btn-batch">Add Discipline</Button>
-              </Link>
-            </Group>
-          </div> */}
         </div>
       </Container>
 

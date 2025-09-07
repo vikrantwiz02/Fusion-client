@@ -19,6 +19,7 @@ const basePages = [
   "faculty_view_course_proposal",
   "faculty_outward_files",
   "faculty_inward_files",
+  "faculty_course_instructor",
 
   "view_all_programmes",
   "view_all_working_curriculums",
@@ -75,6 +76,7 @@ const pageNameMappings = {
   faculty_inward_files: "Inward Files",
   stud_curriculum_view: "Curriculum-Details",
   stud_semester_info: "Semester Information",
+  semester_info: "Semester Information",
   stud_course_slot_details: "Course-Slot Details",
   faculty_course_view: "Course Details",
   faculty_forward_form: "Edit Course Form",
@@ -90,6 +92,9 @@ const pageNameMappings = {
   student_batches: "Batches",
   student_courses: "Courses",
   student_course: "Course-Details",
+  admin_edit_course_slot_form: "Edit Course Slot Form",
+  faculty_course_instructor: "Course Instructor",
+  admin_upcoming_batches: "Upcoming Batches",
 
   // Add more mappings as needed...
 };
@@ -115,7 +120,7 @@ const formatBreadcrumbName = (path) => {
   return `${primaryName} (${formattedParams})`;
 };
 
-const Breadcrumb = () => {
+function Breadcrumb() {
   const location = useLocation();
   const scrollContainerRef = useRef(null);
   const [breadcrumbs, setBreadcrumbs] = useState(() => {
@@ -148,16 +153,12 @@ const Breadcrumb = () => {
 
       // Append non-base pages while avoiding duplicates
       if (!basePages.includes(currentPage.split("?")[0])) {
-        const existingIndex = prev.findIndex(
-          (b) => b.path === `/programme_curriculum/${currentPage}`,
-        );
+        const currentName = formatBreadcrumbName(currentPage);
+        const existingIndex = prev.findIndex((b) => b.name === currentName);
         if (existingIndex === -1) {
           updatedBreadcrumbs = [
             ...prev,
-            {
-              name: formatBreadcrumbName(currentPage),
-              path: `/programme_curriculum/${currentPage}`,
-            },
+            { name: currentName, path: `/programme_curriculum/${currentPage}` },
           ];
         } else {
           updatedBreadcrumbs = prev.slice(0, existingIndex + 1);
@@ -244,6 +245,6 @@ const Breadcrumb = () => {
       </div>
     </Box>
   );
-};
+}
 
 export default Breadcrumb;
