@@ -327,7 +327,7 @@ export default function GenerateStudentList() {
               onChange={setSemesterType}
             />
           </Group>
-
+{/* 
           <Select
             label="List Type (Optional)"
             placeholder="Leave empty for all enrolled students"
@@ -339,7 +339,7 @@ export default function GenerateStudentList() {
           />
           <Text size="xs" color="dimmed" mb="md">
             💡 If no list type is selected, the system will generate a complete roll list of all students enrolled in the course (Regular, Backlog, Improvement, etc.)
-          </Text>
+          </Text> */}
 
           {error ? (
             <Alert color="red">{error}</Alert>
