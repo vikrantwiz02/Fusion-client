@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import React, { useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
 import {
   Container,
   Paper,
@@ -58,7 +58,6 @@ import {
   saveStudentsBatch,
   addSingleStudent,
   exportStudentData,
-  updateStudentStatus,
   createBatch,
   updateBatch,
   deleteBatch,
@@ -114,6 +113,29 @@ const customTableStyles = `
     word-wrap: break-word !important;
     max-width: none !important;
   }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  @keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+  }
+  
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  
+  .sync-indicator {
+    animation: pulse 2s ease-in-out infinite;
+  }
+  
+  .content-container {
+    animation: fadeIn 0.3s ease-in-out;
   }
 `;
 
@@ -470,7 +492,6 @@ const INITIAL_FORM_DATA = {
   instituteEmail: "",
 };
 
-// Main Component
 const AdminUpcomingBatch = () => {
   const getCurrentBatchYear = () => {
     const now = new Date();
@@ -522,7 +543,6 @@ const AdminUpcomingBatch = () => {
     return options;
   };
 
-  // Function to generate academic year options for viewing data
   const getViewAcademicYearOptions = () => {
     const currentBatchYear = getCurrentBatchYear();
     const options = [];
@@ -717,7 +737,6 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  // Helper to get current year batches based on active section
   const getCurrentYearBatches = () => {
     const currentYear = getCurrentBatchYear();
     switch (activeSection) {
@@ -732,7 +751,6 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  // Helper function to determine target batch based on branch
   const getBatchForBranch = (branch, batches) => {
     if (!branch || !batches || batches.length === 0) return null;
 
@@ -788,7 +806,6 @@ const AdminUpcomingBatch = () => {
     const targetBatchCode = branchMappings[normalizedBranch];
     
     if (targetBatchCode) {
-      // Handle array of possible codes (for Design) or single code
       const possibleCodes = Array.isArray(targetBatchCode) ? targetBatchCode : [targetBatchCode];
       
       const foundBatch = batches.find(batch => {
@@ -807,21 +824,16 @@ const AdminUpcomingBatch = () => {
       }
     }
 
-    // Enhanced fallback matching with better design pattern recognition
     for (const batch of batches) {
       const batchBranch = (batch.displayBranch || batch.discipline || batch.branch || '').toLowerCase();
-      
-      // Special handling for design variations
       const isDesignBatch = batchBranch.includes('des') || batchBranch.includes('design');
       const isDesignStudent = normalizedBranch.includes('design') || normalizedBranch.includes('des');
       
       let fallbackMatch = false;
       
       if (isDesignStudent && isDesignBatch) {
-        // Both are design-related, consider it a match
         fallbackMatch = true;
       } else {
-        // Standard fallback matching
         fallbackMatch = batchBranch.includes(normalizedBranch) || normalizedBranch.includes(batchBranch);
       }
       
@@ -898,7 +910,6 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  const dispatch = useDispatch();
   const { userDetails } = useSelector((state) => state.user);
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -908,6 +919,7 @@ const AdminUpcomingBatch = () => {
   const [phdBatches, setPhdBatches] = useState([]);
   const [batchData, setBatchData] = useState(null); 
   const [loading, setLoading] = useState(false);
+  const [backgroundSync, setBackgroundSync] = useState(false);
   const [selectedBatchYear, setSelectedBatchYear] = useState(() => getCurrentBatchYear());
   const [viewAcademicYear, setViewAcademicYear] = useState(() => getCurrentBatchYear()); 
 
@@ -923,6 +935,17 @@ const AdminUpcomingBatch = () => {
       year: selectedBatchYear
     }));
   }, [selectedBatchYear]);
+
+  const mapCategoryValue = (value) => {
+    const categoryMapping = {
+      "General": "GEN",
+      "Other Backward Class": "OBC", 
+      "Scheduled Caste": "SC",
+      "Scheduled Tribe": "ST",
+      "Economically Weaker Section": "EWS"
+    };
+    return categoryMapping[value] || value;
+  };
 
   const getFieldMapping = () => {
     const mapping = {};
@@ -1025,7 +1048,6 @@ const AdminUpcomingBatch = () => {
     return errors;
   };
 
-  // Helper function to validate required fields for current step only
   const validateCurrentStep = (formData, step, isEditMode = false) => {
     const errors = {};
     let fieldsToValidate = [];
@@ -1073,8 +1095,6 @@ const AdminUpcomingBatch = () => {
     return errors;
   };
 
-  // BATCH ALLOCATION ALGORITHM FUNCTIONS
-  // Function to get current academic year based on date
   const getCurrentAcademicYear = () => {
     return getCurrentAcademicYearString();
   };
@@ -1316,19 +1336,16 @@ const AdminUpcomingBatch = () => {
     return branchName || branchCode || "Unknown";
   };
 
-  // Function to generate roll number based on branch and sequence
   const generateRollNumber = (branchCode, year, sequence) => {
     const yearSuffix = year.toString().slice(-2);
     const sequenceNumber = sequence.toString().padStart(3, "0");
     return `${yearSuffix}${branchCode}${sequenceNumber}`;
   };
 
-  // Function to generate institute email
   const generateInstituteEmail = (rollNumber) => {
     return `${rollNumber.toLowerCase()}@iiitdmj.ac.in`;
   };
 
-  // Main batch allocation algorithm
   const processBatchAllocation = (studentData, programmeType) => {
     const batchYear = parseInt(selectedBatchYear, 10);
     const branchGroups = {};
@@ -1529,8 +1546,10 @@ const AdminUpcomingBatch = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [selectAllFields, setSelectAllFields] = useState(true);
 
-  const fetchBatchData = async () => {
-    setLoading(true);
+  const fetchBatchData = useCallback(async (showBackgroundSync = true) => {
+    if (showBackgroundSync) {
+      setBackgroundSync(true);
+    }
     try {
       const token = localStorage.getItem("authToken");
       if (!token) throw new Error("Authorization token not found");
@@ -1600,9 +1619,24 @@ const AdminUpcomingBatch = () => {
       setPgBatches([]);
       setPhdBatches([]);
     } finally {
-      setLoading(false);
+      setBackgroundSync(false);
     }
-  };
+  }, []);
+
+  const forceRefreshData = useCallback(async () => {
+    setBackgroundSync(true);
+    try {
+      setUgBatches([]);
+      setPgBatches([]);
+      setPhdBatches([]);
+      setBatchData(null);
+      await fetchBatchData(true);
+    } catch (error) {
+      console.error('Force refresh error:', error);
+    } finally {
+      setBackgroundSync(false);
+    }
+  }, [fetchBatchData]);
 
   const categorizeBatchesByProgramme = (allBatches) => {
     const categorized = {
@@ -1645,7 +1679,6 @@ const AdminUpcomingBatch = () => {
       ) {
         categorized.phd.push(batch);
       } else {
-        // Enhanced fallback logic
         if (
           discipline.includes("phd") ||
           displayBranch.includes("phd") ||
@@ -1665,7 +1698,6 @@ const AdminUpcomingBatch = () => {
         ) {
           categorized.pg.push(batch);
         } else {
-          // Default to UG if unclear
           categorized.ug.push(batch);
         }
       }
@@ -1675,16 +1707,13 @@ const AdminUpcomingBatch = () => {
   };
 
   useEffect(() => {
-    fetchBatchData();
-  }, []);
+    fetchBatchData(false);
+  }, [fetchBatchData]);
 
   useEffect(() => {
     setFilterProgramme("");
     syncBatchData();
   }, [activeSection]);
-
-  useEffect(() => {
-  }, [manualFormData]);
 
   // Handle editing student data mapping
   useEffect(() => {
@@ -1705,14 +1734,7 @@ const AdminUpcomingBatch = () => {
           value = editingStudent[fieldKey];
           
           if (fieldKey === "category") {
-            const categoryMapping = {
-              "General": "GEN",
-              "Other Backward Class": "OBC", 
-              "Scheduled Caste": "SC",
-              "Scheduled Tribe": "ST",
-              "Economically Weaker Section": "EWS"
-            };
-            value = categoryMapping[value] || value;
+            value = mapCategoryValue(value);
           }
         }
         else if (fieldConfig.backendField && editingStudent[fieldConfig.backendField] !== undefined &&
@@ -1721,14 +1743,7 @@ const AdminUpcomingBatch = () => {
           value = editingStudent[fieldConfig.backendField];
 
           if (fieldKey === "category") {
-            const categoryMapping = {
-              "General": "GEN",
-              "Other Backward Class": "OBC", 
-              "Scheduled Caste": "SC",
-              "Scheduled Tribe": "ST",
-              "Economically Weaker Section": "EWS"
-            };
-            value = categoryMapping[value] || value;
+            value = mapCategoryValue(value);
           }
         }
         else if (fieldConfig.excelColumns) {
@@ -1741,14 +1756,7 @@ const AdminUpcomingBatch = () => {
             ) {
               value = colValue;
               if (fieldKey === "category") {
-                const categoryMapping = {
-                  "General": "GEN",
-                  "Other Backward Class": "OBC", 
-                  "Scheduled Caste": "SC",
-                  "Scheduled Tribe": "ST",
-                  "Economically Weaker Section": "EWS"
-                };
-                value = categoryMapping[value] || value;
+                value = mapCategoryValue(value);
               }
               break;
             }
@@ -1814,14 +1822,7 @@ const AdminUpcomingBatch = () => {
               value = editingStudent[variation];
 
               if (fieldKey === "category") {
-                const categoryMapping = {
-                  "General": "GEN",
-                  "Other Backward Class": "OBC", 
-                  "Scheduled Caste": "SC",
-                  "Scheduled Tribe": "ST",
-                  "Economically Weaker Section": "EWS"
-                };
-                value = categoryMapping[value] || value;
+                value = mapCategoryValue(value);
               }
               break;
             }
@@ -1842,10 +1843,6 @@ const AdminUpcomingBatch = () => {
     }
   }, [showExportModal]);
 
-  useEffect(() => {
-  }, [viewAcademicYear]);
-
-
   const getCurrentBatches = () => {
     let allBatches;
     
@@ -1854,27 +1851,6 @@ const AdminUpcomingBatch = () => {
     else allBatches = phdBatches || [];
 
     if (allBatches.length > 0) {
-      /* console.log('Debug - First batch data structure from unified API:', {
-        sampleBatch: allBatches[0],
-        curriculum: allBatches[0].curriculum,
-        curriculum_name: allBatches[0].curriculum_name,
-        allFields: Object.keys(allBatches[0]),
-        fullBatchObject: allBatches[0],
-        id: allBatches[0].id,
-        name: allBatches[0].name,
-        programme: allBatches[0].programme,
-        discipline: allBatches[0].discipline,
-        year: allBatches[0].year,
-        totalSeats: allBatches[0].totalSeats,
-        total_seats: allBatches[0].total_seats,
-        filledSeats: allBatches[0].filledSeats,
-        filled_seats: allBatches[0].filled_seats,
-        student_count: allBatches[0].student_count,
-        availableSeats: allBatches[0].availableSeats,
-        available_seats: allBatches[0].available_seats,
-        curriculumId: allBatches[0].curriculumId,
-        curriculum_id: allBatches[0].curriculum_id,
-      }); */
     }
 
     const processedBatches = allBatches.map(batch => {
@@ -1901,21 +1877,6 @@ const AdminUpcomingBatch = () => {
       
       const isValid = hasYear && (hasNameOrProgramme || hasDisciplineOrSeats);
 
-      if (!isValid) {
-        console.log('Filtering out incomplete batch:', {
-          batch: batch,
-          hasYear: hasYear,
-          hasNameOrProgramme: hasNameOrProgramme,
-          hasDisciplineOrSeats: hasDisciplineOrSeats,
-          name: batch.name,
-          programme: batch.programme,
-          discipline: batch.discipline,
-          year: batch.year,
-          totalSeats: batch.totalSeats,
-          filledSeats: batch.filledSeats
-        });
-      }
-      
       return isValid;
     });
     return validBatches.filter(batch => batch.year === viewAcademicYear);
@@ -1928,8 +1889,6 @@ const AdminUpcomingBatch = () => {
       const headers = {
         'Content-Type': 'application/json',
       };
-      
-      // Add authorization header if token exists
       if (token) {
         headers['Authorization'] = `Token ${token}`;
       }
@@ -1941,7 +1900,6 @@ const AdminUpcomingBatch = () => {
       
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        console.log('Sync endpoint not available yet, skipping auto-sync...');
         return;
       }
       
@@ -1957,7 +1915,7 @@ const AdminUpcomingBatch = () => {
           year: batch.year,
           totalSeats: batch.total_seats,
           total_seats: batch.total_seats,
-          filledSeats: batch.filled_seats, // Accurate count from sync API
+          filledSeats: batch.filled_seats,
           filled_seats: batch.filled_seats,
           student_count: batch.filled_seats,
           availableSeats: batch.available_seats,
@@ -1977,7 +1935,6 @@ const AdminUpcomingBatch = () => {
           phd: mappedBatches.filter(b => b.name.toLowerCase().includes('phd'))
         });
         
-        console.log('Batch data synchronized automatically');
       } else {
         console.warn('Sync failed:', data.message);
       }
@@ -1985,14 +1942,10 @@ const AdminUpcomingBatch = () => {
       if (!error.message.includes('Unexpected token') && !error.message.includes('<!doctype')) {
         console.error('Auto-sync error:', error);
       } else {
-        console.log('Sync endpoint not ready yet, skipping...');
       }
     }
   };
 
-  const getCurrentBatchesForValidation = () => {
-    return getCurrentBatches();
-  };
   const filteredBatches = getCurrentBatches().filter((batch) => {
     const matchesSearch =
       searchQuery === "" ||
@@ -2023,28 +1976,9 @@ const AdminUpcomingBatch = () => {
 
         const preProcessedData = await preProcessExcelFile(file);
 
-        console.log("Uploading file:", file);
-        console.log("Programme type:", activeSection);
-        console.log("File details:", {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          lastModified: file.lastModified
-        });
-
         const response = await processExcelUpload(file, activeSection);
 
-        console.log("Backend response:", response);
-        console.log("Response structure:", {
-          success: response.success,
-          valid_students: response.valid_students?.length,
-          valid_records: response.valid_records,
-          message: response.message
-        });
-
         setUploadProgress(80);
-
-        console.log("Checking success condition:", response.success);
 
         if (response.success) {
           setExtractedData(response.valid_students);
@@ -2083,17 +2017,10 @@ const AdminUpcomingBatch = () => {
           setExtractedData(allStudents);
           setShowPreview(true);
         } else {
-          console.log("Success condition failed - response:", response);
-          console.log("Response.success value:", response.success, typeof response.success);
           throw new Error(response.message || "Failed to process Excel file");
         }
       } catch (error) {
         setUploadProgress(0);
-
-        console.error("Excel upload error:", error);
-        console.error("Error response:", error.response?.data);
-        console.error("Error status:", error.response?.status);
-        console.error("Error headers:", error.response?.headers);
 
         const errorData = error.response?.data;
         const errorMessage = errorData?.message || errorData?.error || error.message;
@@ -2105,7 +2032,6 @@ const AdminUpcomingBatch = () => {
             academicYear: getViewAcademicYearOptions()[0]?.label || 'current year'
           });
         } else if (errorMessage?.includes("have no curriculum assigned")) {
-          // Extract batch names from error message
           const batchMatch = errorMessage.match(/assigned: (.+?)\./);
           const batchNames = batchMatch ? batchMatch[1] : "some batches";
           
@@ -2123,7 +2049,6 @@ const AdminUpcomingBatch = () => {
             },
           });
         } else {
-          // General error notification
           notifications.show({
             title: "❌ Upload Error",
             message: errorMessage || "Failed to process Excel file. Please check the format and try again.",
@@ -2273,7 +2198,6 @@ const AdminUpcomingBatch = () => {
       "motherMobile", 
     ];
 
-    // Sort selected fields to maintain priority order
     const sortedFieldKeys = [
       ...priorityFields.filter((field) => selectedFieldKeys.includes(field)),
       ...selectedFieldKeys.filter((field) => !priorityFields.includes(field)),
@@ -2360,7 +2284,6 @@ const AdminUpcomingBatch = () => {
             student["official email"] ||
             "";
         } else {
-          // Generic field mapping
           value = student[fieldKey] || "";
 
           if (!value && fieldConfig.excelColumns) {
@@ -2525,7 +2448,6 @@ const AdminUpcomingBatch = () => {
         orderedKeys
           .map((header) => {
             const value = row[header] || "";
-            // Escape commas and quotes in CSV
             return `"${String(value).replace(/"/g, '""')}"`;
           })
           .join(","),
@@ -2708,11 +2630,9 @@ const AdminUpcomingBatch = () => {
         },
         body: JSON.stringify({ academic_year: academicYear })
       });
-      
-      // Check if response is JSON (not HTML error page)
+
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        console.log('Backend validation endpoint not ready, using frontend validation...');
         return validateBatchPrerequisitesFrontend(academicYear);
       }
       
@@ -2747,7 +2667,6 @@ const AdminUpcomingBatch = () => {
       return true;
     } catch (error) {
       if (error.message.includes('Unexpected token') || error.message.includes('<!doctype')) {
-        console.log('Backend validation not available, using frontend validation...');
         return validateBatchPrerequisitesFrontend(academicYear);
       }
       
@@ -2804,18 +2723,16 @@ const AdminUpcomingBatch = () => {
         return;
       }
 
-      const currentBatches = getCurrentBatchesForValidation();
+      const currentBatches = getCurrentBatches();
       const batchValidationErrors = [];
       const studentBatchMap = new Map();
       
       for (const student of dataToUpload) {
         const studentBranch = student.branch || student.discipline || student.Branch || student.Discipline;
         const studentYear = getCurrentBatchYear(); 
-        
-        // Find matching batch for this student using the proper branch mapping logic
+
         const matchingBatch = getBatchForBranch(studentBranch, currentBatches);
-        
-        // If getBatchForBranch didn't find a match, also try direct comparison with year filter
+
         let finalMatchingBatch = matchingBatch;
         if (!finalMatchingBatch) {
           finalMatchingBatch = currentBatches.find(batch => {
@@ -2826,8 +2743,7 @@ const AdminUpcomingBatch = () => {
             );
           });
         }
-        
-        // Additional check to ensure the matched batch is for the correct year
+
         if (finalMatchingBatch && finalMatchingBatch.year !== studentYear) {
           finalMatchingBatch = null;
         }
@@ -2840,7 +2756,6 @@ const AdminUpcomingBatch = () => {
             message: `No existing batch found for ${studentBranch} ${studentYear}`
           });
         } else {
-          // Check if batch has available seats
           const studentsForThisBatch = studentBatchMap.get(finalMatchingBatch.id) || [];
           studentsForThisBatch.push(student);
           studentBatchMap.set(finalMatchingBatch.id, studentsForThisBatch);
@@ -2904,21 +2819,11 @@ const AdminUpcomingBatch = () => {
         setAllocationSummary(null);
         setShowBatchPreview(false);
         setShowPreview(false);
-        
-        // Refresh main batch data
-        fetchBatchData(); 
-        syncBatchData();
-        
-        // If student modal is open, refresh the student list too
-        if (showStudentModal && selectedBatch) {
-          handleBatchRowClick(selectedBatch);
-        }
 
         setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+          forceRefreshData();
+        }, 500);
       } else {
-        // Handle specific error codes from backend
         if (response.error_code === 'BATCH_NOT_FOUND') {
           notifications.show({
             title: "❌ Batch Required",
@@ -2967,7 +2872,6 @@ const AdminUpcomingBatch = () => {
           },
         });
       } else {
-        // Parse duplicate error for user-friendly message
         const { title, message } = parseDuplicateError(error, "upload students");
 
         notifications.show({
@@ -2983,7 +2887,6 @@ const AdminUpcomingBatch = () => {
   // Manual form navigation and submission
   const nextStep = async () => {
     if (currentStep < 3) {
-      // Validate only the current step before proceeding
       const stepErrors = validateCurrentStep(
         manualFormData,
         currentStep,
@@ -3017,10 +2920,8 @@ const AdminUpcomingBatch = () => {
           return;
         }
 
-        // Transform manual form data to database format (same as Excel data)
         const transformedData = transformDataForDatabase([manualFormData]);
 
-        // Validate workflow prerequisites for new students (not for updates)
         if (!editingStudent) {
           const currentAcademicYear = getCurrentBatchYear();
           const canUpload = await validateBatchPrerequisites(currentAcademicYear);
@@ -3029,14 +2930,12 @@ const AdminUpcomingBatch = () => {
             return;
           }
 
-          const currentBatches = getCurrentBatchesForValidation();
+          const currentBatches = getCurrentBatches();
           const studentBranch = manualFormData.branch;
           const studentYear = getCurrentBatchYear();
 
-          // Find matching batch using the proper branch mapping logic
           let matchingBatch = getBatchForBranch(studentBranch, currentBatches);
-          
-          // If getBatchForBranch didn't find a match, also try direct comparison with year filter
+
           if (!matchingBatch) {
             matchingBatch = currentBatches.find(batch => {
               const batchBranch = batch.discipline || batch.branch;
@@ -3047,8 +2946,7 @@ const AdminUpcomingBatch = () => {
               );
             });
           }
-          
-          // Additional check to ensure the matched batch is for the correct year
+
           if (matchingBatch && matchingBatch.year !== studentYear) {
             matchingBatch = null;
           }
@@ -3071,8 +2969,7 @@ const AdminUpcomingBatch = () => {
             });
             return;
           }
-          
-          // Check if batch has available seats
+
           const totalStudentsForBatch = (matchingBatch.filledSeats || 0) + 1;
           if (totalStudentsForBatch > matchingBatch.totalSeats) {
             notifications.show({
@@ -3123,8 +3020,7 @@ const AdminUpcomingBatch = () => {
 
           if (response.success) {
             let successMessage = "Student updated successfully!";
-            
-            // Handle branch transfer if needed
+
             if (branchChanged && targetBatch) {
               await handleBranchTransfer(updateData, selectedBatch, targetBatch);
               successMessage = `Student successfully transferred from ${selectedBatch?.displayBranch || 'current batch'} to ${targetBatch.displayBranch} batch!`;
@@ -3162,35 +3058,11 @@ const AdminUpcomingBatch = () => {
             setShowStudentModal(false);
             setSelectedBatch(null);
 
-            fetchBatchData();
-
-            // Refresh the entire window to ensure all data is up to date
-            setTimeout(() => {
-              window.location.reload();
-            }, branchChanged ? 2000 : 1500); // Longer delay for branch transfers
+            forceRefreshData();
           } else {
             throw new Error(response.message || "Failed to update student");
           }
         } else {
-          // Add debugging for Design students specifically
-          if (transformedData[0].branch === "Design" || transformedData[0].branch?.toLowerCase().includes("design")) {
-            console.log("🎨 DESIGN STUDENT DEBUG - Frontend Data:", {
-              originalFormData: manualFormData,
-              transformedData: transformedData[0],
-              branch: transformedData[0].branch,
-              activeSection: activeSection,
-              currentYear: getCurrentBatchYear(),
-              availableBatches: getCurrentBatchesForValidation().map(b => ({
-                id: b.id,
-                programme: b.programme,
-                discipline: b.discipline,
-                branch: b.branch,
-                year: b.year,
-                displayBranch: b.displayBranch
-              }))
-            });
-          }
-
           const response = await addSingleStudent(
             transformedData[0],
             activeSection,
@@ -3208,20 +3080,8 @@ const AdminUpcomingBatch = () => {
             setCurrentStep(0);
             setManualFormData(INITIAL_FORM_DATA);
             setErrors({});
-            
-            // Refresh main batch data
-            fetchBatchData(); 
-            syncBatchData();
-            
-            // If student modal is open, refresh the student list too
-            if (showStudentModal && selectedBatch) {
-              handleBatchRowClick(selectedBatch);
-            }
 
-            // Refresh the entire window to ensure all data is up to date
-            setTimeout(() => {
-              window.location.reload();
-            }, 2000);
+            forceRefreshData();
           } else {
             if (response.error_code === 'BATCH_NOT_FOUND') {
               notifications.show({
@@ -3293,7 +3153,6 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  // Handle editing total seats for a batch
   const handleEditSeats = (batch) => {
     setEditingBatchId(batch.id);
     setEditTotalSeats(batch.totalSeats.toString());
@@ -3319,6 +3178,7 @@ const AdminUpcomingBatch = () => {
 
       const batchToAdd = {
         ...newBatchData,
+        id: Date.now(),
         year: parseInt(newBatchData.year, 10),
         totalSeats: parseInt(newBatchData.totalSeats, 10),
         filledSeats: 0,
@@ -3326,25 +3186,44 @@ const AdminUpcomingBatch = () => {
         programme_type: activeSection,
       };
 
-      const result = await createBatch(batchToAdd);
+      const updateBatches = (batches) => [...batches, batchToAdd];
+      if (activeSection === "ug") setUgBatches(updateBatches);
+      else if (activeSection === "pg") setPgBatches(updateBatches);
+      else setPhdBatches(updateBatches);
 
-      if (result.success) {
+      setShowAddBatchModal(false);
+      setNewBatchData({
+        programme: "",
+        discipline: "",
+        year: selectedBatchYear,
+        totalSeats: 60,
+      });
+
+      try {
+        const result = await createBatch(batchToAdd);
+
+        if (result.success) {
+          notifications.show({
+            title: "Success",
+            message: "New batch created successfully",
+            color: "green",
+          });
+
+          forceRefreshData();
+        } else {
+          throw new Error(result.message || "Failed to create batch");
+        }
+      } catch (error) {
+        const rollbackBatches = (batches) => batches.filter(b => b.id !== batchToAdd.id);
+        if (activeSection === "ug") setUgBatches(rollbackBatches);
+        else if (activeSection === "pg") setPgBatches(rollbackBatches);
+        else setPhdBatches(rollbackBatches);
+
         notifications.show({
-          title: "Success",
-          message: "New batch created successfully",
-          color: "green",
+          title: "Error",
+          message: error.message || "Failed to create batch",
+          color: "red",
         });
-
-        fetchBatchData();
-        setShowAddBatchModal(false);
-        setNewBatchData({
-          programme: "",
-          discipline: "",
-          year: selectedBatchYear,
-          totalSeats: 60,
-        });
-      } else {
-        throw new Error(result.message || "Failed to create batch");
       }
     } catch (error) {
       notifications.show({
@@ -3355,7 +3234,6 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  // UPDATE - Start editing a row
   const startEditingRow = (batch) => {
     setEditingRow(batch.id);
     setEditFormData({
@@ -3366,7 +3244,6 @@ const AdminUpcomingBatch = () => {
     });
   };
 
-  // UPDATE - Save edited row
   const saveEditedRow = async () => {
     try {
       const batchDataToUpdate = {
@@ -3384,7 +3261,7 @@ const AdminUpcomingBatch = () => {
           color: "green",
         });
 
-        fetchBatchData();
+        forceRefreshData();
         setEditingRow(null);
         setEditFormData({});
       } else {
@@ -3413,8 +3290,16 @@ const AdminUpcomingBatch = () => {
 
   // DELETE - Execute delete
   const handleDeleteBatch = async () => {
+    const batchToDelete = getCurrentBatches().find(b => b.id === deletingBatchId);
+    
     try {
-      // Call backend API to delete batch using the new API function
+      const updateBatches = (batches) => batches.filter(b => b.id !== deletingBatchId);
+      if (activeSection === "ug") setUgBatches(updateBatches);
+      else if (activeSection === "pg") setPgBatches(updateBatches);
+      else setPhdBatches(updateBatches);
+      setShowDeleteConfirm(false);
+      setDeletingBatchId(null);
+
       const result = await deleteBatch(deletingBatchId);
 
       if (result.success) {
@@ -3440,105 +3325,25 @@ const AdminUpcomingBatch = () => {
             color: '#155724',
           },
         });
-
-        fetchBatchData();
-        syncBatchData();
-        setShowDeleteConfirm(false);
-        setDeletingBatchId(null);
+        forceRefreshData();
       } else {
         throw new Error(result.message || "Failed to delete batch");
       }
     } catch (error) {
-      console.error("Delete batch error:", error);
-      
-      let errorMessage = "Failed to delete batch";
-      let errorTitle = "❌ Delete Failed";
-
-      // Handle different types of errors with enhanced validation messages
-      if (error.response) {
-        const errorData = error.response.data;
-        
-        if (error.response.status === 400) {
-          if (errorData?.validation_error === "batch_has_students") {
-            errorTitle = "👥 Cannot Delete - Students Enrolled";
-            errorMessage = `${errorData.message || "This batch has students enrolled. Please transfer or remove students first."}`;
-            
-            notifications.show({
-              title: errorTitle,
-              message: (
-                <div>
-                  <Text size="sm" mb={8}>
-                    <strong>{errorMessage}</strong>
-                  </Text>
-                  <Text size="xs" color="gray.7">
-                    Student count: {errorData.student_count || "Unknown"}<br/>
-                    You must move these students to another batch or remove them before deletion.
-                  </Text>
-                </div>
-              ),
-              color: "orange",
-              autoClose: 10000,
-              style: {
-                backgroundColor: '#fff3cd',
-                borderColor: '#ffeaa7',
-                color: '#856404',
-              },
-            });
-            return;
-            
-          } else if (errorData?.validation_error === "discipline_has_students") {
-            errorTitle = "🚫 Cannot Delete - Discipline Protected";
-            errorMessage = `${errorData.message || "The discipline has students in the database."}`;
-            
-            notifications.show({
-              title: errorTitle,
-              message: (
-                <div>
-                  <Text size="sm" mb={8}>
-                    <strong>{errorMessage}</strong>
-                  </Text>
-                  <Text size="xs" color="gray.7">
-                    Discipline student count: {errorData.discipline_student_count || "Unknown"}<br/>
-                    The entire discipline must be empty before deleting any batch in this discipline.
-                  </Text>
-                </div>
-              ),
-              color: "red",
-              autoClose: 12000,
-              style: {
-                backgroundColor: '#f8d7da',
-                borderColor: '#f5c6cb',
-                color: '#721c24',
-              },
-            });
-            return;
-            
-          } else {
-            errorMessage =
-              errorData?.message ||
-              errorData?.error ||
-              "Cannot delete batch - it may have associated students or dependencies";
-          }
-        } else if (error.response.status === 404) {
-          errorMessage = "Batch not found";
-        } else if (error.response.status === 403) {
-          errorMessage = "You don't have permission to delete this batch";
-        } else {
-          errorMessage = `Server error: ${error.response.status}`;
-        }
-      } else if (error.request) {
-        errorMessage = "Network error - please check your connection";
-      } else {
-        errorMessage = error.message || "Unknown error occurred";
+      if (batchToDelete) {
+        const rollbackBatches = (batches) => [...batches, batchToDelete];
+        if (activeSection === "ug") setUgBatches(rollbackBatches);
+        else if (activeSection === "pg") setPgBatches(rollbackBatches);
+        else setPhdBatches(rollbackBatches);
       }
 
-      // Default error notification for non-validation errors
       notifications.show({
-        title: errorTitle,
-        message: errorMessage,
+        title: "Error",
+        message: error.message || "Failed to delete batch",
         color: "red",
-        autoClose: 6000,
       });
+      setShowDeleteConfirm(false);
+      setDeletingBatchId(null);
     }
   };
 
@@ -3660,7 +3465,6 @@ const AdminUpcomingBatch = () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Student Data Template");
 
-    // Set column widths for better readability
     const colWidths = headers.map((header) => ({
       wch: Math.max(header.length, 20),
     }));
@@ -3683,7 +3487,6 @@ const AdminUpcomingBatch = () => {
     setEditTotalSeats("");
   };
 
-  // SYNC DATA: Ensure both "Batches" and "Upcoming Batches" tabs show identical data
   const syncBatchDataBetweenTabs = () => {
     if (!batchData) return;
     
@@ -3897,7 +3700,6 @@ const AdminUpcomingBatch = () => {
   // Fallback function to fetch batch with students from main API (only for student details, not counts)
   const fetchBatchesWithStudents = async (targetBatch) => {
     try {
-      console.log('Fetching batch with students from main API as fallback...');
       const token = localStorage.getItem("authToken");
       // Note: Using admin_batches here only for fetching individual student records, 
       // not for filled_seats counts which should use batches/sync/ endpoint
@@ -3939,10 +3741,8 @@ const AdminUpcomingBatch = () => {
             });
           }
           
-          console.log('Fallback: Found students from main API:', students.length);
           setStudentList(students);
         } else {
-          console.log('Fallback: No students found in main API response');
           setStudentList([]);
         }
       } else {
@@ -3980,7 +3780,6 @@ const AdminUpcomingBatch = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Student status updated successfully:', data);
         return { success: true, data };
       } else {
         console.error('❌ Failed to update student status:', response.status);
@@ -3994,7 +3793,7 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  // Handle reported status change for students (now supports three states)
+  // Handle reported status change for students
   const handleReportedStatusChange = async (studentId, newStatus) => {
     setUpdatingReportStatus(studentId);
 
@@ -4020,13 +3819,14 @@ const AdminUpcomingBatch = () => {
           ),
         );
 
-        // Also update the batch data in main state
         const updateBatchStudents = (batches) => {
+          if (!Array.isArray(batches)) return [];
           return batches.map((batch) => {
             if (batch.id === selectedBatch.id) {
+              const currentStudents = batch.students || [];
               return {
                 ...batch,
-                students: batch.students.map((student) =>
+                students: currentStudents.map((student) =>
                   student.id === studentId
                     ? { ...student, reportedStatus: newStatus, reported_status: newStatus }
                     : student,
@@ -4038,11 +3838,11 @@ const AdminUpcomingBatch = () => {
         };
 
         if (activeSection === PROGRAMME_TYPES.UG) {
-          setUgBatches((prev) => updateBatchStudents(prev));
+          setUgBatches((prev) => updateBatchStudents(prev || []));
         } else if (activeSection === PROGRAMME_TYPES.PG) {
-          setPgBatches((prev) => updateBatchStudents(prev));
+          setPgBatches((prev) => updateBatchStudents(prev || []));
         } else if (activeSection === PROGRAMME_TYPES.PHD) {
-          setPhdBatches((prev) => updateBatchStudents(prev));
+          setPhdBatches((prev) => updateBatchStudents(prev || []));
         }
 
         notifications.show({
@@ -4050,9 +3850,8 @@ const AdminUpcomingBatch = () => {
           message: `Student status updated to ${newStatus.replace("_", " ")}`,
           color: "green",
         });
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+
+        forceRefreshData();
       } else {
         throw new Error(result.message || "Failed to update student status");
       }
@@ -4142,7 +3941,6 @@ const AdminUpcomingBatch = () => {
     let failureCount = 0;
 
     try {
-      // Process each selected student
       for (const studentId of selectedStudents) {
         const student = getFilteredStudents().find(s => (s.id || s.student_id) === studentId);
         if (student) {
@@ -4195,10 +3993,7 @@ const AdminUpcomingBatch = () => {
           color: "green",
         });
 
-        // Refresh the entire window after successful bulk update
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000); // Slightly longer delay for bulk operations
+        forceRefreshData();
       } else if (successCount > 0 && failureCount > 0) {
         notifications.show({
           title: "Partial Success",
@@ -4206,10 +4001,7 @@ const AdminUpcomingBatch = () => {
           color: "yellow",
         });
 
-        // Refresh the window even for partial success to show updated data
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+        forceRefreshData();
       } else {
         notifications.show({
           title: "Bulk Status Update Failed",
@@ -4217,8 +4009,6 @@ const AdminUpcomingBatch = () => {
           color: "red",
         });
       }
-
-      // Clear selection after bulk operation
       setSelectedStudents(new Set());
       setIsAllSelected(false);
 
@@ -4237,7 +4027,6 @@ const AdminUpcomingBatch = () => {
     await handleBulkStatusChange("REPORTED");
   };
 
-  // Clear selection when batch changes
   useEffect(() => {
     setSelectedStudents(new Set());
     setIsAllSelected(false);
@@ -4296,7 +4085,6 @@ const AdminUpcomingBatch = () => {
       color: "blue",
     });
 
-    // Debug: Make student data available for console testing
     window.lastEditedStudent = student;
   };
 
@@ -4338,13 +4126,15 @@ const AdminUpcomingBatch = () => {
         });
 
         const updateBatchStudents = (batches) => {
+          if (!Array.isArray(batches)) return [];
           return batches.map((batch) => {
             if (batch.id === selectedBatch.id) {
               const currentCount =
                 batch.studentCount || batch.students?.length || 0;
+              const currentStudents = batch.students || [];
               const updatedBatch = {
                 ...batch,
-                students: batch.students.filter(
+                students: currentStudents.filter(
                   (s) => (s.id || s.student_id) !== studentId,
                 ),
                 studentCount: Math.max(0, currentCount - 1),
@@ -4356,11 +4146,11 @@ const AdminUpcomingBatch = () => {
         };
 
         if (activeSection === PROGRAMME_TYPES.UG) {
-          setUgBatches((prev) => updateBatchStudents(prev));
+          setUgBatches((prev) => updateBatchStudents(prev || []));
         } else if (activeSection === PROGRAMME_TYPES.PG) {
-          setPgBatches((prev) => updateBatchStudents(prev));
+          setPgBatches((prev) => updateBatchStudents(prev || []));
         } else if (activeSection === PROGRAMME_TYPES.PHD) {
-          setPhdBatches((prev) => updateBatchStudents(prev));
+          setPhdBatches((prev) => updateBatchStudents(prev || []));
         }
 
         if (selectedBatch) {
@@ -4376,10 +4166,7 @@ const AdminUpcomingBatch = () => {
           color: "green",
         });
 
-        // Refresh the entire window to ensure all data is up to date
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+        forceRefreshData();
       } else {
         throw new Error(response.message || "Failed to delete student");
       }
@@ -4442,7 +4229,11 @@ const AdminUpcomingBatch = () => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: customTableStyles }} />
-      <Container fluid style={{ padding: "20px", maxWidth: "95vw" }}>
+      <Container 
+        fluid 
+        className="content-container"
+        style={{ padding: "20px", maxWidth: "95vw" }}
+      >
         {/* Section Tabs */}
         <Flex justify="flex-start" align="center" mb={10}>
           <Button
@@ -4497,6 +4288,35 @@ const AdminUpcomingBatch = () => {
           }}
         >
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            {backgroundSync && (
+              <div
+                className="sync-indicator"
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "6px",
+                  padding: "4px 10px",
+                  backgroundColor: "#e3f2fd",
+                  border: "1px solid #2196f3",
+                  borderRadius: "20px",
+                  fontSize: "11px",
+                  fontWeight: "500",
+                  color: "#1565c0"
+                }}
+              >
+                <div 
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    border: "2px solid #2196f3",
+                    borderTop: "2px solid transparent",
+                    borderRadius: "50%",
+                    animation: "spin 1s linear infinite"
+                  }}
+                />
+                Updating data...
+              </div>
+            )}
             <Button
               onClick={() => {
                 setSelectedBatchYear(getCurrentBatchYear());
@@ -5852,11 +5672,7 @@ const AdminUpcomingBatch = () => {
 
                                     setExtractedData([]);
                                     setShowPreview(false);
-                                    fetchBatchData();
-
-                                    setTimeout(() => {
-                                      window.location.reload();
-                                    }, 2000);
+                                    forceRefreshData();
                                   } else {
                                     throw new Error(
                                       response.message ||

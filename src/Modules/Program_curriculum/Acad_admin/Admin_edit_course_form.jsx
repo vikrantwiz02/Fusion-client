@@ -10,7 +10,6 @@ import {
   TextInput,
   Table,
   MultiSelect,
-  Checkbox,
   Badge,
   Alert,
   Modal,
@@ -68,8 +67,6 @@ function Admin_edit_course_form() {
   
   // New state for intelligent versioning
   const [versionInfo, setVersionInfo] = useState(null);
-  const [showVersionOverride, setShowVersionOverride] = useState(false);
-  const [customVersion, setCustomVersion] = useState("");
   const [showVersionPreview, setShowVersionPreview] = useState(false);
   const [previewInfo, setPreviewInfo] = useState(null);
   const [originalFormData, setOriginalFormData] = useState(null);
@@ -250,9 +247,6 @@ function Admin_edit_course_form() {
       disciplines: values.discipline,
       pre_requisit_courses: values.preRequisiteCourse,
       pre_requisits: values.preRequisites,
-      // Add intelligent versioning support
-      admin_override_version: showVersionOverride,
-      ...(showVersionOverride && customVersion ? { version: customVersion } : {}),
     };
 
     try {
@@ -481,12 +475,15 @@ function Admin_edit_course_form() {
                             form.setFieldValue("courseCredit", value)
                           }
                           required
+                          readOnly
                           styles={{
                             input: {
                               borderRadius: "4px",
                               height: "30px",
                               fontSize: "14px",
                               border: "none",
+                              backgroundColor: "#f5f5f5",
+                              color: "#666",
                             },
                           }}
                         />
@@ -888,28 +885,7 @@ function Admin_edit_course_form() {
                     >
                       🔍 Preview Version Changes
                     </Button>
-                    
-                    <Checkbox
-                      label="Admin Override (Manual Version Control)"
-                      checked={showVersionOverride}
-                      onChange={(event) => setShowVersionOverride(event.currentTarget.checked)}
-                      size="sm"
-                    />
                   </Group>
-                  
-                  {showVersionOverride && (
-                    <TextInput
-                      label="Custom Version"
-                      placeholder="Enter version (e.g., 2.5)"
-                      value={customVersion}
-                      onChange={(event) => setCustomVersion(event.currentTarget.value)}
-                      size="sm"
-                      styles={{
-                        input: { borderRadius: "8px" },
-                        label: { fontSize: "14px", fontWeight: 500 },
-                      }}
-                    />
-                  )}
                   
                   <Text size="xs" color="gray.6">
                     💡 The system automatically determines version increments based on academic significance:
