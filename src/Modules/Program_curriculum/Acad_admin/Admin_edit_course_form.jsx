@@ -849,53 +849,6 @@ function Admin_edit_course_form() {
                   />
                 </Group>
 
-                {/* Intelligent Versioning Controls */}
-                <Stack spacing="md" style={{ 
-                  backgroundColor: '#f8f9fa', 
-                  padding: '1rem', 
-                  borderRadius: '8px',
-                  border: '1px solid #e9ecef'
-                }}>
-                  <Text size="md" weight={600} color="#495057">
-                    🔄 Intelligent Version Control
-                  </Text>
-                  
-                  {versionInfo && (
-                    <Alert color="green" variant="light">
-                      <Text size="sm" weight={500}>
-                        Version Update: {versionInfo.oldVersion} → {versionInfo.newVersion}
-                      </Text>
-                      <Text size="xs" color="gray.7">
-                        {versionInfo.reason}
-                      </Text>
-                      {versionInfo.changedFields.length > 0 && (
-                        <Text size="xs" color="gray.6">
-                          Changed fields: {versionInfo.changedFields.join(', ')}
-                        </Text>
-                      )}
-                    </Alert>
-                  )}
-                  
-                  <Group>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={previewVersionChanges}
-                      disabled={!originalFormData}
-                    >
-                      🔍 Preview Version Changes
-                    </Button>
-                  </Group>
-                  
-                  <Text size="xs" color="gray.6">
-                    💡 The system automatically determines version increments based on academic significance:
-                    <br />• <Badge color="red" size="xs">Major</Badge> changes (credits, hours, course identity)
-                    <br />• <Badge color="orange" size="xs">Minor</Badge> changes (evaluation scheme, references)  
-                    <br />• <Badge color="green" size="xs">Patch</Badge> changes (syllabus, project hours)
-                    <br />• <Badge color="gray" size="xs">No bump</Badge> for typo corrections and non-academic changes
-                  </Text>
-                </Stack>
-
                 <Group position="apart">
                   <Button 
                     variant="outline" 
