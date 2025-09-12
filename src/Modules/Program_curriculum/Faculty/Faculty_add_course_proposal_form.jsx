@@ -14,10 +14,9 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useNavigate, useParams } from "react-router-dom";
-// import { useNavigate } from "react-router-dom";
+import { notifications } from "@mantine/notifications";
 import {
   fetchAllCourses,
-  // fetchCourseDetails,
 } from "../api/api";
 import { host } from "../../../routes/globalRoutes";
 
@@ -51,24 +50,25 @@ function Faculty_add_course_proposal_form() {
       Title: "",
       Description: "",
     },
+    validate: {
+      courseName: (value) => value?.trim().length === 0 ? "Course name is required" : null,
+      courseCode: (value) => value?.trim().length === 0 ? "Course code is required" : null,
+      discipline: (value) => value?.trim().length === 0 ? "Discipline is required" : null,
+      syllabus: (value) => value?.trim().length === 0 ? "Syllabus is required" : null,
+      references: (value) => value?.trim().length === 0 ? "References are required" : null,
+    },
   });
   const role = useSelector((state) => state.user.role);
-  console.log(useSelector((state) => state.user));
   const uploader_fullname = useSelector((state) => state.user.username);
   const uploader_username = useSelector((state) => state.user.roll_no);
-  console.log(uploader_username);
   const navigate = useNavigate();
   const { id } = useParams();
-  // const [disciplines, setDisciplines] = useState([]);
   const [courses, setCourses] = useState([]);
-  // const [course, setCourse] = useState([]);
-  console.log(form.values);
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         const response = await fetchAllCourses();
-        // console.log("Courses data:", response);
 
         const courseList = response.map((c) => ({
           name: `${c.name} (${c.code})`,
@@ -76,11 +76,14 @@ function Faculty_add_course_proposal_form() {
         }));
         setCourses(courseList);
       } catch (error) {
-        console.error("Error fetching courses: ", error);
+        notifications.show({
+          title: "Error",
+          message: "Failed to fetch courses",
+          color: "red",
+        });
       }
     };
     fetchCourses();
-    // loadCourseDetails();
   }, [id]);
   useEffect(() => {
     if (role && uploader_fullname) {
@@ -91,14 +94,17 @@ function Faculty_add_course_proposal_form() {
           uploader_name: uploader_fullname,
         });
       } catch (err) {
-        console.error("Error setting form values: ", err);
+        notifications.show({
+          title: "Error",
+          message: "Failed to set form values",
+          color: "red",
+        });
       }
     }
   }, [role, uploader_fullname]);
 
   const handleSubmit = async (values) => {
     const apiUrl = `${host}/programme_curriculum/api/new_course_proposal_file/`;
-    console.log("Form Values:", values);
 
     const payload = {
       name: values.courseName,
@@ -128,7 +134,6 @@ function Faculty_add_course_proposal_form() {
       uploader: values.uploader,
       Designation: values.Designation,
     };
-    console.log("Payload: ", payload);
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -137,48 +142,85 @@ function Faculty_add_course_proposal_form() {
       });
 
       if (response.ok) {
-        // localStorage.setItem("CoursesCachechange", "true");
         const data = await response.json();
-        alert("Course added successfully!");
-        console.log("Response Data:", data);
-        navigate("/programme_curriculum/faculty_view_course_proposal");
+        
+        notifications.show({
+          title: "✅ Course Proposal Added Successfully!",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Course proposal "{values.courseName}" ({values.courseCode}) has been submitted.</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                Credits: {values.courseCredit} | Version: {values.courseVersion}
+              </Text>
+            </div>
+          ),
+          color: "green",
+          autoClose: 5000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
+        });
+        
+        form.reset();
+        setTimeout(() => {
+          navigate("/programme_curriculum/faculty_view_course_proposal");
+        }, 1500);
       } else {
         const errorText = await response.text();
-        console.error("Error:", errorText);
-        alert("Failed to add course.");
+        
+        notifications.show({
+          title: "❌ Failed to Add Course Proposal",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Unable to submit course proposal. Please try again.</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                Please check your inputs and try again.
+              </Text>
+            </div>
+          ),
+          color: "red",
+          autoClose: 7000,
+          style: {
+            backgroundColor: '#f8d7da',
+            borderColor: '#f5c6cb',
+            color: '#721c24',
+          },
+        });
       }
     } catch (error) {
-      console.error("Network Error:", error);
-      alert("An error occurred. Please try again.");
+      notifications.show({
+        title: "🚨 Network Error",
+        message: (
+          <div>
+            <Text size="sm" mb={8}>
+              <strong>Connection error occurred while submitting proposal.</strong>
+            </Text>
+            <Text size="xs" color="gray.7">
+              Please check your internet connection and try again.
+            </Text>
+          </div>
+        ),
+        color: "red",
+        autoClose: 7000,
+        style: {
+          backgroundColor: '#f8d7da',
+          borderColor: '#f5c6cb',
+          color: '#721c24',
+        },
+      });
     }
   };
 
-  // const breadcrumbItems = [
-  //   { title: "Program and Curriculum", href: "#" },
-  //   { title: "Curriculums", href: "#" },
-  //   { title: "CSE UG Curriculum", href: "#" },
-  // ].map((item, index) => (
-  //   <Anchor href={item.href} key={index}>
-  //     {item.title}
-  //   </Anchor>
-  // ));
-  // console.log(form);
   return (
     <div
       style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}
     >
-      {/* {console.log("Fin : ", disciplines)}
-      {console.log("CourFin: ", courses)} */}
-      {/* <Breadcrumbs>{breadcrumbItems}</Breadcrumbs>
-
-      <Group spacing="xs" className="program-options" position="center" mt="md">
-        <Text>Programmes</Text>
-        <Text className="active">Curriculums</Text>
-        <Text>Courses</Text>
-        <Text>Disciplines</Text>
-        <Text>Batches</Text>
-      </Group> */}
-
       <Container
         fluid
         style={{
@@ -572,6 +614,8 @@ function Faculty_add_course_proposal_form() {
                   onChange={(event) =>
                     form.setFieldValue("syllabus", event.currentTarget.value)
                   }
+                  error={form.errors.syllabus}
+                  required
                 />
                 <Textarea
                   label="References"
@@ -580,6 +624,8 @@ function Faculty_add_course_proposal_form() {
                   onChange={(event) =>
                     form.setFieldValue("references", event.currentTarget.value)
                   }
+                  error={form.errors.references}
+                  required
                 />
                 <Group
                   grow

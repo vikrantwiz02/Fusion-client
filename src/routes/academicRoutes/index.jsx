@@ -35,7 +35,6 @@ export const deletePreRegistrationRoute = `${host}/academic-procedures/api/acad/
 export const allotCoursesRoute = `${host}/academic-procedures/api/acad/allot_courses/`;
 export const getCourseSlotsRoute = `${host}/academic-procedures/api/acad/get_add_course_slots/`;
 export const getCoursesRoute = `${host}/academic-procedures/api/acad/get_add_courses/`;
-export const replacement_excel = `${host}/academic-procedures/api/upload-excel_relacement/`;
 export const editStudentCourseRoute = "/academic-procedures/api/editcourseadmin/";
 export const getSingleCourseRoute   = "/academic-procedures/api/studentcourse/";
 export const semesterOptionsRoute = `${host}/academic-procedures/api/stu/course_reg/semesters/` 

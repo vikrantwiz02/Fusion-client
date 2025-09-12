@@ -11,6 +11,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useNavigate } from "react-router-dom";
+import { notifications } from "@mantine/notifications";
 import * as XLSX from "xlsx";
 import { fetchAllCourses, fetchFacultiesData } from "../api/api";
 import { host } from "../../../routes/globalRoutes";
@@ -23,7 +24,7 @@ export default function Admin_add_course_instructor() {
   const [faculties, setFaculties] = useState([]);
   const navigate = useNavigate();
 
-  // Academic Year options (currentYear -4 ... +1)
+  // Academic Year options
   const currentYear = new Date().getFullYear();
   const academicYearOptions = Array.from({ length: 6 }, (_, i) => {
     const start = currentYear - 4 + i;
@@ -42,7 +43,7 @@ export default function Admin_add_course_instructor() {
     initialValues: {
       courseId: "",
       instructorId: "",
-      academicYear: academicYearOptions[4].value, // current−1/current
+      academicYear: academicYearOptions[4].value,
       semesterType: "Odd Semester",
     },
   });
@@ -65,7 +66,12 @@ export default function Admin_add_course_instructor() {
           }))
         );
       } catch (err) {
-        console.error(err);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load data. Please refresh the page.",
+          color: "red",
+          autoClose: 4000,
+        });
       }
     })();
   }, []);
@@ -93,22 +99,97 @@ export default function Admin_add_course_instructor() {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        alert("Course Instructor added successfully!");
-        navigate("/programme_curriculum/admin_course_instructor");
+        notifications.show({
+          title: "✅ Course Instructor Added Successfully!",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Course instructor has been added.</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                The instructor assignment has been created.
+              </Text>
+            </div>
+          ),
+          color: "green",
+          autoClose: 5000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
+        });
+        
+        setTimeout(() => {
+          navigate("/programme_curriculum/admin_course_instructor");
+        }, 1500);
       } else {
         const err = await res.json();
-        alert("Failed: " + (err.error || JSON.stringify(err.details)));
+        
+        notifications.show({
+          title: "❌ Failed to Add Course Instructor",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>{err.error || "Unable to add course instructor. Please try again."}</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                {JSON.stringify(err.details) || "Please check your inputs and try again."}
+              </Text>
+            </div>
+          ),
+          color: "red",
+          autoClose: 7000,
+          style: {
+            backgroundColor: '#f8d7da',
+            borderColor: '#f5c6cb',
+            color: '#721c24',
+          },
+        });
       }
     } catch (e) {
-      console.error(e);
-      alert("Error adding instructor.");
+      notifications.show({
+        title: "🚨 Network Error",
+        message: (
+          <div>
+            <Text size="sm" mb={8}>
+              <strong>Connection error occurred while adding instructor.</strong>
+            </Text>
+            <Text size="xs" color="gray.7">
+              Please check your internet connection and try again.
+            </Text>
+          </div>
+        ),
+        color: "red",
+        autoClose: 7000,
+        style: {
+          backgroundColor: '#f8d7da',
+          borderColor: '#f5c6cb',
+          color: '#721c24',
+        },
+      });
     }
   };
 
-  const handleUpload = async () => {
-    if (!file) return alert("Select an Excel file first.");
-    if (!/\.(xls|xlsx)$/i.test(file.name)) {
-      return alert("Only .xls/.xlsx allowed.");
+    const handleUpload = async () => {
+    if (!file) {
+      notifications.show({
+        title: "⚠️ File Required",
+        message: "Please select an Excel file first.",
+        color: "orange",
+        autoClose: 4000,
+      });
+      return;
+    }
+    
+    if (!file.name.match(/\.(xls|xlsx)$/)) {
+      notifications.show({
+        title: "⚠️ Invalid File Type",
+        message: "Only .xls/.xlsx files are allowed.",
+        color: "orange",
+        autoClose: 4000,
+      });
+      return;
     }
     setIsUploading(true);
     const token = localStorage.getItem("authToken");
@@ -125,13 +206,54 @@ export default function Admin_add_course_instructor() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert(data.success);
-        navigate("/programme_curriculum/admin_course_instructor");
+        notifications.show({
+          title: "✅ Excel Upload Successful!",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>{data.success || "Course instructors have been uploaded."}</strong>
+              </Text>
+              <Text size="xs" color="gray.7">
+                Excel file has been processed and instructors have been added.
+              </Text>
+            </div>
+          ),
+          color: "green",
+          autoClose: 5000,
+          style: {
+            backgroundColor: '#d4edda',
+            borderColor: '#c3e6cb',
+            color: '#155724',
+          },
+        });
+        
+        setTimeout(() => {
+          navigate("/programme_curriculum/admin_course_instructor");
+        }, 1500);
       } else {
         throw new Error(data.error || JSON.stringify(data.details));
       }
     } catch (e) {
-      alert("Upload error: " + e.message);
+      notifications.show({
+        title: "❌ Upload Failed",
+        message: (
+          <div>
+            <Text size="sm" mb={8}>
+              <strong>Upload error: {e.message}</strong>
+            </Text>
+            <Text size="xs" color="gray.7">
+              Please check your Excel file format and try again.
+            </Text>
+          </div>
+        ),
+        color: "red",
+        autoClose: 7000,
+        style: {
+          backgroundColor: '#f8d7da',
+          borderColor: '#f5c6cb',
+          color: '#721c24',
+        },
+      });
     } finally {
       setIsUploading(false);
     }
@@ -294,7 +416,6 @@ export default function Admin_add_course_instructor() {
               </Stack>
             </form>
           </div>
-          {/* Optional sidebar area */}
           <div style={{ flex: 1 }} />
         </div>
       </Container>

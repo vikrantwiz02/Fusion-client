@@ -256,8 +256,6 @@ function Dashboard() {
         setAnnouncementsList((prev) =>
           prev.filter((notif) => notif.id !== notifId),
         );
-
-        console.log("Notification deleted successfully");
       }
     } catch (err) {
       console.error("Error deleting notification:", err);

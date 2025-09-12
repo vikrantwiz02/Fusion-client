@@ -202,7 +202,6 @@ export default function StudentCourses() {
     clearError();
     if (!val) return;
     const semObj = JSON.parse(val);
-    // console.log(studentData.semester_list);
     
   let semesterId = semObj.no;
   if (studentData && studentData.semester_list) {

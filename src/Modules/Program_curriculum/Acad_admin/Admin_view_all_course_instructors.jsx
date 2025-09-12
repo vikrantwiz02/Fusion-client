@@ -7,21 +7,18 @@ import {
   Container,
   Button,
   TextInput,
-  Grid,
+  ActionIcon,
+  Tooltip,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useSelector } from "react-redux";
 import { adminFetchCourseInstructorData } from "../api/api";
+import { MagnifyingGlass, PencilSimple, Trash } from "@phosphor-icons/react";
+import { notifications } from "@mantine/notifications";
+import { host } from "../../../routes/globalRoutes";
 
 function Admin_view_all_course_instructors() {
-  // const [searchName, setSearchName] = useState("");
-  // const [searchVersion, setSearchVersion] = useState("");
-
-  const [filters, setFilters] = useState({
-    name: "",
-    instructor: "",
-    year: "",
-  });
+  const [searchQuery, setSearchQuery] = useState("");
   const [instructors, setInstructors] = useState([]);
   const [loading, setLoading] = useState(true);
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -34,7 +31,6 @@ function Admin_view_all_course_instructors() {
 
   // Determine which role to use (Redux takes precedence)
   const role = reduxRole || sessionRole;
-  console.log("Role from Redux or sessionStorage: ", role);
 
   // Check if user is acadadmin
   const isAcadAdmin = role === "acadadmin";
@@ -55,7 +51,6 @@ function Admin_view_all_course_instructors() {
           "AdminInstructorsCacheChange",
         );
 
-        // 10 min cache
         if (cachedData && isCacheValid && cachedDataChange === "false") {
           setInstructors(JSON.parse(cachedData));
         } else {
@@ -69,7 +64,12 @@ function Admin_view_all_course_instructors() {
           );
         }
       } catch (error) {
-        console.error("Error fetching instructors: ", error);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load course instructors. Please refresh the page.",
+          color: "red",
+          autoClose: 4000,
+        });
       } finally {
         setLoading(false);
       }
@@ -78,23 +78,94 @@ function Admin_view_all_course_instructors() {
     fetchData();
   }, []);
 
-  // Filtered data based on search inputs
   const filteredData = instructors.filter((item) => {
-    // Safely extract values or default to empty strings
     const instructorFirst = item.faculty_first_name || "";
     const instructorLast = item.faculty_last_name || "";
-    const year = item.year || "";
-    const name = item.course_name || "";
-  
-    // Combine first and last names for filtering
-    const fullName = `${instructorFirst} ${instructorLast}`.toLowerCase();
-  
-    return (
-      fullName.includes(filters.instructor.toLowerCase()) &&
-      year.toString().toLowerCase().includes(filters.year.toLowerCase()) &&
-      name.toLowerCase().includes(filters.name.toLowerCase())
-    );
+    const year = item.academic_year || "";
+    const courseName = item.course_name || "";
+    const courseCode = item.course_code || "";
+    const semesterType = item.semester_type || "";
+    
+    const searchText = `${courseCode} ${courseName} ${instructorFirst} ${instructorLast} ${year} ${semesterType}`.toLowerCase();
+    
+    return searchText.includes(searchQuery.toLowerCase());
   });
+
+  const handleDelete = async (instructorId) => {
+    if (!window.confirm("Are you sure you want to delete this course instructor?")) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(
+        `${host}/programme_curriculum/api/admin_delete_course_instructor/${instructorId}/`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Token ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      let data = {};
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      }
+
+      if (response.ok && (data.success !== false)) {
+        const deletedInstructor = instructors.find(instructor => instructor.id === instructorId);
+        
+        setInstructors(instructors.filter(instructor => instructor.id !== instructorId));
+        
+        localStorage.setItem("AdminInstructorsCacheChange", "true");
+        
+        notifications.show({
+          title: "Successfully Deleted",
+          message: data.message || `Course instructor '${deletedInstructor?.name || 'Unknown'}' has been deleted`,
+          color: "green",
+          autoClose: 3000,
+        });
+      } else {
+        if (response.status === 404) {
+          notifications.show({
+            title: "Not Found",
+            message: "This course instructor may have already been deleted or the delete endpoint is not available",
+            color: "orange",
+            autoClose: 4000,
+          });
+        } else if (response.status === 400 && data.dependencies) {
+          notifications.show({
+            title: "Cannot Delete",
+            message: data.message || "Cannot delete course instructor due to existing dependencies",
+            color: "red",
+            autoClose: 5000,
+          });
+        } else {
+          let errorMessage = data.message || "Failed to delete course instructor";
+          notifications.show({
+            title: "Error",
+            message: `${errorMessage} (Status: ${response.status})`,
+            color: "red",
+            autoClose: 4000,
+          });
+        }
+        
+        throw new Error(`HTTP ${response.status}: ${data.message || 'Failed to delete course instructor'}`);
+      }
+    } catch (error) {
+      if (!error.message.includes('HTTP')) {
+        notifications.show({
+          title: "Network Error",
+          message: "Unable to connect to the server. Please check your internet connection.",
+          color: "red",
+          autoClose: 4000,
+        });
+      }
+    }
+  };
   
   const cellStyle = {
     padding: "15px 20px",
@@ -102,7 +173,6 @@ function Admin_view_all_course_instructors() {
     borderRight: "1px solid #d3d3d3",
   };
 
-  // Base columns that are always shown
   const baseColumns = [
     { key: "course_code", label: "Code" },
     { key: "course_name", label: "Course Name" },
@@ -112,7 +182,6 @@ function Admin_view_all_course_instructors() {
     { key: "semester_type", label: "Semester Type" },
   ];
 
-  // Add actions column only for acadadmin
   const tableColumns = isAcadAdmin
     ? [...baseColumns, { key: "actions", label: "Actions" }]
     : baseColumns;
@@ -131,13 +200,29 @@ function Admin_view_all_course_instructors() {
     );
     const actionCell = isAcadAdmin ? (
       <td style={{ padding: "15px 20px", textAlign: "center" }}>
-        <Link
-          to={`/programme_curriculum/admin_edit_course_instructor/${element.id}`}
-        >
-          <Button variant="filled" color="green" radius="sm">
-            Edit
-          </Button>
-        </Link>
+        <Flex justify="center" gap="md">
+          <Tooltip label="Edit Course Instructor">
+            <ActionIcon
+              variant="light"
+              color="blue"
+              size="md"
+              component={Link}
+              to={`/programme_curriculum/admin_edit_course_instructor/${element.id}`}
+            >
+              <PencilSimple size={16} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Delete Course Instructor">
+            <ActionIcon
+              variant="light"
+              color="red"
+              size="md"
+              onClick={() => handleDelete(element.id)}
+            >
+              <Trash size={16} />
+            </ActionIcon>
+          </Tooltip>
+        </Flex>
       </td>
     ) : null;
 
@@ -158,73 +243,55 @@ function Admin_view_all_course_instructors() {
       withGlobalStyles
       withNormalizeCSS
     >
-      {(() => {
-        console.log("The data is: ", instructors);
-        return null; // Returning null because we don't want anything to be displayed
-      })()}
       <Container
         style={{ padding: "20px", minHeight: "100vh", maxWidth: "100%" }}
       >
-        <Flex justify="flex-start" align="center" mb={10}>
+        <Flex justify="space-between" align="center" mb={10} wrap="wrap" gap="md">
           <Button variant="filled" style={{ marginRight: "10px" }}>
             Instructors
           </Button>
+          
+          <Flex align="center" gap="md" style={{ flex: 1, justifyContent: "flex-end" }}>
+            <TextInput
+              placeholder="Search by course name, code, instructor, year, or semester..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              leftSection={<MagnifyingGlass size={16} />}
+              style={{ minWidth: "300px", maxWidth: "400px" }}
+              size="sm"
+            />
+            {isAcadAdmin && (
+              <Button
+                variant="filled"
+                color="blue"
+                radius="sm"
+                size="sm"
+                component={Link}
+                to="/programme_curriculum/acad_admin_add_course_instructor"
+              >
+                Add Course Instructor
+              </Button>
+            )}
+          </Flex>
         </Flex>
         <hr />
-        <Grid>
-          {isMobile && (
-            <Grid.Col span={12}>
-              {[
-                { label: "Course Name", field: "name" },
-                { label: "Instructor", field: "instructor" },
-                { label: "Year", field: "year" },
-              ].map((filter) => (
-                <TextInput
-                  key={filter.field}
-                  label={`${filter.label}:`}
-                  value={filters[filter.field]}
-                  onChange={(e) =>
-                    setFilters({
-                      ...filters,
-                      [filter.field]: e.target.value,
-                    })
-                  }
-                  placeholder={`Search by ${filter.label}`}
-                  mb={5}
-                />
-              ))}
-              {isAcadAdmin && (
-                <Link to="/programme_curriculum/acad_admin_add_course_instructor">
-                  <Button
-                    variant="filled"
-                    color="blue"
-                    radius="sm"
-                    style={{ height: "35px", marginTop: "10px" }}
-                  >
-                    Add Course Instructor
-                  </Button>
-                </Link>
-              )}
-            </Grid.Col>
-          )}
-          <Grid.Col span={isMobile ? 12 : 9}>
-            {/* Table Section */}
-            <div
-              style={{
-                maxHeight: "61vh",
-                overflowY: "auto",
-                border: "1px solid #d3d3d3",
-                borderRadius: "10px",
-                scrollbarWidth: "none",
-              }}
-            >
-              <style>
-                {`
-                          div::-webkit-scrollbar {
-                            display: none;
-                          }
-                        `}
-              </style>
+
+        <div
+          style={{
+            maxHeight: "70vh",
+            overflowY: "auto",
+            border: "1px solid #d3d3d3",
+            borderRadius: "10px",
+            scrollbarWidth: "none",
+          }}
+        >
+          <style>
+            {`
+              div::-webkit-scrollbar {
+                display: none;
+              }
+            `}
+          </style>
               <Table style={{ backgroundColor: "white", padding: "20px" }}>
                 <thead>
                   <tr>
@@ -270,47 +337,9 @@ function Admin_view_all_course_instructors() {
                 </tbody>
               </Table>
             </div>
-          </Grid.Col>
+          </Container>
+        </MantineProvider>
+      );
+    }
 
-          {!isMobile && (
-            <Grid.Col span={3}>
-              {[
-                { label: "Course Name", field: "name" },
-                { label: "Instructor", field: "instructor" },
-                { label: "Year", field: "year" },
-              ].map((filter) => (
-                <TextInput
-                  key={filter.field}
-                  label={`${filter.label}:`}
-                  value={filters[filter.field]}
-                  onChange={(e) =>
-                    setFilters({
-                      ...filters,
-                      [filter.field]: e.target.value,
-                    })
-                  }
-                  placeholder={`Search by ${filter.label}`}
-                  mb={5}
-                />
-              ))}
-              {isAcadAdmin && (
-                <Link to="/programme_curriculum/acad_admin_add_course_instructor">
-                  <Button
-                    variant="filled"
-                    color="blue"
-                    radius="sm"
-                    style={{ height: "35px", marginTop: "10px" }}
-                  >
-                    Add Course Instructor
-                  </Button>
-                </Link>
-              )}
-            </Grid.Col>
-          )}
-        </Grid>
-      </Container>
-    </MantineProvider>
-  );
-}
-
-export default Admin_view_all_course_instructors;
+    export default Admin_view_all_course_instructors;

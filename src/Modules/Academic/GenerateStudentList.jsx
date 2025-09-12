@@ -10,6 +10,13 @@ import {
   Loader,
   Alert,
   TextInput,
+  Checkbox,
+  Modal,
+  Paper,
+  Stack,
+  Table,
+  ScrollArea,
+  Title,
 } from "@mantine/core";
 import axios from "axios";
 import { showNotification } from "@mantine/notifications";
@@ -36,14 +43,27 @@ const SEMESTER_CHOICES = [
   { value: "Summer Semester", label: "Summer Semester" },
 ];
 
+const LIST_TYPE_CHOICES = [
+  { value: "Regular", label: "Regular" },
+  { value: "Backlog", label: "Backlog" },
+  { value: "Improvement", label: "Improvement" },
+  { value: "Audit", label: "Audit" },
+  { value: "Extra Credits", label: "Extra Credits" },
+  { value: "Replacement", label: "Replacement" },
+];
+
 export default function GenerateStudentList() {
   const [activeTab, setActiveTab]       = useState("rolllist");
 
   // Roll List states
   const [academicYear, setAcademicYear] = useState("");
   const [semesterType, setSemesterType] = useState("");
+  const [listType, setListType]         = useState("");
   const [course, setCourse]             = useState("");
   const [courseOptions, setCourseOptions] = useState([]);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   // Pre-Registration states (unchanged)
   const [batch, setBatch]               = useState("");
@@ -92,51 +112,133 @@ export default function GenerateStudentList() {
     }
   }, [activeTab, fetchCourses]);
 
-  // 2) Generate Roll List Excel
-  const handleGenerateList = async () => {
+  // 2) Handle Preview for All Types
+  const handlePreview = async () => {
     if (!academicYear || !semesterType || !course) {
       showNotification({
         title: "Missing fields",
-        message: "Select year, semester & course",
+        message: "Select year, semester, and course first",
         color: "yellow",
       });
       return;
     }
 
+    setPreviewLoading(true);
+    const token = localStorage.getItem("authToken");
+    try {
+      const payload = {
+        academic_year: academicYear,
+        semester_type: semesterType,
+        course,
+        preview_only: true,
+      };
+      if (listType && listType.trim() !== '') {
+        payload.list_type = listType;
+      }
+
+      const res = await axios.post(generatexlsheet, payload, {
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      
+      setPreviewData(res.data.students || res.data || []);
+      setShowPreview(true);
+    } catch (err) {
+      if (err.response?.status === 400 || err.response?.data?.detail?.includes("preview_only")) {
+        setPreviewData([]);
+        setShowPreview(true);
+      } else {
+        showNotification({ 
+          title: "Error", 
+          message: "Failed to fetch preview data: " + (err.response?.data?.detail || err.message), 
+          color: "red" 
+        });
+      }
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // 3) Generate Roll List Excel
+  const handleGenerateList = async () => {
+    if (!academicYear || !semesterType || !course) {
+      showNotification({
+        title: "Missing fields",
+        message: "Select year, semester, and course",
+        color: "yellow",
+      });
+      return;
+    }
+
+    await handlePreview();
+  };
+
+  // 4) Confirm and generate after preview
+  const handleConfirmGenerate = async () => {
     setLoading(true);
     const token = localStorage.getItem("authToken");
     try {
-      const res = await axios.post(
-        generatexlsheet,
-        {
-          academic_year: academicYear,
-          semester_type: semesterType,
-          course,
+      const payload = {
+        academic_year: academicYear,
+        semester_type: semesterType,
+        course,
+      };
+
+      if (listType && listType.trim() !== '') {
+        payload.list_type = listType;
+      }
+
+      const res = await axios.post(generatexlsheet, payload, {
+        headers: {
+          Authorization: `Token ${token}`,
+          "Content-Type": "application/json",
         },
-        {
-          headers: {
-            Authorization: `Token ${token}`,
-            "Content-Type": "application/json",
-          },
-          responseType: "blob",
+        responseType: "blob",
+      });
+
+      const contentDisposition = res.headers['content-disposition'];
+      let filename = 'StudentList.xlsx';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
         }
-      );
+      } else {
+        const listTypeName = listType || "All";
+        filename = `${listTypeName}StudentList_${course}.xlsx`;
+      }
+
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `RollList_${course}.xlsx`);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      setShowPreview(false);
+      const listTypeName = listType || "All";
+      showNotification({
+        title: "Success",
+        message: `${listTypeName} student list generated successfully`,
+        color: "green",
+      });
     } catch (err) {
-      console.error(err);
-      showNotification({ title: "Error", message: err.message, color: "red" });
+      console.error("Generate List Error:", err);
+      showNotification({ 
+        title: "Error", 
+        message: err.response?.data?.detail || err.message, 
+        color: "red" 
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // 3) Fetch batches for Pre‐Registration when that tab is active
+  // 5) Fetch batches for Pre‐Registration when that tab is active
   useEffect(() => {
     if (activeTab !== "preregistration") return;
     const fetchBatches = async () => {
@@ -165,7 +267,7 @@ export default function GenerateStudentList() {
     fetchBatches();
   }, [activeTab]);
 
-  // 4) Generate Pre-Registration Report (unchanged)
+  // 6) Generate Pre-Registration Report (unchanged)
   const generatePreRegistrationReport = async () => {
     setLoading(true);
     const token = localStorage.getItem("authToken");
@@ -225,6 +327,19 @@ export default function GenerateStudentList() {
               onChange={setSemesterType}
             />
           </Group>
+{/* 
+          <Select
+            label="List Type (Optional)"
+            placeholder="Leave empty for all enrolled students"
+            data={LIST_TYPE_CHOICES}
+            value={listType}
+            onChange={setListType}
+            clearable
+            mb="xs"
+          />
+          <Text size="xs" color="dimmed" mb="md">
+            💡 If no list type is selected, the system will generate a complete roll list of all students enrolled in the course (Regular, Backlog, Improvement, etc.)
+          </Text> */}
 
           {error ? (
             <Alert color="red">{error}</Alert>
@@ -243,10 +358,10 @@ export default function GenerateStudentList() {
           <Button
             fullWidth
             onClick={handleGenerateList}
-            loading={loading}
+            loading={loading || previewLoading}
             disabled={!academicYear || !semesterType || !course}
           >
-            Generate Student List
+            Preview {listType || 'All'} Students
           </Button>
         </Tabs.Panel>
 
@@ -283,6 +398,112 @@ export default function GenerateStudentList() {
           </Button>
         </Tabs.Panel>
       </Tabs>
+
+      {/* Preview Modal for All List Types */}
+      <Modal
+        opened={showPreview}
+        onClose={() => setShowPreview(false)}
+        title={
+          <Title order={3} style={{ color: "#1c7ed6" }}>
+            {listType || 'All Registration Types'} Student List Preview
+          </Title>
+        }
+        size="xl"
+        padding="lg"
+        centered
+      >
+        <Paper withBorder p="md" style={{ backgroundColor: "#f8f9fa" }}>
+          <Stack spacing="md">
+            {/* Course Header Information */}
+            <Box style={{ borderBottom: "1px solid #dee2e6", paddingBottom: "10px" }}>
+              <Text align="center" size="lg" weight={700} style={{ color: "#1c7ed6" }}>
+                PDPM INDIAN INSTITUTE OF INFORMATION TECHNOLOGY, DESIGN AND MANUFACTURING JABALPUR
+              </Text>
+              <Text align="center" size="md" weight={600} mt="xs">
+                {semesterType.toUpperCase()}, {academicYear}
+              </Text>
+            </Box>
+
+            {/* Course Details */}
+            <Box>
+              <Text size="sm" weight={500}>Course No.: <Text span>{courseOptions.find(c => c.value === course)?.label?.split(' - ')[0] || 'N/A'}</Text></Text>
+              <Text size="sm" weight={500}>Course Title: <Text span>{courseOptions.find(c => c.value === course)?.label?.split(' - ')[1] || courseOptions.find(c => c.value === course)?.label || 'N/A'}</Text></Text>
+              <Text size="sm" weight={500}>Instructor: <Text span>TBA</Text></Text>
+              <Text size="sm" weight={500}>List Type: <Text span color={listType ? "blue" : "green"}>
+                {listType || "Complete Roll List (All Registration Types)"}
+              </Text></Text>
+            </Box>
+
+            {previewLoading ? (
+              <Box style={{ textAlign: "center", padding: "2rem" }}>
+                <Loader size="lg" />
+                <Text mt="md">Loading preview data...</Text>
+              </Box>
+            ) : previewData.length > 0 ? (
+              <ScrollArea style={{ height: "400px" }}>
+                <Table striped highlightOnHover withBorder>
+                  <thead style={{ backgroundColor: "#e7f5ff" }}>
+                    <tr>
+                      <th style={{ padding: "12px 8px", fontSize: "13px", fontWeight: "600" }}>S. No</th>
+                      <th style={{ padding: "12px 8px", fontSize: "13px", fontWeight: "600" }}>Roll No</th>
+                      <th style={{ padding: "12px 8px", fontSize: "13px", fontWeight: "600" }}>Name</th>
+                      <th style={{ padding: "12px 8px", fontSize: "13px", fontWeight: "600" }}>Discipline</th>
+                      <th style={{ padding: "12px 8px", fontSize: "13px", fontWeight: "600" }}>Email</th>
+                      <th style={{ padding: "12px 8px", fontSize: "13px", fontWeight: "600" }}>Reg. Type</th>
+                      <th style={{ padding: "12px 8px", fontSize: "13px", fontWeight: "600" }}>Signature</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewData.map((student, index) => (
+                      <tr key={student.roll_number || index}>
+                        <td style={{ padding: "8px", fontSize: "12px" }}>{index + 1}</td>
+                        <td style={{ padding: "8px", fontSize: "12px", fontWeight: "500" }}>
+                          {student.roll_number || student.roll_no || student.id || 'N/A'}
+                        </td>
+                        <td style={{ padding: "8px", fontSize: "12px" }}>
+                          {student.name || student.full_name || student.student_name || 'N/A'}
+                        </td>
+                        <td style={{ padding: "8px", fontSize: "12px" }}>
+                          {student.branch || student.discipline || student.department || 'N/A'}
+                        </td>
+                        <td style={{ padding: "8px", fontSize: "12px" }}>
+                          {student.email || 'N/A'}
+                        </td>
+                        <td style={{ padding: "8px", fontSize: "12px" }}>
+                          {student.registration_type || student.status || listType || 'Regular'}
+                        </td>
+                        <td style={{ padding: "8px", fontSize: "12px" }}>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </ScrollArea>
+            ) : (
+              <Alert color="blue">
+                {listType 
+                  ? `No students found with "${listType}" registration type in this course.`
+                  : 'No students enrolled in this course (checked all registration types: Regular, Backlog, Improvement, etc.).'
+                }
+              </Alert>
+            )}
+
+            <Group position="right" mt="lg">
+              <Button variant="outline" onClick={() => setShowPreview(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmGenerate}
+                loading={loading}
+                disabled={previewData.length === 0}
+                style={{ backgroundColor: "#1c7ed6" }}
+              >
+                Generate Excel File
+              </Button>
+            </Group>
+          </Stack>
+        </Paper>
+      </Modal>
     </Card>
   );
 }

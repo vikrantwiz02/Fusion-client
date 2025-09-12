@@ -9,6 +9,7 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useNavigate, useParams } from "react-router-dom";
+import { notifications } from "@mantine/notifications";
 import {
   fetchAllCourses,
   fetchFacultiesData,
@@ -78,13 +79,23 @@ function Admin_edit_course_instructor() {
             semesterType: courseInstructor.semester_type,
           });
         } else {
-          alert("Course instructor not found");
+          notifications.show({
+            title: "⚠️ Course Instructor Not Found",
+            message: "The requested course instructor could not be found.",
+            color: "orange",
+            autoClose: 4000,
+          });
           navigate("/programme_curriculum/admin_course_instructor");
         }
 
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        notifications.show({
+          title: "Error",
+          message: "Failed to load data. Please refresh the page.",
+          color: "red",
+          autoClose: 4000,
+        });
         setLoading(false);
       }
     };
@@ -118,11 +129,52 @@ function Admin_edit_course_instructor() {
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
       const result = await response.json();
-      alert(result.message);
-      navigate("/programme_curriculum/admin_course_instructor");
+      
+      notifications.show({
+        title: "✅ Course Instructor Updated Successfully!",
+        message: (
+          <div>
+            <Text size="sm" mb={8}>
+              <strong>{result.message || "Course instructor has been updated."}</strong>
+            </Text>
+            <Text size="xs" color="gray.7">
+              The instructor assignment has been updated.
+            </Text>
+          </div>
+        ),
+        color: "green",
+        autoClose: 5000,
+        style: {
+          backgroundColor: '#d4edda',
+          borderColor: '#c3e6cb',
+          color: '#155724',
+        },
+      });
+      
+      setTimeout(() => {
+        navigate("/programme_curriculum/admin_course_instructor");
+      }, 1500);
     } catch (error) {
-      console.error("Error updating course instructor:", error);
-      alert("Failed to update course instructor.");
+      notifications.show({
+        title: "❌ Failed to Update Course Instructor",
+        message: (
+          <div>
+            <Text size="sm" mb={8}>
+              <strong>Unable to update course instructor. Please try again.</strong>
+            </Text>
+            <Text size="xs" color="gray.7">
+              Please check your inputs and try again.
+            </Text>
+          </div>
+        ),
+        color: "red",
+        autoClose: 7000,
+        style: {
+          backgroundColor: '#f8d7da',
+          borderColor: '#f5c6cb',
+          color: '#721c24',
+        },
+      });
     }
   };
 

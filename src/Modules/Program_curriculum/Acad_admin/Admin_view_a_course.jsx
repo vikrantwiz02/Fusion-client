@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Button, Table, Card, Text, Grid } from "@mantine/core";
+import { Button, Table, Card, Text, Grid, Stack, Badge, Alert, Modal, Pagination } from "@mantine/core";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMediaQuery } from "@mantine/hooks";
 import { fetchCourseDetails } from "../api/api";
+import { host } from "../../../routes/globalRoutes";
 
 function CourseDetail() {
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -11,6 +12,12 @@ function CourseDetail() {
   const [loading, setLoading] = useState(true); // Loading state
   const [error, setError] = useState(null); // Error state
   const navigate = useNavigate();
+
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [showAuditLogs, setShowAuditLogs] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Fetch course data from the backend
   useEffect(() => {
@@ -27,6 +34,44 @@ function CourseDetail() {
 
     loadCourseDetails(); // Call the fetch function when the component mounts
   }, [id]);
+  
+  // Fetch course audit logs
+  const fetchAuditLogs = async (page = 1) => {
+    setAuditLoading(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(
+        `${host}/programme_curriculum/api/admin_course_audit_logs/${id}/?page=${page}&page_size=10`,
+        {
+          headers: {
+            Authorization: `Token ${token}`,
+          },
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAuditLogs(data.logs || []);
+        setTotalPages(Math.ceil((data.total_count || 0) / 10));
+      } else {
+        console.error("Failed to fetch audit logs");
+      }
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+  
+  const handleShowAuditLogs = () => {
+    setShowAuditLogs(true);
+    fetchAuditLogs(1);
+  };
+  
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    fetchAuditLogs(page);
+  };
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
@@ -46,6 +91,7 @@ function CourseDetail() {
               radius="sm"
               fullWidth
               style={{ width: "100%", maxWidth: "200px" }}
+              onClick={() => navigate(`/programme_curriculum/acad_admin_edit_course_form/${id}`)}
             >
               Edit Course
             </Button>
@@ -62,6 +108,16 @@ function CourseDetail() {
               }
             >
               Add Course
+            </Button>
+            <Button
+              variant="outline"
+              color="orange"
+              radius="sm"
+              fullWidth
+              style={{ width: "100%", maxWidth: "200px" }}
+              onClick={handleShowAuditLogs}
+            >
+              📋 View Change History
             </Button>
           </div>
         </Grid.Col>
@@ -443,6 +499,96 @@ function CourseDetail() {
           background-color: #f2f2f2;
         }
       `}</style>
+   
+      <Modal
+        opened={showAuditLogs}
+        onClose={() => setShowAuditLogs(false)}
+        title={`📋 Change History - ${courseDetails?.name} (${courseDetails?.code})`}
+        size="xl"
+      >
+        <Stack spacing="md">
+          {auditLoading ? (
+            <Text>Loading audit logs...</Text>
+          ) : auditLogs.length === 0 ? (
+            <Alert color="blue" variant="light">
+              No change history found for this course.
+            </Alert>
+          ) : (
+            <>
+              <Stack spacing="sm">
+                {auditLogs.map((log) => (
+                  <Card key={log.id} padding="md" withBorder>
+                    <Grid>
+                      <Grid.Col span={8}>
+                        <Text size="sm" weight={500}>
+                          {log.action} by {log.user}
+                        </Text>
+                        <Text size="xs" color="gray.6">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </Text>
+                      </Grid.Col>
+                      <Grid.Col span={4}>
+                        <Badge
+                          color={
+                            log.version_bump_type === 'MAJOR' ? 'red' :
+                            log.version_bump_type === 'MINOR' ? 'orange' :
+                            log.version_bump_type === 'PATCH' ? 'green' : 'gray'
+                          }
+                          variant="light"
+                          size="sm"
+                        >
+                          {log.version_bump_type || 'UPDATE'}
+                        </Badge>
+                        {log.admin_override && (
+                          <Badge color="purple" variant="outline" size="xs" ml={4}>
+                            Admin Override
+                          </Badge>
+                        )}
+                      </Grid.Col>
+                    </Grid>
+                    
+                    {log.reason && (
+                      <Text size="sm" mt="xs" color="gray.7">
+                        {log.reason}
+                      </Text>
+                    )}
+                    
+                    {log.old_version && log.new_version && (
+                      <Text size="xs" mt={4} color="blue.6">
+                        Version: {log.old_version} → {log.new_version}
+                      </Text>
+                    )}
+                    
+                    {log.changed_fields && log.changed_fields.length > 0 && (
+                      <div style={{ marginTop: '8px' }}>
+                        <Text size="xs" color="gray.6">Changed fields:</Text>
+                        <div style={{ marginTop: '4px' }}>
+                          {log.changed_fields.map((field, index) => (
+                            <Badge key={index} variant="outline" size="xs" mr={4}>
+                              {field}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </Stack>
+              
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+                  <Pagination
+                    value={currentPage}
+                    onChange={handlePageChange}
+                    total={totalPages}
+                    size="sm"
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </Stack>
+      </Modal>
     </div>
   );
 }

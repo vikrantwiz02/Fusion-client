@@ -2,13 +2,11 @@ import PropTypes from "prop-types";
 import { CaretCircleLeft, CaretCircleRight } from "@phosphor-icons/react";
 import { Tabs, Button, Flex, Badge, Text } from "@mantine/core";
 import { useRef } from "react";
-import { useMediaQuery } from "@mantine/hooks";
 import { useDispatch } from "react-redux";
 import { setActiveTab_ } from "../redux/moduleslice";
 import classes from "../Modules/Dashboard/Dashboard.module.css";
 
 function ModuleTabs({ tabs, activeTab, setActiveTab, badges = [] }) {
-  const isMobile = useMediaQuery("(max-width: 500px)");
   const tabsListRef = useRef(null);
   const tabsListContainerRef = useRef(null);
   const dispatch = useDispatch();
@@ -21,24 +19,44 @@ function ModuleTabs({ tabs, activeTab, setActiveTab, badges = [] }) {
         : Math.max(currentIndex - 1, 0);
     setActiveTab(String(newIndex));
     dispatch(setActiveTab_(tabs[newIndex].title));
-    tabsListRef.current.scrollBy({
-      left: direction === "next" ? 50 : -50,
-      behavior: "smooth",
-    });
-    // tabsListContainerRef.current.scrollBy({
-    //   left: direction === "next" ? 50 : -50,
-    //   behavior: "smooth",
-    // });
+
+    // Scroll to make the new active tab visible
+    if (tabsListRef.current) {
+      tabsListRef.current.scrollBy({
+        left: direction === "next" ? 100 : -100,
+        behavior: "smooth",
+      });
+    }
   };
 
   const handleTabClick = (index) => {
     setActiveTab(String(index));
     dispatch(setActiveTab_(tabs[index].title));
+
+    // Scroll the clicked tab into view
+    if (tabsListContainerRef.current) {
+      const clickedTab = tabsListContainerRef.current.children[index];
+      if (clickedTab) {
+        clickedTab.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        });
+      }
+    }
   };
 
   return (
-    <Flex justify="space-between" align="center" style={{marginBottom: "30px"}}>
-      <Flex justify="center" align="center" gap={{ base: "0.2rem", sm: "0.4rem" }}>
+    <Flex
+      justify="space-between"
+      align="center"
+      style={{ marginBottom: "30px" }}
+    >
+      <Flex
+        justify="center"
+        align="center"
+        gap={{ base: "0.2rem", sm: "0.4rem" }}
+      >
         <Button
           onClick={() => handleTabChange("prev")}
           variant="default"
@@ -50,37 +68,33 @@ function ModuleTabs({ tabs, activeTab, setActiveTab, badges = [] }) {
             className={classes.fusionCaretCircleIcon}
           />
         </Button>
-        <div className={classes.tabsContainer} ref={tabsListRef} style={{maxWidth:'85vw'}}>
-        <Tabs
-          value={activeTab}
-          onChange={(value) => handleTabClick(value)}
-          style={{
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-          className="hide-scrollbar"
+        <div
+          className={classes.fusionTabsContainer}
+          ref={tabsListRef}
+          style={{ maxWidth: "85vw" }}
         >
+          <Tabs
+            value={activeTab}
+            onChange={(value) => handleTabClick(value)}
+            style={{
+              overflowX: "auto",
+            }}
+          >
             <Tabs.List
               w={{ xxs: "200px", xs: "275px", sm: "100%" }}
               justify="flex-start"
-              nowrap="true"
-              style={{
-                display: "flex",
-                flexWrap: "nowrap",
-                overflowX: isMobile ? "scroll" : "none",
-              }}
+              className={classes.fusionTabsList}
               ref={tabsListContainerRef}
             >
               {tabs.map((tab, index) => (
                 <Tabs.Tab
                   value={`${index}`}
                   key={index}
-                  className={
+                  className={`${classes.fusionTabItem} ${
                     activeTab === `${index}`
                       ? classes.fusionActiveRecentTab
                       : ""
-                  }
+                  }`}
                 >
                   <Flex gap="4px">
                     <Text>{tab.title}</Text>

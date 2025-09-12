@@ -30,11 +30,30 @@
   flex-shrink: 1;
   max-width: 80vw;
   overflow-x: auto;
-  -ms-overflow-style: none;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
 }
 
-.fusionTabsContainer::-webkit-scrollbar {
-  display: none;
+/* Enhanced tab list scrolling styles */
+.fusionTabsList {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  gap: 4px;
+  padding: 4px;
+}
+
+.fusionTabItem {
+  min-width: fit-content;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.fusionTabItem:hover {
+  transform: translateY(-1px);
 }
 
 .selectinputs {

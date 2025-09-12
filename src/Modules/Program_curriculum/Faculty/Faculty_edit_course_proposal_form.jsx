@@ -48,6 +48,13 @@ function Faculty_edit_course_proposal_form() {
       Description: "",
       maxSeats: 0,
     },
+    validate: {
+  courseName: (value) => value?.trim().length === 0 ? "Course name is required" : null,
+  courseCode: (value) => value?.trim().length === 0 ? "Course code is required" : null,
+  discipline: (value) => value?.trim().length === 0 ? "Discipline is required" : null,
+  syllabus: (value) => value?.trim().length === 0 ? "Syllabus is required" : null,
+  references: (value) => value?.trim().length === 0 ? "References is required" : null,
+    },
   });
   const role = useSelector((state) => state.user.role);
   const uploader_fullname = useSelector((state) => state.user.username);
@@ -587,6 +594,8 @@ function Faculty_edit_course_proposal_form() {
                   onChange={(event) =>
                     form.setFieldValue("syllabus", event.currentTarget.value)
                   }
+                  required
+                  error={form.errors.syllabus}
                 />
                 <Textarea
                   label="References"
@@ -595,6 +604,8 @@ function Faculty_edit_course_proposal_form() {
                   onChange={(event) =>
                     form.setFieldValue("references", event.currentTarget.value)
                   }
+                  required
+                  error={form.errors.references}
                 />
                 <Group
                   grow

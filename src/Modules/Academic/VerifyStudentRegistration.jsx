@@ -50,7 +50,6 @@ function VerifyStudentRegistration() {
             Authorization: `Token ${token}`,
           },
         });
-        console.log("Fetched Batches:", response.data.batches);
         setBatches(response.data.batches);
       } catch (fetchError) {
         setError(fetchError);
@@ -60,7 +59,6 @@ function VerifyStudentRegistration() {
     };
 
     fetchBatches();
-    console.log(batches, loading);
   }, []);
 
   // Fetch student data from API
@@ -101,7 +99,7 @@ function VerifyStudentRegistration() {
         setDataFetched(true); // Mark data as fetched
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.status === 404 ? "Student list endpoint not found. Please contact admin." : err.message);
     } finally {
       setLoading(false);
     }
@@ -129,7 +127,6 @@ function VerifyStudentRegistration() {
           },
         },
       );
-      console.log("Fetched Course sata:", response.data);
       setSelectedCourses(response.data.final_registration);
       setOpened(true);
     } catch (fetchError) {
@@ -168,7 +165,6 @@ function VerifyStudentRegistration() {
           },
         },
       );
-      console.log("Fetched response:", response.data);
       if (action === "accept") {
         setStudents((prev) =>
           prev.filter((stu) => stu.student_id__id !== rollNo),
@@ -208,7 +204,7 @@ function VerifyStudentRegistration() {
           setBatch(val);
         }}
         data={batches.map((bat) => ({
-          value: bat.batch_id.toString(),
+          value: bat.id.toString(),
           label: `${bat.name} ${bat.discipline} ${bat.year}`,
         }))}
         disabled={loading}
