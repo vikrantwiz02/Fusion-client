@@ -51,11 +51,11 @@ function Faculty_add_course_proposal_form() {
       Description: "",
     },
     validate: {
-      courseName: (value) => (!value ? "Course name is required" : null),
-      courseCode: (value) => (!value ? "Course code is required" : null),
-      discipline: (value) => (!value ? "Discipline is required" : null),
-      syllabus: (value) => (!value ? "Syllabus is required" : null),
-      references: (value) => (!value ? "References are required" : null),
+      courseName: (value) => value?.trim().length === 0 ? "Course name is required" : null,
+      courseCode: (value) => value?.trim().length === 0 ? "Course code is required" : null,
+      discipline: (value) => value?.trim().length === 0 ? "Discipline is required" : null,
+      syllabus: (value) => value?.trim().length === 0 ? "Syllabus is required" : null,
+      references: (value) => value?.trim().length === 0 ? "References are required" : null,
     },
   });
   const role = useSelector((state) => state.user.role);
