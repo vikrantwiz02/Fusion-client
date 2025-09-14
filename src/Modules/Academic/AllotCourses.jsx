@@ -70,11 +70,11 @@ export default function AllotCourses() {
         if (res.data && res.data.batches && Array.isArray(res.data.batches)) {
           // Filter out invalid batches and create unique options
           const validBatches = res.data.batches.filter(bat => 
-            bat.batch_id && bat.name && bat.discipline && bat.year
+            bat.id && bat.name && bat.discipline && bat.year
           );
           
           const uniqueOptions = validBatches.map((bat) => ({
-            value: String(bat.batch_id),
+            value: String(bat.id),
             label: `${bat.name} ${bat.discipline} ${bat.year}`
           }));
           
