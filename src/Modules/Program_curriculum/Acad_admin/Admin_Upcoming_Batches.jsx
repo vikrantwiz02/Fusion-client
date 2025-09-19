@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import {
   Container,
@@ -57,11 +57,8 @@ import {
   processExcelUpload,
   saveStudentsBatch,
   addSingleStudent,
-  exportStudentData,
   createBatch,
-  updateBatch,
   deleteBatch,
-  setTotalSeats,
   updateStudent,
   deleteStudent,
 } from "../api/api";
@@ -220,7 +217,7 @@ const STUDENT_FIELDS_CONFIG = {
     backendField: "category",
     options: [
       { value: "GEN", label: "General (GEN)" },
-      { value: "OBC", label: "Other Backward Class (OBC)" },
+      { value: "OBC-NC", label: "Other Backward Class (Non-Creamy Layer) (OBC-NC)" },
       { value: "SC", label: "Scheduled Caste (SC)" },
       { value: "ST", label: "Scheduled Tribe (ST)" },
       { value: "EWS", label: "Economically Weaker Section (EWS)" },
@@ -229,14 +226,9 @@ const STUDENT_FIELDS_CONFIG = {
   },
   minority: {
     label: "Minority",
-    placeholder: "Select minority status",
+    placeholder: "Enter minority status",
     required: false,
-    type: "select",
     backendField: "minority",
-    options: [
-      { value: "Not Applicable", label: "Not Applicable" },
-      { value: "Applicable", label: "Applicable" },
-    ],
     excelColumns: ["minority", "minority status", "religious minority"],
   },
   allottedGender: {
@@ -470,7 +462,7 @@ const INITIAL_FORM_DATA = {
   mname: "",
   gender: "",
   category: "",
-  minority: "Not Applicable",
+  minority: "",
   pwd: "NO",
   branch: "",
   address: "",
@@ -705,51 +697,7 @@ const AdminUpcomingBatch = () => {
   };
 
   // Proactive validation check before attempting student operations
-  const checkPrerequisites = async () => {
-    try {
-      const currentBatches = getCurrentYearBatches();
-      
-      if (!currentBatches || currentBatches.length === 0) {
-        showWorkflowGuidance('batches_required', { 
-          academicYear: getCurrentAcademicYearString()
-        });
-        return false;
-      }
 
-      const batchesWithoutCurriculum = currentBatches.filter(batch => 
-        !batch.curriculum || !batch.curriculum_id
-      );
-      
-      if (batchesWithoutCurriculum.length > 0) {
-        const batchNames = batchesWithoutCurriculum
-          .map(batch => `${batch.name} ${batch.discipline}`)
-          .join(', ');
-        showWorkflowGuidance('curriculum_assignment_required', { batchNames });
-        return false;
-      }
-
-      showWorkflowGuidance('ready_for_students');
-      return true;
-      
-    } catch (error) {
-      console.error('Prerequisites check failed:', error);
-      return true;
-    }
-  };
-
-  const getCurrentYearBatches = () => {
-    const currentYear = getCurrentBatchYear();
-    switch (activeSection) {
-      case 'ug':
-        return ugBatches.filter(batch => batch.year === currentYear);
-      case 'pg':
-        return pgBatches.filter(batch => batch.year === currentYear);
-      case 'phd':
-        return phdBatches.filter(batch => batch.year === currentYear);
-      default:
-        return [];
-    }
-  };
 
   const getBatchForBranch = (branch, batches) => {
     if (!branch || !batches || batches.length === 0) return null;
@@ -947,21 +895,8 @@ const AdminUpcomingBatch = () => {
     return categoryMapping[value] || value;
   };
 
-  const getFieldMapping = () => {
-    const mapping = {};
-    Object.keys(STUDENT_FIELDS_CONFIG).forEach((fieldKey) => {
-      mapping[fieldKey] = STUDENT_FIELDS_CONFIG[fieldKey].excelColumns;
-    });
-    return mapping;
-  };
 
-  const getFieldDisplayName = (fieldName) => {
-    return STUDENT_FIELDS_CONFIG[fieldName]?.label || fieldName;
-  };
 
-  const getAvailableFields = () => {
-    return Object.keys(STUDENT_FIELDS_CONFIG);
-  };
 
   // Helper function to parse backend duplicate errors and return user-friendly messages
   const parseDuplicateError = (error, context = "operation") => {
@@ -1099,211 +1034,8 @@ const AdminUpcomingBatch = () => {
     return getCurrentAcademicYearString();
   };
 
-  const preProcessExcelFile = async (file) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: "array" });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-          if (jsonData.length < 2) {
-            resolve({ disciplineMapping: {} });
-            return;
-          }
 
-          const headers = jsonData[0].map((h) =>
-            h.toString().toLowerCase().trim(),
-          );
-          const disciplineColumnIndex = headers.findIndex(
-            (h) =>
-              h.includes("discipline") ||
-              h.includes("branch") ||
-              h.includes("department"),
-          );
-
-          if (disciplineColumnIndex === -1) {
-            resolve({ disciplineMapping: {} });
-            return;
-          }
-
-          const disciplineMapping = {};
-          const disciplineCounts = {
-            btech: 0,
-            bdes: 0,
-            mtech: 0,
-            mdes: 0,
-            phd: 0,
-          };
-
-          for (let i = 1; i < jsonData.length; i++) {
-            const row = jsonData[i];
-            if (row && row[disciplineColumnIndex]) {
-              const discipline = row[disciplineColumnIndex]
-                .toString()
-                .toLowerCase()
-                .trim();
-              let detectedProgramme = "";
-
-              if (discipline.includes("design")) {
-                detectedProgramme =
-                  activeSection === "ug"
-                    ? "B.Des"
-                    : activeSection === "pg"
-                      ? "M.Des"
-                      : "PhD";
-                disciplineCounts[
-                  activeSection === "ug"
-                    ? "bdes"
-                    : activeSection === "pg"
-                      ? "mdes"
-                      : "phd"
-                ] += 1;
-              } else if (
-                discipline.includes("cse") ||
-                discipline.includes("computer") ||
-                discipline.includes("ece") ||
-                discipline.includes("electronics") ||
-                discipline.includes("me") ||
-                discipline.includes("mechanical") ||
-                discipline.includes("sm") ||
-                discipline.includes("smart") ||
-                discipline.includes("manufacturing")
-              ) {
-                detectedProgramme =
-                  activeSection === "ug"
-                    ? "B.Tech"
-                    : activeSection === "pg"
-                      ? "M.Tech"
-                      : "PhD";
-                disciplineCounts[
-                  activeSection === "ug"
-                    ? "btech"
-                    : activeSection === "pg"
-                      ? "mtech"
-                      : "phd"
-                ] += 1;
-              }
-
-              disciplineMapping[discipline] = detectedProgramme;
-            }
-          }
-
-          const totalStudents = Object.values(disciplineCounts).reduce(
-            (sum, count) => sum + count,
-            0,
-          );
-          let warningMessage = "";
-
-          if (activeSection === "ug") {
-            const designStudents = disciplineCounts.bdes;
-            const techStudents = disciplineCounts.btech;
-
-            if (designStudents > 0 && techStudents > 0) {
-              warningMessage = `⚠️ Mixed programmes detected: ${techStudents} B.Tech students and ${designStudents} B.Des students. Consider uploading them separately for better organization.`;
-            } else if (designStudents > 0 && techStudents === 0) {
-              warningMessage = `ℹ️ All ${designStudents} students appear to be B.Des (Design) students.`;
-            } else if (techStudents > 0 && designStudents === 0) {
-              warningMessage = `ℹ️ All ${techStudents} students appear to be B.Tech students.`;
-            }
-          }
-
-          resolve({ disciplineMapping, disciplineCounts, warningMessage });
-        } catch (error) {
-          resolve({ disciplineMapping: {} });
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  };
-
-  const determineCorrectProgramme = (discipline, programmeType) => {
-    const disciplineLower = (discipline || "").toLowerCase().trim();
-
-    if (programmeType === "ug") {
-      if (
-        disciplineLower.includes("design") ||
-        disciplineLower.includes("bdes")
-      ) {
-        return "B.Des";
-      } else {
-        return "B.Tech";
-      }
-    }
-
-    if (programmeType === "pg") {
-      if (
-        disciplineLower.includes("design") ||
-        disciplineLower.includes("mdes")
-      ) {
-        return "M.Des";
-      } else {
-        return "M.Tech";
-      }
-    }
-
-    if (programmeType === "phd") {
-      return "PhD";
-    }
-
-    return programmeType === "ug"
-      ? "B.Tech"
-      : programmeType === "pg"
-        ? "M.Tech"
-        : "PhD";
-  };
-
-  const getBranchCode = (branchName, branchCode, getDisplayCode = false) => {
-    const branch = (branchName || branchCode || "").toLowerCase().trim();
-
-    const branchMappings = {
-      "computer science and engineering": { display: "CSE", rollCode: "BCS" },
-      cse: { display: "CSE", rollCode: "BCS" },
-      "computer science": { display: "CSE", rollCode: "BCS" },
-      "electronics and communication engineering": {
-        display: "ECE",
-        rollCode: "BEC",
-      },
-      ece: { display: "ECE", rollCode: "BEC" },
-      electronics: { display: "ECE", rollCode: "BEC" },
-      "mechanical engineering": { display: "ME", rollCode: "BME" },
-      mechanical: { display: "ME", rollCode: "BME" },
-      me: { display: "ME", rollCode: "BME" },
-      "smart manufacturing": { display: "SM", rollCode: "BSM" },
-      sm: { display: "SM", rollCode: "BSM" },
-      manufacturing: { display: "SM", rollCode: "BSM" },
-
-      design: { display: "DES", rollCode: "BDS" },
-      bdes: { display: "DES", rollCode: "BDS" },
-
-      "mtech computer science": { display: "CSE", rollCode: "MCS" },
-      "mtech electronics": { display: "ECE", rollCode: "MEC" },
-      "mtech mechanical": { display: "ME", rollCode: "MME" },
-      "mtech smart manufacturing": { display: "SM", rollCode: "MSM" },
-
-      "mdes design": { display: "DES", rollCode: "MDS" },
-
-      "phd computer science": { display: "CSE", rollCode: "PCS" },
-      "phd electronics": { display: "ECE", rollCode: "PEC" },
-      "phd mechanical": { display: "ME", rollCode: "PME" },
-      "phd smart manufacturing": { display: "SM", rollCode: "PSM" },
-      "phd design": { display: "DES", rollCode: "PDS" },
-    };
-
-    const matchedEntry = Object.entries(branchMappings).find(([key]) =>
-      branch.includes(key),
-    );
-    if (matchedEntry) {
-      const [, codes] = matchedEntry;
-      return getDisplayCode ? codes.display : codes.rollCode;
-    }
-
-    const result = branchCode || "UNK";
-    return result;
-  };
 
   const getDisplayBranchName = (branchName, branchCode) => {
     const branch = (branchName || branchCode || "").toLowerCase().trim();
@@ -1336,153 +1068,6 @@ const AdminUpcomingBatch = () => {
     return branchName || branchCode || "Unknown";
   };
 
-  const generateRollNumber = (branchCode, year, sequence) => {
-    const yearSuffix = year.toString().slice(-2);
-    const sequenceNumber = sequence.toString().padStart(3, "0");
-    return `${yearSuffix}${branchCode}${sequenceNumber}`;
-  };
-
-  const generateInstituteEmail = (rollNumber) => {
-    return `${rollNumber.toLowerCase()}@iiitdmj.ac.in`;
-  };
-
-  const processBatchAllocation = (studentData, programmeType) => {
-    const batchYear = parseInt(selectedBatchYear, 10);
-    const branchGroups = {};
-
-    studentData.forEach((student, index) => {
-      const branchCode = getBranchCode(student.branch, student.branchCode);
-
-      if (!branchGroups[branchCode]) {
-        branchGroups[branchCode] = [];
-      }
-
-      branchGroups[branchCode].push({
-        ...student,
-        branchCode,
-        displayBranch: getDisplayBranchName(student.branch, student.branchCode),
-        originalIndex: index,
-      });
-    });
-
-    Object.keys(branchGroups).forEach((branchCode) => {
-      branchGroups[branchCode].sort((a, b) => a.name.localeCompare(b.name));
-    });
-
-    const processedStudents = [];
-    const branchCounters = {};
-
-    Object.keys(branchGroups).forEach((branchCode) => {
-      branchCounters[branchCode] = 1;
-
-      branchGroups[branchCode].forEach((student) => {
-        const rollNumber = generateRollNumber(
-          branchCode,
-          batchYear,
-          branchCounters[branchCode],
-        );
-        const instituteEmail = generateInstituteEmail(rollNumber);
-
-        processedStudents.push({
-          ...student,
-          rollNumber,
-          instituteEmail,
-          year: batchYear,
-          programme: programmeType.toUpperCase(),
-          allocationDate: new Date().toISOString(),
-          status: "ALLOCATED",
-          reportedStatus: "NOT_REPORTED",
-        });
-
-        branchCounters[branchCode] += 1;
-      });
-    });
-
-    processedStudents.sort((a, b) => a.rollNumber.localeCompare(b.rollNumber));
-
-    return {
-      students: processedStudents,
-      summary: {
-        totalStudents: processedStudents.length,
-        branchCounts: Object.keys(branchCounters).reduce((acc, branch) => {
-          acc[branch] = branchCounters[branch] - 1;
-          return acc;
-        }, {}),
-        year: selectedBatchYear,
-        academicYear: getCurrentAcademicYear(),
-        programme: programmeType.toUpperCase(),
-        allocationDate: new Date().toISOString(),
-      },
-    };
-  };
-
-  const addStudentToExistingBatch = (processedStudent) => {
-    const { programme, displayBranch, branchCode } = processedStudent;
-    let currentBatches;
-    let setBatchFunction;
-
-    switch (programme.toLowerCase()) {
-      case "ug":
-      case "b.tech":
-        currentBatches = [...ugBatches];
-        setBatchFunction = setUgBatches;
-        break;
-      case "pg":
-      case "m.tech":
-        currentBatches = [...pgBatches];
-        setBatchFunction = setPgBatches;
-        break;
-      case "phd":
-        currentBatches = [...phdBatches];
-        setBatchFunction = setPhdBatches;
-        break;
-      default:
-        currentBatches = [...ugBatches];
-        setBatchFunction = setUgBatches;
-    }
-
-    const existingBatchIndex = currentBatches.findIndex(
-      (batch) =>
-        batch.displayBranch === displayBranch ||
-        batch.discipline.includes(displayBranch),
-    );
-
-    if (existingBatchIndex !== -1) {
-      currentBatches[existingBatchIndex].students.push(processedStudent);
-      currentBatches[existingBatchIndex].filledSeats += 1;
-      currentBatches[existingBatchIndex].availableSeats = Math.max(
-        0,
-        currentBatches[existingBatchIndex].totalSeats -
-          currentBatches[existingBatchIndex].filledSeats,
-      );
-    } else {
-      const newBatch = {
-        id: Date.now(),
-        programme: determineCorrectProgramme(displayBranch, programme),
-        discipline:
-          displayBranch === "CSE"
-            ? "Computer Science and Engineering"
-            : displayBranch === "ECE"
-              ? "Electronics and Communication Engineering"
-              : displayBranch === "ME"
-                ? "Mechanical Engineering"
-                : displayBranch === "SM"
-                  ? "Smart Manufacturing"
-                  : displayBranch === "DES"
-                    ? "Design"
-                    : displayBranch,
-        displayBranch,
-        year: parseInt(selectedBatchYear, 10),
-        totalSeats: 60,
-        filledSeats: 1,
-        availableSeats: 59,
-        students: [processedStudent],
-      };
-      currentBatches.push(newBatch);
-    }
-
-    setBatchFunction(currentBatches);
-  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterYear, setFilterYear] = useState(
@@ -1974,7 +1559,6 @@ const AdminUpcomingBatch = () => {
       try {
         setUploadProgress(30);
 
-        const preProcessedData = await preProcessExcelFile(file);
 
         const response = await processExcelUpload(file, activeSection);
 
@@ -2001,15 +1585,6 @@ const AdminUpcomingBatch = () => {
 
           const allStudents = [...validStudents, ...invalidStudentData];
 
-          const disciplineGroups = allStudents.reduce((groups, student) => {
-            const discipline =
-              student.branch || student.discipline || "Unknown";
-            if (!groups[discipline]) {
-              groups[discipline] = [];
-            }
-            groups[discipline].push(student);
-            return groups;
-          }, {});
 
           if (allStudents.length > 0) {
           }
@@ -2573,6 +2148,10 @@ const AdminUpcomingBatch = () => {
           }
         }
 
+        if (fieldKey === "dob" && fieldValue) {
+          fieldValue = typeof fieldValue === 'string' ? fieldValue.split(' ')[0].split('T')[0] : fieldValue;
+        }
+
         transformedStudent[fieldKey] = fieldValue || "";
         if (
           ["phoneNumber", "email", "jeeAppNo", "dob", "jeeRank"].includes(
@@ -2591,32 +2170,6 @@ const AdminUpcomingBatch = () => {
       transformedStudent._validation_error = student._validation_error;
 
       return transformedStudent;
-    });
-  };
-
-  // Show missing batch requirement modal
-  const showBatchRequirementModal = (missingBatches) => {
-    const missingBatchesText = missingBatches?.map(batch => 
-      `• ${batch.acronym} - ${batch.discipline}\n  Action: ${batch.action_required}`
-    ).join('\n') || 'Some required batches are missing';
-
-    notifications.show({
-      title: "⚠️ Batches Required",
-      message: (
-        <div>
-          <Text size="sm" mb={8}>
-            <strong>The following batches must be created before uploading students:</strong>
-          </Text>
-          <Text size="xs" style={{ whiteSpace: 'pre-line', fontFamily: 'monospace', color: '#721c24' }}>
-            {missingBatchesText}
-          </Text>
-          <Text size="xs" mt={8} style={{ color: '#856404' }}>
-            Please create these batches first via the Batch Management section, then try uploading students again.
-          </Text>
-        </div>
-      ),
-      color: "orange",
-      autoClose: false,
     });
   };
 
@@ -2675,7 +2228,7 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  const validateBatchPrerequisitesFrontend = (academicYear) => {
+  const validateBatchPrerequisitesFrontend = () => {
     const currentBatches = getCurrentBatches();
     
     if (!currentBatches || currentBatches.length === 0) {
@@ -3153,10 +2706,6 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  const handleEditSeats = (batch) => {
-    setEditingBatchId(batch.id);
-    setEditTotalSeats(batch.totalSeats.toString());
-  };
 
   // ==================== CRUD OPERATIONS ====================
 
@@ -3234,59 +2783,11 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  const startEditingRow = (batch) => {
-    setEditingRow(batch.id);
-    setEditFormData({
-      programme: batch.programme,
-      discipline: batch.discipline,
-      year: batch.year,
-      totalSeats: batch.totalSeats,
-    });
-  };
 
-  const saveEditedRow = async () => {
-    try {
-      const batchDataToUpdate = {
-        ...editFormData,
-        year: parseInt(editFormData.year, 10),
-        totalSeats: parseInt(editFormData.totalSeats, 10),
-      };
-
-      const result = await updateBatch(editingRow, batchDataToUpdate);
-
-      if (result.success) {
-        notifications.show({
-          title: "Success",
-          message: "Batch updated successfully",
-          color: "green",
-        });
-
-        forceRefreshData();
-        setEditingRow(null);
-        setEditFormData({});
-      } else {
-        throw new Error(result.message || "Failed to update batch");
-      }
-    } catch (error) {
-      notifications.show({
-        title: "Error",
-        message: error.message || "Failed to update batch",
-        color: "red",
-      });
-    }
-  };
 
   // UPDATE - Cancel editing
-  const cancelEditing = () => {
-    setEditingRow(null);
-    setEditFormData({});
-  };
 
   // DELETE - Confirm delete
-  const confirmDeleteBatch = (batchId) => {
-    setDeletingBatchId(batchId);
-    setShowDeleteConfirm(true);
-  };
 
   // DELETE - Execute delete
   const handleDeleteBatch = async () => {
@@ -3440,7 +2941,7 @@ const AdminUpcomingBatch = () => {
         "Computer Science and Engineering (4 Years, Bachelor of Technology)",
         "Male",
         "General",
-        "Applicable",
+        "JAIN",
         "NO",
         "9229109424",
         "25bcs001@iiitdmj.ac.in",
@@ -3482,162 +2983,10 @@ const AdminUpcomingBatch = () => {
     });
   };
 
-  const handleCancelEdit = () => {
-    setEditingBatchId(null);
-    setEditTotalSeats("");
-  };
 
-  const syncBatchDataBetweenTabs = () => {
-    if (!batchData) return;
-    
-    const allBatches = [
-      ...(batchData.upcoming_batches || []),
-      ...(batchData.current_batches || [])
-    ];
-
-    const uniqueBatches = allBatches.reduce((acc, batch) => {
-      const key = `${batch.programme}-${batch.discipline}-${batch.year}`;
-      if (!acc[key] || (acc[key].id > batch.id)) {
-        acc[key] = batch;
-      }
-      return acc;
-    }, {});
-    
-    const syncedBatches = Object.values(uniqueBatches);
-
-    setBatchData(prevData => ({
-      ...prevData,
-      upcoming_batches: syncedBatches,
-      current_batches: syncedBatches,
-    }));
-
-    const ugBatches = syncedBatches.filter(batch => batch.programme?.toLowerCase().includes('ug') || batch.programme?.toLowerCase().includes('b.'));
-    const pgBatches = syncedBatches.filter(batch => batch.programme?.toLowerCase().includes('pg') || batch.programme?.toLowerCase().includes('m.'));
-    const phdBatches = syncedBatches.filter(batch => batch.programme?.toLowerCase().includes('phd'));
-    
-    setUgBatches(ugBatches);
-    setPgBatches(pgBatches);
-    setPhdBatches(phdBatches);
-  };
 
   // Synchronize total seats between tabs (both tabs get updated)
-  const syncTotalSeatsAcrossTabs = (batchToUpdate, newTotalSeats) => {
-    const syncBatches = (batches) => {
-      return batches.map((batch) => {
-        if (
-          batch.programme === batchToUpdate.programme &&
-          batch.discipline === batchToUpdate.discipline &&
-          batch.year === batchToUpdate.year
-        ) {
-          const availableSeats = Math.max(0, newTotalSeats - (batch.filledSeats || 0));
-          return {
-            ...batch,
-            totalSeats: newTotalSeats,
-            availableSeats: availableSeats,
-          };
-        }
-        return batch;
-      });
-    };
 
-    setBatchData(prevData => {
-      if (!prevData) return prevData;
-      
-      const syncedUpcoming = syncBatches(prevData.upcoming_batches || []);
-      const syncedCurrent = syncBatches(prevData.current_batches || []);
-      
-      return {
-        ...prevData,
-        upcoming_batches: syncedUpcoming,
-        current_batches: syncedCurrent, 
-      };
-    });
-
-    if (activeSection === PROGRAMME_TYPES.UG) {
-      setUgBatches(prev => syncBatches(prev));
-    } else if (activeSection === PROGRAMME_TYPES.PG) {
-      setPgBatches(prev => syncBatches(prev));
-    } else if (activeSection === PROGRAMME_TYPES.PHD) {
-      setPhdBatches(prev => syncBatches(prev));
-    }
-  };
-
-  const handleSaveSeats = async (batch) => {
-    const newTotalSeats = parseInt(editTotalSeats, 10);
-
-    if (!editTotalSeats || Number.isNaN(newTotalSeats) || newTotalSeats < 0) {
-      notifications.show({
-        title: "Error",
-        message: "Please enter a valid positive number for total seats",
-        color: "red",
-      });
-      return;
-    }
-
-    if (newTotalSeats < batch.filledSeats) {
-      notifications.show({
-        title: "Warning",
-        message: `Total seats (${newTotalSeats}) cannot be less than filled seats (${batch.filledSeats}). This would create a negative available seats scenario.`,
-        color: "orange",
-      });
-      return;
-    }
-
-    setSeatsUpdateLoading(true);
-    try {
-      const result = await setTotalSeats({
-        programme: batch.programme,
-        discipline: batch.discipline,
-        year: batch.year,
-        totalSeats: newTotalSeats,
-      });
-
-      if (result.success) {
-        const updateBatches = (batches) => {
-          return batches.map((b) => {
-            if (b.id === batch.id) {
-              const availableSeats = Math.max(0, newTotalSeats - b.filledSeats);
-              return {
-                ...b,
-                totalSeats: newTotalSeats,
-                availableSeats: availableSeats,
-              };
-            }
-            return b;
-          });
-        };
-
-        if (activeSection === PROGRAMME_TYPES.UG) {
-          setUgBatches((prev) => updateBatches(prev));
-        } else if (activeSection === PROGRAMME_TYPES.PG) {
-          setPgBatches((prev) => updateBatches(prev));
-        } else if (activeSection === PROGRAMME_TYPES.PHD) {
-          setPhdBatches((prev) => updateBatches(prev));
-        }
-
-        syncTotalSeatsAcrossTabs(batch, newTotalSeats);
-
-        notifications.show({
-          title: "Success",
-          message: `Total seats updated to ${newTotalSeats} for ${batch.programme} - ${batch.discipline}`,
-          color: "green",
-        });
-
-        setEditingBatchId(null);
-        setEditTotalSeats("");
-      } else {
-        throw new Error(result.message || "Failed to update total seats");
-      }
-    } catch (error) {
-      notifications.show({
-        title: "Error",
-        message: "Failed to update total seats",
-        color: "red",
-      });
-    } finally {
-      setSeatsUpdateLoading(false);
-    }
-  };
 
   const handleBatchRowClick = async (batch) => {
     setSelectedBatch(batch);
@@ -3866,10 +3215,6 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  const handleReportedStatusToggle = async (studentId, currentStatus) => {
-    const newStatus = currentStatus === "REPORTED" ? "NOT_REPORTED" : "REPORTED";
-    await handleReportedStatusChange(studentId, newStatus);
-  };
 
   // Helper function to get status display properties
   const getStatusProperties = (status) => {
@@ -4023,52 +3368,12 @@ const AdminUpcomingBatch = () => {
     }
   };
 
-  const handleBulkReport = async () => {
-    await handleBulkStatusChange("REPORTED");
-  };
 
   useEffect(() => {
     setSelectedStudents(new Set());
     setIsAllSelected(false);
   }, [selectedBatch]);
 
-  const handleExport = async () => {
-    try {
-      notifications.show({
-        title: "Export Started",
-        message: "Generating student data export...",
-        color: "blue",
-      });
-
-      const response = await exportStudentData(activeSection, {
-        year: selectedBatchYear,
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute(
-        "download",
-        `${activeSection}_students_${selectedBatchYear}.xlsx`,
-      );
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-
-      notifications.show({
-        title: "Export Complete",
-        message: "Student data exported successfully!",
-        color: "green",
-      });
-    } catch (error) {
-      notifications.show({
-        title: "Export Failed",
-        message: error.message || "Failed to export student data",
-        color: "red",
-      });
-    }
-  };
 
   // Handle Edit Student
   const handleEditStudent = (student) => {
@@ -4795,7 +4100,7 @@ const AdminUpcomingBatch = () => {
                         transition: "all 0.3s ease",
                       }}
                       onClick={() => setAddMode("excel")}
-                      sx={(theme) => ({
+                      sx={() => ({
                         "&:hover": {
                           transform: "translateY(-2px)",
                           boxShadow: "0 8px 32px rgba(52, 152, 219, 0.15)",
@@ -4852,7 +4157,7 @@ const AdminUpcomingBatch = () => {
                         transition: "all 0.3s ease",
                       }}
                       onClick={() => setAddMode("manual")}
-                      sx={(theme) => ({
+                      sx={() => ({
                         "&:hover": {
                           transform: "translateY(-2px)",
                           boxShadow: "0 8px 32px rgba(52, 152, 219, 0.15)",
@@ -5442,7 +4747,6 @@ const AdminUpcomingBatch = () => {
                                 </thead>
                                 <tbody>
                                   {extractedData
-                                    .slice(0, 10)
                                     .map((student, index) => (
                                       <tr
                                         key={index}
@@ -5497,8 +4801,6 @@ const AdminUpcomingBatch = () => {
                                             student["Minority"] ||
                                             student.minority_status ||
                                             student["Minority Status"] ||
-                                            student.minority_applicable ||
-                                            student["Minority Applicable"] ||
                                             "-"}
                                         </td>
                                         <td>
@@ -5607,28 +4909,7 @@ const AdminUpcomingBatch = () => {
                                         )}
                                       </tr>
                                     ))}
-                                  {extractedData.length > 10 && (
-                                    <tr>
-                                      <td
-                                        colSpan={
-                                          extractedData.some(
-                                            (student) =>
-                                              student._validation_error,
-                                          )
-                                            ? "25"
-                                            : "24"
-                                        }
-                                        style={{
-                                          textAlign: "center",
-                                          fontStyle: "italic",
-                                          backgroundColor: "#f8f9fa",
-                                        }}
-                                      >
-                                        ... and {extractedData.length - 10} more
-                                        students
-                                      </td>
-                                    </tr>
-                                  )}
+
                                 </tbody>
                               </Table>
                             </ScrollArea>
@@ -5898,13 +5179,14 @@ const AdminUpcomingBatch = () => {
                         {/* Minority and PWD */}
                         <Grid>
                           <Grid.Col span={isMobile ? 12 : 6}>
-                            <Select
+                            <TextInput
                               label={STUDENT_FIELDS_CONFIG.minority.label}
                               placeholder={
                                 STUDENT_FIELDS_CONFIG.minority.placeholder
                               }
                               value={manualFormData.minority || ""}
-                              onChange={(value) => {
+                              onChange={(event) => {
+                                const value = event.currentTarget.value;
                                 if (editingStudent) {
                                   setEditingStudent({
                                     ...editingStudent,
@@ -5916,7 +5198,6 @@ const AdminUpcomingBatch = () => {
                                   minority: value,
                                 });
                               }}
-                              data={STUDENT_FIELDS_CONFIG.minority.options}
                               required={
                                 STUDENT_FIELDS_CONFIG.minority.required
                               }
@@ -6401,7 +5682,7 @@ const AdminUpcomingBatch = () => {
                             </div>
                             <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
                               <Text size="xs" weight={600} color="dimmed" mb={2}>MINORITY</Text>
-                              <Text size="sm" weight={500}>{manualFormData.minority || "Not selected"}</Text>
+                              <Text size="sm" weight={500}>{manualFormData.minority || "Not specified"}</Text>
                             </div>
                             {manualFormData.phoneNumber && (
                               <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
@@ -7342,9 +6623,7 @@ const AdminUpcomingBatch = () => {
                                 student["Minority"] ||
                                 student.minority_status ||
                                 student["Minority Status"] ||
-                                student.minority_applicable ||
-                                student["Minority Applicable"] ||
-                                "Not Applicable"}
+                                "-"}
                             </Badge>
                           </td>
                           <td
@@ -7619,7 +6898,7 @@ const AdminUpcomingBatch = () => {
                                       value
                                     )}
                                     disabled={updatingReportStatus === (student.id || student.student_id)}
-                                    styles={(theme) => {
+                                    styles={() => {
                                       const currentStatus = student.reportedStatus || student.reported_status || "NOT_REPORTED";
                                       const statusProps = getStatusProperties(currentStatus);
                                       return {
