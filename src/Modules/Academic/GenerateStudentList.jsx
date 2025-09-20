@@ -22,8 +22,8 @@ import axios from "axios";
 import { showNotification } from "@mantine/notifications";
 
 import {
-  availableCoursesRoute,   // NEW endpoint: GET /api/available-courses/
-  generatexlsheet,         // POST /api/generate-xlsheet/
+  availableCoursesRoute,   // NEW endpoint: GET /aims/api/available-courses/
+  generatexlsheet,         // POST /aims/api/generate-xlsheet/
   batchesRoute,            // unchanged: for prereg tab
   generateprereport,       // unchanged: for prereg tab
 } from "../../routes/academicRoutes";
@@ -91,11 +91,12 @@ export default function GenerateStudentList() {
         params: { academic_year: academicYear, semester_type: semesterType },
         headers: { Authorization: `Token ${token}` },
       });
-      // Expect [{ id, code, name }, ...]
+      // Expect [{ id, code, name, instructor }, ...]
       setCourseOptions(
         res.data.map(c => ({
           value: String(c.id),
           label: `${c.code} - ${c.name}`,
+          instructor: c.instructor || 'TBA',
         }))
       );
     } catch (err) {
@@ -428,7 +429,9 @@ export default function GenerateStudentList() {
             <Box>
               <Text size="sm" weight={500}>Course No.: <Text span>{courseOptions.find(c => c.value === course)?.label?.split(' - ')[0] || 'N/A'}</Text></Text>
               <Text size="sm" weight={500}>Course Title: <Text span>{courseOptions.find(c => c.value === course)?.label?.split(' - ')[1] || courseOptions.find(c => c.value === course)?.label || 'N/A'}</Text></Text>
-              <Text size="sm" weight={500}>Instructor: <Text span>TBA</Text></Text>
+              <Text size="sm" weight={500}>Instructor: <Text span>{
+                courseOptions.find(c => c.value === course)?.instructor || 'TBA'
+              }</Text></Text>
               <Text size="sm" weight={500}>List Type: <Text span color={listType ? "blue" : "green"}>
                 {listType || "Complete Roll List (All Registration Types)"}
               </Text></Text>
