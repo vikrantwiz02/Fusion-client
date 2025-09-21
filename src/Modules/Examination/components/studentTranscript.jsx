@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { generate_transcript, download_grades_prof } from "../routes/examinationRoutes";
+import { generate_transcript, download_grades } from "../routes/examinationRoutes";
 import {
-  Card,
   Title,
   Paper,
-  Table,
   Text,
-  Group,
   Button,
-  Divider,
   Loader,
   Box,
   Grid,
@@ -18,7 +14,6 @@ import {
   Stack
 } from "@mantine/core";
 import {
-  IconDownload,
   IconAlertCircle,
   IconArrowLeft,
 } from "@tabler/icons-react";
@@ -134,7 +129,7 @@ function StudentTranscript({ student, semester, onBack }) {
       const { no: semester_no, type: semester_type } = semester;
 
       const response = await axios.post(
-        download_grades_prof,
+        download_grades,
         { 
           semester_no, 
           semester_type,

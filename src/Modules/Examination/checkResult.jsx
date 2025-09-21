@@ -16,7 +16,7 @@ import {
 } from "@mantine/core";
 import axios from "axios";
 import InstiLogo from "../../assets/Insti_logo.svg";
-import { get_result_semesters, check_result, download_grades_prof } from "./routes/examinationRoutes";
+import { get_result_semesters, check_result, download_grades } from "./routes/examinationRoutes";
 
 export default function CheckResult() {
   const [selection, setSelection] = useState(null);
@@ -155,7 +155,7 @@ export default function CheckResult() {
       
       // Call backend API to generate PDF
       const response = await axios.post(
-        download_grades_prof,
+        download_grades,
         { 
           semester_no, 
           semester_type,

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Table, Button, ScrollArea, Group } from "@mantine/core";
 import { IconEye, IconDownload } from "@tabler/icons-react";
 import axios from "axios";
-import { generate_transcript, download_grades_prof } from "../routes/examinationRoutes";
+import { generate_transcript, download_grades } from "../routes/examinationRoutes";
 import { useSelector } from "react-redux";
 import "../styles/transcript.css";
 import StudentTranscript from "./studentTranscript";
@@ -71,7 +71,7 @@ function Transcript({ data, semester }) {
       const { no: semester_no, type: semester_type } = semester;
       
       const pdfResponse = await axios.post(
-        download_grades_prof,
+        download_grades,
         { 
           semester_no, 
           semester_type,
