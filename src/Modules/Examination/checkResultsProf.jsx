@@ -14,7 +14,6 @@ import {
 } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
 import axios from "axios";
-import { Download } from "phosphor-react";
 import { useSelector } from "react-redux";
 import { get_courses_prof, download_grades_prof, get_student_grades_academic_years } from "./routes/examinationRoutes";
 
