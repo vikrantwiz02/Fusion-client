@@ -214,7 +214,7 @@ export default function GenerateTranscript() {
       document.body.removeChild(link);
       setError(null);
     } catch (err) {
-      setError(`Error downloading CSV transcript: ${err.message}`);
+      setError(`Error downloading CSV Approval Sheet: ${err.message}`);
       console.error(err);
     } finally {
       setLoading(false);
@@ -276,7 +276,7 @@ export default function GenerateTranscript() {
                   color="green"
                   onClick={handleDownloadCSV}
                 >
-                  Download CSV Transcript
+                  Download CSV Approval Sheet
                 </Button>
               </Group>
             </form>
