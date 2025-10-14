@@ -423,7 +423,7 @@ export default function RegisteredCourses() {
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'legal'
       });
       
       doc.setFont('helvetica');
@@ -431,7 +431,7 @@ export default function RegisteredCourses() {
       let yPosition = 15;
       const pageWidth = doc.internal.pageSize.getWidth();
       
-      doc.setFontSize(12);
+      doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text('STUDENT COPY', pageWidth / 2, yPosition, { align: 'center' });
       
@@ -440,7 +440,7 @@ export default function RegisteredCourses() {
       doc.line(20, yPosition, pageWidth - 20, yPosition);
       yPosition += 8;
       
-      doc.setFontSize(7);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       
       const fields = [
@@ -451,9 +451,9 @@ export default function RegisteredCourses() {
         `Semester: ${studentInfo.semester || ""}`
       ];
       
-      const tableWidth = 152;
-      const tableStartX = (pageWidth - tableWidth) / 2;
-      const tableEndX = tableStartX + tableWidth;
+      const tableWidth = pageWidth - 40;
+      const tableStartX = 20;
+      const tableEndX = pageWidth - 20;
       const availableWidth = tableEndX - tableStartX;
       
       const fieldWidths = fields.map(field => doc.getTextWidth(field));
@@ -507,9 +507,9 @@ export default function RegisteredCourses() {
         body: tableData,
         theme: 'grid',
         margin: { left: 20, right: 20 },
-        tableWidth: 'auto',
+        tableWidth: pageWidth - 40,
         styles: {
-          fontSize: 6,
+          fontSize: 8,
           cellPadding: 1.5,
           lineColor: [0, 0, 0],
           lineWidth: 0.1,
@@ -519,32 +519,32 @@ export default function RegisteredCourses() {
           textColor: [0, 0, 0],
           fontStyle: 'bold',
           halign: 'center',
-          fontSize: 6
+          fontSize: 8
         },
         bodyStyles: {
           fillColor: [255, 255, 255],
           textColor: [0, 0, 0],
-          fontSize: 6
+          fontSize: 8
         },
         columnStyles: {
-          0: { halign: 'center', cellWidth: 12 },
-          1: { cellWidth: 20 },
-          2: { cellWidth: 85 },
-          3: { halign: 'center', cellWidth: 12 },
-          4: { halign: 'center', cellWidth: 20 },
-          5: { cellWidth: 21 }
+          0: { halign: 'center' },
+          1: { },
+          2: { },
+          3: { halign: 'center' },
+          4: { halign: 'center' },
+          5: { }
         }
       });
       
       yPosition = doc.lastAutoTable.finalY + 5;
       
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
+      doc.setFontSize(10);
       doc.text('Total Credits:', 20, yPosition);
       yPosition += 6;
       
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(9);
       doc.text('1. I have more than 75% attendance in the above mentioned subjects.', 20, yPosition);
       doc.text('2. The above courses do not clash with any other courses.', 20, yPosition + 3);
       yPosition += 10;
@@ -559,7 +559,7 @@ export default function RegisteredCourses() {
       doc.line(20, yPosition, pageWidth - 20, yPosition);
       yPosition += 10;
       
-      doc.setFontSize(7);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       
       const leftSigX = 50;
@@ -582,7 +582,7 @@ export default function RegisteredCourses() {
       doc.setLineDashPattern([], 0);
       yPosition += 8;
       
-      doc.setFontSize(12);
+      doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text('ACADEMIC COPY', pageWidth / 2, yPosition, { align: 'center' });
       
@@ -591,7 +591,7 @@ export default function RegisteredCourses() {
       doc.line(20, yPosition, pageWidth - 20, yPosition);
       yPosition += 8;
       
-      doc.setFontSize(7);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       
       const academicFields = [
@@ -602,9 +602,9 @@ export default function RegisteredCourses() {
         `Semester: ${studentInfo.semester || ""}`
       ];
       
-      const academicTableWidth = 152;
-      const academicTableStartX = (pageWidth - academicTableWidth) / 2;
-      const academicTableEndX = academicTableStartX + academicTableWidth;
+      const academicTableWidth = pageWidth - 40;
+      const academicTableStartX = 20;
+      const academicTableEndX = pageWidth - 20;
       const academicAvailableWidth = academicTableEndX - academicTableStartX;
       
       const academicFieldWidths = academicFields.map(field => doc.getTextWidth(field));
@@ -628,9 +628,9 @@ export default function RegisteredCourses() {
         body: tableData,
         theme: 'grid',
         margin: { left: 20, right: 20 },
-        tableWidth: 'auto',
+        tableWidth: pageWidth - 40,
         styles: {
-          fontSize: 6,
+          fontSize: 8,
           cellPadding: 1.5,
           lineColor: [0, 0, 0],
           lineWidth: 0.1,
@@ -640,32 +640,32 @@ export default function RegisteredCourses() {
           textColor: [0, 0, 0],
           fontStyle: 'bold',
           halign: 'center',
-          fontSize: 6
+          fontSize: 8
         },
         bodyStyles: {
           fillColor: [255, 255, 255],
           textColor: [0, 0, 0],
-          fontSize: 6
+          fontSize: 8
         },
         columnStyles: {
-          0: { halign: 'center', cellWidth: 12 },
-          1: { cellWidth: 20 },
-          2: { cellWidth: 85 },
-          3: { halign: 'center', cellWidth: 12 },
-          4: { halign: 'center', cellWidth: 20 },
-          5: { cellWidth: 21 }
+          0: { halign: 'center' },
+          1: { },
+          2: { },
+          3: { halign: 'center' },
+          4: { halign: 'center' },
+          5: { }
         }
       });
       
       yPosition = doc.lastAutoTable.finalY + 5;
       
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
+      doc.setFontSize(10);
       doc.text('Total Credits:', 20, yPosition);
       yPosition += 6;
       
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(9);
       doc.text('1. I have more than 75% attendance in the above mentioned subjects.', 20, yPosition);
       doc.text('2. The above courses do not clash with any other courses.', 20, yPosition + 3);
       yPosition += 10;
@@ -680,7 +680,7 @@ export default function RegisteredCourses() {
       doc.line(20, yPosition, pageWidth - 20, yPosition);
       yPosition += 10;
       
-      doc.setFontSize(7);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       
       const academicLeftSigX = 50;
