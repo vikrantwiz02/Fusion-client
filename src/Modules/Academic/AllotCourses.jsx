@@ -29,19 +29,25 @@ export default function AllotCourses() {
   const [academicYearOptions, setAcademicYearOptions] = useState([]);
 
   const semesterOptions = [
-    { value: JSON.stringify({ no: 1, type: "Odd Semester" }), label: "Semester 1 (Odd)" },
-    { value: JSON.stringify({ no: 2, type: "Even Semester" }), label: "Semester 2 (Even)" },
-    { value: JSON.stringify({ no: 2, type: "Summer Semester" }), label: "Summer Term 1" },
-    { value: JSON.stringify({ no: 3, type: "Odd Semester" }), label: "Semester 3 (Odd)" },
-    { value: JSON.stringify({ no: 4, type: "Even Semester" }), label: "Semester 4 (Even)" },
-    { value: JSON.stringify({ no: 4, type: "Summer Semester" }), label: "Summer Term 2" },
-    { value: JSON.stringify({ no: 5, type: "Odd Semester" }), label: "Semester 5 (Odd)" },
-    { value: JSON.stringify({ no: 6, type: "Even Semester" }), label: "Semester 6 (Even)" },
-    { value: JSON.stringify({ no: 6, type: "Summer Semester" }), label: "Summer Term 3" },
-    { value: JSON.stringify({ no: 7, type: "Odd Semester" }), label: "Semester 7 (Odd)" },
-    { value: JSON.stringify({ no: 8, type: "Even Semester" }), label: "Semester 8 (Even)" },
-    { value: JSON.stringify({ no: 8, type: "Summer Semester" }), label: "Summer Term 4" },
-  ];
+  { value: JSON.stringify({ no: 1, type: "Odd Semester" }), label: "Semester 1 (Odd)" },
+  { value: JSON.stringify({ no: 2, type: "Even Semester" }), label: "Semester 2 (Even)" },
+  { value: JSON.stringify({ no: 2, type: "Summer Semester" }), label: "Summer Term 1" },
+  { value: JSON.stringify({ no: 3, type: "Odd Semester" }), label: "Semester 3 (Odd)" },
+  { value: JSON.stringify({ no: 4, type: "Even Semester" }), label: "Semester 4 (Even)" },
+  { value: JSON.stringify({ no: 4, type: "Summer Semester" }), label: "Summer Term 2" },
+  { value: JSON.stringify({ no: 5, type: "Odd Semester" }), label: "Semester 5 (Odd)" },
+  { value: JSON.stringify({ no: 6, type: "Even Semester" }), label: "Semester 6 (Even)" },
+  { value: JSON.stringify({ no: 6, type: "Summer Semester" }), label: "Summer Term 3" },
+  { value: JSON.stringify({ no: 7, type: "Odd Semester" }), label: "Semester 7 (Odd)" },
+  { value: JSON.stringify({ no: 8, type: "Even Semester" }), label: "Semester 8 (Even)" },
+  { value: JSON.stringify({ no: 8, type: "Summer Semester" }), label: "Summer Term 4" },
+  { value: JSON.stringify({ no: 9, type: "Odd Semester" }), label: "Semester 9 (Odd)" },
+  { value: JSON.stringify({ no: 10, type: "Even Semester" }), label: "Semester 10 (Even)" },
+  { value: JSON.stringify({ no: 10, type: "Summer Semester" }), label: "Summer Term 5" },
+  { value: JSON.stringify({ no: 11, type: "Odd Semester" }), label: "Semester 11 (Odd)" },
+  { value: JSON.stringify({ no: 12, type: "Even Semester" }), label: "Semester 12 (Even)" },
+  { value: JSON.stringify({ no: 12, type: "Summer Semester" }), label: "Summer Term 6" },
+];
 
   useEffect(() => {
     const now = new Date();

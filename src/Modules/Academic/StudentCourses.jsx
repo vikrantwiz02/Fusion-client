@@ -35,6 +35,12 @@ const semesterOptions = [
   { value: JSON.stringify({ no: 7, type: "Odd Semester" }), label: "Semester 7 (Odd)" },
   { value: JSON.stringify({ no: 8, type: "Even Semester" }), label: "Semester 8 (Even)" },
   { value: JSON.stringify({ no: 8, type: "Summer Semester" }), label: "Summer Term 4" },
+  { value: JSON.stringify({ no: 9, type: "Odd Semester" }), label: "Semester 9 (Odd)" },
+  { value: JSON.stringify({ no: 10, type: "Even Semester" }), label: "Semester 10 (Even)" },
+  { value: JSON.stringify({ no: 10, type: "Summer Semester" }), label: "Summer Term 5" },
+  { value: JSON.stringify({ no: 11, type: "Odd Semester" }), label: "Semester 11 (Odd)" },
+  { value: JSON.stringify({ no: 12, type: "Even Semester" }), label: "Semester 12 (Even)" },
+  { value: JSON.stringify({ no: 12, type: "Summer Semester" }), label: "Summer Term 6" },
 ];
 
 export default function StudentCourses() {
