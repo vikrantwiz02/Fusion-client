@@ -84,6 +84,30 @@ export default function GenerateTranscript() {
       value: JSON.stringify({ no: 8, type: "Summer Semester" }),
       label: "Summer 4",
     },
+    {
+      value: JSON.stringify({ no: 9, type: "Odd Semester" }),
+      label: "Semester 9",
+    },
+    {
+      value: JSON.stringify({ no: 10, type: "Even Semester" }),
+      label: "Semester 10",
+    },
+    {
+      value: JSON.stringify({ no: 10, type: "Summer Semester" }),
+      label: "Summer 5",
+    },
+    {
+      value: JSON.stringify({ no: 11, type: "Odd Semester" }),
+      label: "Semester 11",
+    },
+    {
+      value: JSON.stringify({ no: 12, type: "Even Semester" }),
+      label: "Semester 12",
+    },
+    {
+      value: JSON.stringify({ no: 12, type: "Summer Semester" }),
+      label: "Summer 6",
+    },
   ];
 
   useEffect(() => {

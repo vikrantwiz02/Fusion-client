@@ -34,7 +34,7 @@ export default function AnnounceResult() {
   const [formData, setFormData] = useState({ batch: "", semester: "" });
   const [searchQuery, setSearchQuery] = useState("");
 
-  const semesterOptions = Array.from({ length: 8 }, (_, i) => ({
+  const semesterOptions = Array.from({ length: 12 }, (_, i) => ({
     value: String(i + 1),
     label: `Semester ${i + 1}`,
   }));
