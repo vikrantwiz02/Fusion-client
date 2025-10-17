@@ -18,6 +18,15 @@ import axios from "axios";
 import InstiLogo from "../../assets/Insti_logo.svg";
 import { get_result_semesters, check_result, download_grades } from "./routes/examinationRoutes";
 
+const extractBranchFromBatch = (batchName) => {
+  if (!batchName) return "";
+  const parts = batchName.split(' ');
+  if (parts.length >= 3 && parts[0].includes('Tech')) {
+    return parts[1];
+  }
+  return "";
+};
+
 export default function CheckResult() {
   const [selection, setSelection] = useState(null);
   const [semesters, setSemesters] = useState([]);
@@ -113,7 +122,7 @@ export default function CheckResult() {
             name: data.student_info.name || data.student_info.student_name || '',
             rollNumber: data.student_info.roll_number || data.student_info.roll_no || '',
             programme: data.student_info.programme || 'B.Tech',
-            branch: data.student_info.department || data.student_info.branch || '',
+            branch: extractBranchFromBatch(data.student_info.batch) || '',
             academicYear: data.student_info.academic_year || ''
           };
           setStudentInfo(studentData);
