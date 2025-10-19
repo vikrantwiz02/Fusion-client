@@ -196,7 +196,9 @@ export default function CheckResult() {
           2: "Summer1",
           4: "Summer2", 
           6: "Summer3",
-          8: "Summer4"
+          8: "Summer4",
+          10: "Summer5",
+          12: "Summer6"
         };
         semesterLabel = summerMapping[semester_no] || `Summer${semester_no}`;
       } else {

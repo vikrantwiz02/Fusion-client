@@ -91,3 +91,5 @@ export const applyBatchRoute    = `${host}/academic-procedures/api/acad/batch_ch
 
 export const listStudentsPromoteRoute = `${host}/academic-procedures/api/acad/promote/students/`;
 export const applyPromoteRoute = `${host}/academic-procedures/api/acad/promote/apply/`;
+
+export const courseRegistrationReceiptRoute = `${host}/academic-procedures/course_reg_receipt/`;

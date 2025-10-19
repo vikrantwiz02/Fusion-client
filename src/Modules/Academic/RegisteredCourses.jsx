@@ -10,7 +10,7 @@ import {
   Box,
 } from "@mantine/core";
 import { IconPrinter } from "@tabler/icons-react";
-import { semesterOptionsRoute, currentCourseRegistrationRoute } from "../../routes/academicRoutes";
+import { semesterOptionsRoute, currentCourseRegistrationRoute, courseRegistrationReceiptRoute } from "../../routes/academicRoutes";
 import { getProfileDataRoute } from "../../routes/dashboardRoutes";
 import axios from "axios";
 import FusionTable from "../../components/FusionTable";
@@ -130,39 +130,24 @@ export default function RegisteredCourses() {
 
       setCourses(res.data.reg_data || []);
 
-      if (res.data.student_info) {
-        const studentData = res.data.student_info;
-        let batchFromUsername = "";
-        if (studentData.username && /^(\d{2})\w+/.test(studentData.username)) {
-          const yearMatch = studentData.username.match(/^(\d{2})/);
-          if (yearMatch) {
-            batchFromUsername = `20${yearMatch[1]}`;
-          }
+      setStudentInfo(prev => ({
+        ...prev,
+        semester: res.data.sem_no || prev.semester,
+        semesterType: res.data.semester_type || prev.semesterType,
+        name: user?.username?.replace(/[_\s]+$/, '') || prev.name,
+        rollNo: user?.roll_no || prev.rollNo,
+      }));
+      axios.get(courseRegistrationReceiptRoute, {
+        headers: { Authorization: `Token ${token}` },
+      }).then(receiptResponse => {
+        if (receiptResponse.data && receiptResponse.data.branch) {
+          setStudentInfo(prev => ({
+            ...prev,
+            department: receiptResponse.data.branch,
+          }));
         }
-        
-        const extractedData = {
-          name: studentData.first_name ? 
-                (studentData.last_name ? `${studentData.first_name} ${studentData.last_name}` : studentData.first_name) :
-                (studentData.name || studentData.student_name || ""),
-          rollNo: studentData.roll_number || studentData.roll_no || studentData.id || studentData.student_id || "",
-          programme: studentData.programme || "",
-          batch: studentData.batch || studentData.year || studentData.academic_year || studentData.joining_year || batchFromUsername || "",
-          department: studentData.department || studentData.branch || "",
-          semester: res.data.sem_no || "",
-          semesterType: res.data.semester_type || "",
-        };
-        
-        setStudentInfo(prev => ({
-          ...prev,
-          ...Object.fromEntries(Object.entries(extractedData).filter(([_, v]) => v !== ""))
-        }));
-      } else {
-        setStudentInfo(prev => ({
-          ...prev,
-          semester: res.data.sem_no || prev.semester,
-          semesterType: res.data.semester_type || prev.semesterType,
-        }));
-      }
+      }).catch(() => {
+      });
 
       const semNoNum = Number(res.data.sem_no);
       const semType = res.data.semester_type;
