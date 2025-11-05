@@ -217,7 +217,7 @@ const STUDENT_FIELDS_CONFIG = {
     backendField: "category",
     options: [
       { value: "GEN", label: "General (GEN)" },
-      { value: "OBC-NC", label: "Other Backward Class (Non-Creamy Layer) (OBC-NC)" },
+      { value: "OBC-NCL", label: "Other Backward Class (Non-Creamy Layer) (OBC-NCL)" },
       { value: "SC", label: "Scheduled Caste (SC)" },
       { value: "ST", label: "Scheduled Tribe (ST)" },
       { value: "EWS", label: "Economically Weaker Section (EWS)" },
@@ -239,7 +239,7 @@ const STUDENT_FIELDS_CONFIG = {
     backendField: "allotted_gender",
     options: [
       { value: "Gender-Neutral", label: "Gender-Neutral" },
-      { value: "Female Only", label: "Female Only" },
+      { value: "Female-Only (including Supernumerary)", label: "Female-Only (including Supernumerary)" },
     ],
     excelColumns: ["allotted gender"],
   },
@@ -326,24 +326,7 @@ const STUDENT_FIELDS_CONFIG = {
       "mobile no",
     ],
   },
-  email: {
-    label: "Personal Email",
-    placeholder: "Enter personal email",
-    required: false,
-    type: "email",
-    backendField: "personal_email",
-    excelColumns: [
-      "alternet email id",
-      "email",
-      "personal email",
-      "email id",
-      "alternate email",
-      "Alternet Email ID",
-      "personal_email",
-      "personalEmail",
-      "Email ID",
-    ],
-  },
+
   dob: {
     label: "Date of Birth",
     placeholder: "Select date of birth",
@@ -453,6 +436,192 @@ const STUDENT_FIELDS_CONFIG = {
       "instituteEmail",
     ],
   },
+  alternateEmail: {
+    label: "Alternate Email",
+    placeholder: "Enter alternate email",
+    required: false,
+    type: "email",
+    backendField: "personal_email",
+    excelColumns: [
+      "Alternate Email ID",
+      "alternate email id",
+      "alternate email",
+      "Alternate Email",
+      "student alternate email",
+    ],
+  },
+  parentEmail: {
+    label: "Parent's Email",
+    placeholder: "Enter parent's email",
+    required: false,
+    type: "email",
+    backendField: "parent_email",
+    excelColumns: [
+      "Parent Email",
+      "parent email",
+      "parent's email",
+      "guardian email",
+      "Parent's Email",
+      "parent_email",
+      "parentEmail",
+    ],
+  },
+  bloodGroup: {
+    label: "Blood Group",
+    placeholder: "Select blood group",
+    required: false,
+    type: "select",
+    backendField: "blood_group",
+    options: [
+      { value: "A+", label: "A+" },
+      { value: "A-", label: "A-" },
+      { value: "B+", label: "B+" },
+      { value: "B-", label: "B-" },
+      { value: "AB+", label: "AB+" },
+      { value: "AB-", label: "AB-" },
+      { value: "O+", label: "O+" },
+      { value: "O-", label: "O-" },
+      { value: "Other", label: "Other" },
+    ],
+    excelColumns: [
+      "Blood Group",
+      "blood group", 
+      "blood_group", 
+      "bloodGroup"
+    ],
+  },
+  bloodGroupRemarks: {
+    label: "Blood Group Remarks",
+    placeholder: "Enter blood group details",
+    required: false,
+    type: "text",
+    backendField: "blood_group_remarks",
+    excelColumns: ["blood group remarks", "blood_group_remarks", "bloodGroupRemarks"],
+  },
+  country: {
+    label: "Country",
+    placeholder: "Enter country",
+    required: false,
+    backendField: "country",
+    excelColumns: [
+      "Country",  
+      "country", 
+      "nation", 
+      "Nation", 
+      "COUNTRY"
+    ],
+  },
+  nationality: {
+    label: "Nationality", 
+    placeholder: "Enter nationality",
+    required: false,
+    backendField: "nationality",
+    excelColumns: [
+      "Nationality",  
+      "nationality", 
+      "NATIONALITY", 
+      "Citizen", 
+      "citizenship"
+    ],
+  },
+  admissionMode: {
+    label: "Admission Mode",
+    placeholder: "Select admission mode",
+    required: false,
+    type: "select",
+    backendField: "admission_mode",
+    options: [
+      { value: "Direct Institute advertisement", label: "Direct Institute advertisement" },
+      { value: "CCMT Counselling", label: "CCMT Counselling" },
+      { value: "JoSAA/CSAB Counselling", label: "JoSAA/CSAB Counselling" },
+      { value: "UCEED Counselling", label: "UCEED Counselling" },
+      { value: "Study In India (SII) Counselling", label: "Study In India (SII) Counselling" },
+      { value: "DASA Counselling", label: "DASA Counselling" },
+      { value: "Any other (remarks)", label: "Any other (remarks)" },
+    ],
+    excelColumns: [
+      "Admission Mode",
+      "admission mode", 
+      "admission_mode", 
+      "admissionMode"
+    ],
+  },
+  admissionModeRemarks: {
+    label: "Admission Mode Remarks",
+    placeholder: "Enter admission mode remarks",
+    required: false,
+    backendField: "admission_mode_remarks",
+    excelColumns: [
+      "Admission Mode Remarks",
+      "admission mode remarks", 
+      "admission_mode_remarks", 
+      "admissionModeRemarks"
+    ],
+  },
+  pwdCategory: {
+    label: "PwD Category",
+    placeholder: "Select PwD category",
+    required: false,
+    type: "select",
+    backendField: "pwd_category",
+    options: [
+      { value: "Locomotor Disability", label: "Locomotor Disability" },
+      { value: "Low vision Disability", label: "Low vision Disability" },
+      { value: "Deaf Disability", label: "Deaf Disability" },
+      { value: "Cerebral Palsy", label: "Cerebral Palsy" },
+      { value: "Dyslexia", label: "Dyslexia" },
+      { value: "Amputee (Both Hand)", label: "Amputee (Both Hand)" },
+      { value: "Deafness", label: "Deafness" },
+      { value: "Any other (remarks)", label: "Any other (remarks)" },
+    ],
+    excelColumns: [
+      "PwD Category",  
+      "pwd category", 
+      "pwd_category", 
+      "pwdCategory", 
+      "disability category"
+    ],
+  },
+  pwdCategoryRemarks: {
+    label: "PwD Category Remarks",
+    placeholder: "Enter PwD category remarks",
+    required: false,
+    backendField: "pwd_category_remarks",
+    excelColumns: ["pwd category remarks", "pwd_category_remarks", "pwdCategoryRemarks"],
+  },
+  incomeGroup: {
+    label: "Income Group",
+    placeholder: "Select income group",
+    required: false,
+    type: "select",
+    backendField: "income_group",
+    options: [
+      { value: "Between 0 to 2 Lakh", label: "Between 0 to 2 Lakh" },
+      { value: "Between 2 to 4 Lakh", label: "Between 2 to 4 Lakh" },
+      { value: "Between 4 to 6 Lakh", label: "Between 4 to 6 Lakh" },
+      { value: "Between 6 to 8 Lakh", label: "Between 6 to 8 Lakh" },
+      { value: "More than 8 Lakh", label: "More than 8 Lakh" },
+    ],
+    excelColumns: [
+      "Income Group",  
+      "income group", 
+      "income_group", 
+      "incomeGroup"
+    ],
+  },
+  income: {
+    label: "Income",
+    placeholder: "Enter income (whole numbers only)",
+    required: false,
+    type: "number",
+    backendField: "income",
+    excelColumns: [
+      "Income",  
+      "income", 
+      "annual income", 
+      "family income"
+    ],
+  },
 };
 
 const INITIAL_FORM_DATA = {
@@ -468,7 +637,7 @@ const INITIAL_FORM_DATA = {
   address: "",
 
   phoneNumber: "",
-  email: "",
+  alternateEmail: "",
   dob: "",
   jeeRank: "",
   categoryRank: "",
@@ -482,6 +651,17 @@ const INITIAL_FORM_DATA = {
   state: "",
   rollNumber: "",
   instituteEmail: "",
+  parentEmail: "",
+  bloodGroup: "",
+  bloodGroupRemarks: "",
+  country: "",
+  nationality: "",
+  admissionMode: "",
+  admissionModeRemarks: "",
+  pwdCategory: "",
+  pwdCategoryRemarks: "",
+  incomeGroup: "",
+  income: "",
 };
 
 const AdminUpcomingBatch = () => {
@@ -848,7 +1028,6 @@ const AdminUpcomingBatch = () => {
       
       return true;
     } catch (error) {
-      console.error('Branch transfer error:', error);
       notifications.show({
         title: "Transfer Error",
         message: `Failed to transfer student: ${error.message}`,
@@ -895,8 +1074,57 @@ const AdminUpcomingBatch = () => {
     return categoryMapping[value] || value;
   };
 
+  const mapGenderValue = (value) => {
+    if (!value) return value;
+    const genderMapping = {
+      "MALE": "Male",
+      "FEMALE": "Female", 
+      "OTHER": "Other",
+      "M": "Male",
+      "F": "Female"
+    };
+    return genderMapping[value.toUpperCase()] || value;
+  };
 
+  const mapPwdValue = (value) => {
+    if (!value) return value;
+    const pwdMapping = {
+      "YES": "YES",
+      "NO": "NO",
+      "Y": "YES",
+      "N": "NO",
+      "TRUE": "YES", 
+      "FALSE": "NO",
+      "1": "YES",
+      "0": "NO"
+    };
+    return pwdMapping[value.toString().toUpperCase()] || value;
+  };
 
+  const mapAllottedCategoryValue = (value) => {
+    if (!value) return value;
+    return value;
+  };
+
+  const mapAllottedGenderValue = (value) => {
+    if (!value) return value;
+    const allottedGenderMapping = {
+      "GENDER-NEUTRAL": "Gender-Neutral",
+      "GENDER_NEUTRAL": "Gender-Neutral",
+      "FEMALE-ONLY": "Female-Only (including Supernumerary)",
+      "FEMALE_ONLY": "Female-Only (including Supernumerary)",
+      "FEMALE-ONLY (INCLUDING SUPERNUMERARY)": "Female-Only (including Supernumerary)"
+    };
+    return allottedGenderMapping[value.toUpperCase()] || value;
+  };
+
+  // Clean up discipline/branch names by removing extra details in parentheses
+  const cleanDisciplineName = (disciplineName) => {
+    if (!disciplineName || typeof disciplineName !== 'string') {
+      return disciplineName;
+    }
+    return disciplineName.replace(/\s*\([^)]*\)/g, '').trim();
+  };
 
   // Helper function to parse backend duplicate errors and return user-friendly messages
   const parseDuplicateError = (error, context = "operation") => {
@@ -954,7 +1182,7 @@ const AdminUpcomingBatch = () => {
   };
 
   const validateRequiredFields = (formData, isEditMode = false) => {
-    const errors = {};
+    let errors = {};
 
     const dropdownFields = [
       "gender",
@@ -963,6 +1191,10 @@ const AdminUpcomingBatch = () => {
       "allottedCategory",
       "pwd",
       "branch",
+      "bloodGroup",
+      "admissionMode",
+      "pwdCategory",
+      "incomeGroup",
     ];
 
     Object.keys(STUDENT_FIELDS_CONFIG).forEach((fieldKey) => {
@@ -979,6 +1211,9 @@ const AdminUpcomingBatch = () => {
         errors[fieldKey] = `${fieldConfig.label} is required`;
       }
     });
+
+    const universalErrors = applyUniversalValidation(formData, isEditMode);
+    errors = { ...errors, ...universalErrors };
 
     return errors;
   };
@@ -1030,8 +1265,160 @@ const AdminUpcomingBatch = () => {
     return errors;
   };
 
+  const handleStatusChange = (rollNo, newStatus) => {
+    setStudents((prevStudents) =>
+      prevStudents.map((student) =>
+        student.rollNo === rollNo ? { ...student, status: newStatus } : student
+      )
+    );
+  };
+
   const getCurrentAcademicYear = () => {
     return getCurrentAcademicYearString();
+  };
+
+  // Universal validation logic for PwD and Income fields
+  const validatePwDFields = (formData) => {
+    const errors = {};
+
+    if ((formData.pwd === "YES" || formData.pwd === "Yes") && (!formData.pwdCategory || formData.pwdCategory.trim() === "")) {
+      errors.pwdCategory = "PwD Category is required when PwD is Yes.";
+    }
+
+    if (formData.pwdCategory === "Any other (remarks)" && (!formData.pwdCategoryRemarks || formData.pwdCategoryRemarks.trim() === "")) {
+      errors.pwdCategoryRemarks = "PwD Category remarks are required when 'Any other (remarks)' is selected.";
+    }
+    
+    return errors;
+  };
+
+  const validateIncomeFields = (formData) => {
+    const errors = {};
+    
+    if (formData.incomeGroup && formData.income) {
+      const income = parseInt(formData.income);
+
+      if (isNaN(income) || income < 0) {
+        errors.income = "Income must be a valid positive number.";
+        return errors;
+      }
+
+      switch (formData.incomeGroup) {
+        case "Between 0 to 2 Lakh":
+          if (income < 0 || income > 200000) {
+            errors.income = "Income must be between 0 and 2,00,000 for the selected Income Group.";
+          }
+          break;
+        case "Between 2 to 4 Lakh":
+          if (income <= 200000 || income > 400000) {
+            errors.income = "Income must be between 2,00,001 and 4,00,000 for the selected Income Group.";
+          }
+          break;
+        case "Between 4 to 6 Lakh":
+          if (income <= 400000 || income > 600000) {
+            errors.income = "Income must be between 4,00,001 and 6,00,000 for the selected Income Group.";
+          }
+          break;
+        case "Between 6 to 8 Lakh":
+          if (income <= 600000 || income > 800000) {
+            errors.income = "Income must be between 6,00,001 and 8,00,000 for the selected Income Group.";
+          }
+          break;
+        case "More than 8 Lakh":
+          if (income <= 800000) {
+            errors.income = "Income must be more than 8,00,000 for the selected Income Group.";
+          }
+          break;
+      }
+    }
+    
+    return errors;
+  };
+
+  const validateAdmissionModeFields = (formData) => {
+    const errors = {};
+
+    if (formData.admissionMode === "Any other (remarks)" && (!formData.admissionModeRemarks || formData.admissionModeRemarks.trim() === "")) {
+      errors.admissionModeRemarks = "Admission Mode remarks are required when 'Any other (remarks)' is selected.";
+    }
+    
+    return errors;
+  };
+
+  const validateBloodGroupFields = (formData) => {
+    const errors = {};
+
+    if (formData.bloodGroup === "Other" && (!formData.bloodGroupRemarks || formData.bloodGroupRemarks.trim() === "")) {
+      errors.bloodGroupRemarks = "Blood Group remarks are required when 'Other' is selected.";
+    }
+    
+    return errors;
+  };
+
+  const validateEmailField = (email, fieldName) => {
+    const errors = {};
+    
+    if (email && email.trim() !== "") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        errors[fieldName] = "Please enter a valid email address.";
+      }
+    }
+    
+    return errors;
+  };
+
+  const validatePhoneNumbers = (formData) => {
+    const errors = {};
+
+    if (formData.phoneNumber && formData.fatherMobile && 
+        formData.phoneNumber.trim() === formData.fatherMobile.trim()) {
+      errors.fatherMobile = "Father's mobile number cannot be the same as student's phone number.";
+    }
+
+    if (formData.phoneNumber && formData.motherMobile && 
+        formData.phoneNumber.trim() === formData.motherMobile.trim()) {
+      errors.motherMobile = "Mother's mobile number cannot be the same as student's phone number.";
+    }
+
+    if (formData.fatherMobile && formData.motherMobile && 
+        formData.fatherMobile.trim() === formData.motherMobile.trim()) {
+      errors.motherMobile = "Mother's mobile number cannot be the same as father's mobile number.";
+    }
+    
+    return errors;
+  };
+
+  const applyUniversalValidation = (formData, isEditMode = false) => {
+    let errors = {};
+    
+    // Apply PwD validation
+    errors = { ...errors, ...validatePwDFields(formData) };
+    
+    // Apply Income validation
+    errors = { ...errors, ...validateIncomeFields(formData) };
+    
+    // Apply Admission Mode validation
+    errors = { ...errors, ...validateAdmissionModeFields(formData) };
+    
+    // Apply Blood Group validation
+    errors = { ...errors, ...validateBloodGroupFields(formData) };
+    
+    // Apply Phone number validation
+    errors = { ...errors, ...validatePhoneNumbers(formData) };
+    
+    // Apply Email validation
+    if (formData.alternateEmail) {
+      errors = { ...errors, ...validateEmailField(formData.alternateEmail, 'alternateEmail') };
+    }
+    if (formData.parentEmail) {
+      errors = { ...errors, ...validateEmailField(formData.parentEmail, 'parentEmail') };
+    }
+    if (formData.instituteEmail) {
+      errors = { ...errors, ...validateEmailField(formData.instituteEmail, 'instituteEmail') };
+    }
+    
+    return errors;
   };
 
 
@@ -1217,7 +1604,7 @@ const AdminUpcomingBatch = () => {
       setBatchData(null);
       await fetchBatchData(true);
     } catch (error) {
-      console.error('Force refresh error:', error);
+      // Silently handle error
     } finally {
       setBackgroundSync(false);
     }
@@ -1320,6 +1707,14 @@ const AdminUpcomingBatch = () => {
           
           if (fieldKey === "category") {
             value = mapCategoryValue(value);
+          } else if (fieldKey === "gender") {
+            value = mapGenderValue(value);
+          } else if (fieldKey === "pwd") {
+            value = mapPwdValue(value);
+          } else if (fieldKey === "allottedCategory") {
+            value = mapAllottedCategoryValue(value);
+          } else if (fieldKey === "allottedGender") {
+            value = mapAllottedGenderValue(value);
           }
         }
         else if (fieldConfig.backendField && editingStudent[fieldConfig.backendField] !== undefined &&
@@ -1329,6 +1724,14 @@ const AdminUpcomingBatch = () => {
 
           if (fieldKey === "category") {
             value = mapCategoryValue(value);
+          } else if (fieldKey === "gender") {
+            value = mapGenderValue(value);
+          } else if (fieldKey === "pwd") {
+            value = mapPwdValue(value);
+          } else if (fieldKey === "allottedCategory") {
+            value = mapAllottedCategoryValue(value);
+          } else if (fieldKey === "allottedGender") {
+            value = mapAllottedGenderValue(value);
           }
         }
         else if (fieldConfig.excelColumns) {
@@ -1342,6 +1745,14 @@ const AdminUpcomingBatch = () => {
               value = colValue;
               if (fieldKey === "category") {
                 value = mapCategoryValue(value);
+              } else if (fieldKey === "gender") {
+                value = mapGenderValue(value);
+              } else if (fieldKey === "pwd") {
+                value = mapPwdValue(value);
+              } else if (fieldKey === "allottedCategory") {
+                value = mapAllottedCategoryValue(value);
+              } else if (fieldKey === "allottedGender") {
+                value = mapAllottedGenderValue(value);
               }
               break;
             }
@@ -1368,8 +1779,8 @@ const AdminUpcomingBatch = () => {
             email: [
               "personal_email",
               "personalEmail",
-              "alternet_email_id",
-              "Alternet Email ID",
+              "Alternate_email_id",
+              "Alternate Email ID",
             ],
             phoneNumber: [
               "phone_number",
@@ -1521,13 +1932,8 @@ const AdminUpcomingBatch = () => {
         });
         
       } else {
-        console.warn('Sync failed:', data.message);
       }
     } catch (error) {
-      if (!error.message.includes('Unexpected token') && !error.message.includes('<!doctype')) {
-        console.error('Auto-sync error:', error);
-      } else {
-      }
     }
   };
 
@@ -1585,10 +1991,6 @@ const AdminUpcomingBatch = () => {
 
           const allStudents = [...validStudents, ...invalidStudentData];
 
-
-          if (allStudents.length > 0) {
-          }
-
           setExtractedData(allStudents);
           setShowPreview(true);
         } else {
@@ -1625,7 +2027,7 @@ const AdminUpcomingBatch = () => {
           });
         } else {
           notifications.show({
-            title: "❌ Upload Error",
+            title: " Upload Error",
             message: errorMessage || "Failed to process Excel file. Please check the format and try again.",
             color: "red",
             autoClose: 6000,
@@ -1691,8 +2093,66 @@ const AdminUpcomingBatch = () => {
 
   // Export utility functions
   const getExportableFields = () => {
-    return Object.keys(STUDENT_FIELDS_CONFIG)
-      .filter((key) => !STUDENT_FIELDS_CONFIG[key].systemGenerated) 
+    const organizedFieldOrder = [
+      // Basic Information
+      'jeeAppNo',
+      'rollNumber', 
+      'name',
+      'fname',
+      'mname',
+      
+      // Demographics
+      'gender',
+      'category',
+      'allottedCategory',
+      'allottedGender',
+      'minority',
+      'dob',
+      
+      // PWD Information (grouped)
+      'pwd',
+      'pwdCategory',
+      'pwdCategoryRemarks', // Remarks immediately after main field
+      
+      // Blood Group Information (grouped)
+      'bloodGroup',
+      'bloodGroupRemarks', // Remarks immediately after main field
+      
+      // Academic Information
+      'branch',
+      'jeeRank',
+      'categoryRank',
+      
+      // Admission Information (grouped)
+      'admissionMode',
+      'admissionModeRemarks', // Remarks immediately after main field
+      
+      // Contact Information
+      'phoneNumber',
+      'instituteEmail',
+      'alternateEmail',
+      'parentEmail',
+      
+      // Family Information
+      'fatherOccupation',
+      'fatherMobile',
+      'motherOccupation',
+      'motherMobile',
+      
+      // Financial Information (grouped)
+      'incomeGroup',
+      'income',
+      
+      // Location Information
+      'country',
+      'nationality',
+      'state',
+      'address',
+    ];
+    
+    // Return fields in the organized order, filtering out non-existent fields
+    return organizedFieldOrder
+      .filter((key) => STUDENT_FIELDS_CONFIG[key] && !STUDENT_FIELDS_CONFIG[key].systemGenerated)
       .map((key) => ({
         key,
         label: STUDENT_FIELDS_CONFIG[key].label,
@@ -1747,35 +2207,48 @@ const AdminUpcomingBatch = () => {
   };
 
   const prepareExportData = (students, selectedFieldKeys) => {
-    const priorityFields = [
-      "rollNumber",
-      "jeeAppNo",
-      "name",
-      "instituteEmail",
-      "gender",
-      "category",
-      "allottedGender",
-      "allottedCategory",
-      "pwd",
-      "dob",
-      "phoneNumber",
-      "email",
-      "address",
-      "state",
-      "branch",
-      "jeeRank",
-      "categoryRank",
-      "fname",
-      "fatherOccupation",
-      "fatherMobile",
-      "mname",
-      "motherOccupation",
-      "motherMobile", 
+    const organizedFieldOrder = [
+      'jeeAppNo',
+      'rollNumber', 
+      'name',
+      'fname',
+      'mname',
+      'gender',
+      'category',
+      'allottedCategory',
+      'allottedGender',
+      'minority',
+      'dob',
+      'pwd',
+      'pwdCategory',
+      'pwdCategoryRemarks', // Grouped with pwdCategory
+      'bloodGroup',
+      'bloodGroupRemarks', // Grouped with bloodGroup
+      'branch',
+      'jeeRank',
+      'categoryRank',
+      'admissionMode',
+      'admissionModeRemarks', // Grouped with admissionMode
+      'phoneNumber',
+      'instituteEmail',
+      'alternateEmail',
+      'parentEmail',
+      'fatherOccupation',
+      'fatherMobile',
+      'motherOccupation',
+      'motherMobile',
+      'incomeGroup',
+      'income',
+      'country',
+      'nationality',
+      'state',
+      'address',
     ];
 
+    // Sort selected fields according to organized order
     const sortedFieldKeys = [
-      ...priorityFields.filter((field) => selectedFieldKeys.includes(field)),
-      ...selectedFieldKeys.filter((field) => !priorityFields.includes(field)),
+      ...organizedFieldOrder.filter((field) => selectedFieldKeys.includes(field)),
+      ...selectedFieldKeys.filter((field) => !organizedFieldOrder.includes(field)),
     ];
 
     return students.map((student, index) => {
@@ -1813,8 +2286,8 @@ const AdminUpcomingBatch = () => {
             student.personal_email ||
             student.personalEmail ||
             student["personal email"] ||
-            student["Alternet Email ID"] ||
-            student["alternet email id"] ||
+            student["Alternate Email ID"] ||
+            student["Alternate email id"] ||
             student["alternate email"] ||
             student["email id"] ||
             "";
@@ -1921,7 +2394,7 @@ const AdminUpcomingBatch = () => {
 
         if (
           !value &&
-          ["fname", "mname", "name", "email", "jeeRank"].includes(fieldKey)
+          ["fname", "mname", "name", "jeeRank"].includes(fieldKey)
         ) {
         }
       });
@@ -2152,12 +2625,16 @@ const AdminUpcomingBatch = () => {
           fieldValue = typeof fieldValue === 'string' ? fieldValue.split(' ')[0].split('T')[0] : fieldValue;
         }
 
+        // Clean up branch/discipline names by removing extra details in parentheses
+        if (fieldKey === "branch" && fieldValue) {
+          fieldValue = cleanDisciplineName(fieldValue);
+        }
+
         transformedStudent[fieldKey] = fieldValue || "";
-        if (
-          ["phoneNumber", "email", "jeeAppNo", "dob", "jeeRank"].includes(
-            fieldKey,
-          )
-        ) {
+        
+        // Also set backend field if configured
+        if (fieldInfo.backendField && fieldValue) {
+          transformedStudent[fieldInfo.backendField] = fieldValue;
         }
       });
 
@@ -2166,11 +2643,110 @@ const AdminUpcomingBatch = () => {
         applyCaseConversion(transformedStudent),
       );
 
+      // Handle additional backend field mappings (only for fields not already configured in STUDENT_FIELDS_CONFIG)
+      // Most fields are now handled automatically via fieldInfo.backendField in the main loop above
+
       transformedStudent.id = student.id;
       transformedStudent._validation_error = student._validation_error;
 
       return transformedStudent;
     });
+  };
+
+  const PREVIEW_FIELD_ORDER = [
+    'jeeAppNo',          // 1. JEE App No
+    'rollNumber',        // 2. Roll Number  
+    'name',              // 3. Name
+    'gender',            // 4. Gender
+    'category',          // 5. Category
+    'allottedCategory',  // 6. Allotted Category
+    'allottedGender',    // 7. Allotted Gender
+    'minority',          // 8. Minority
+    'pwd',               // 9. PWD Status
+    'pwdCategory',       // 10. PWD Category
+    'pwdCategoryRemarks',// 11. PWD Category Remarks
+    'branch',            // 12. Branch/Discipline
+    'phoneNumber',       // 13. Mobile Number
+    'email',             // 14. Institute Email
+    'alternateEmail',    // 15. Alternate Email
+    'parentEmail',       // 16. Parent Email
+    'fname',             // 17. Father Name
+    'fatherOccupation',  // 18. Father Occupation
+    'fatherMobile',      // 19. Father Mobile
+    'mname',             // 20. Mother Name
+    'motherOccupation',  // 21. Mother Occupation
+    'motherMobile',      // 22. Mother Mobile
+    'dob',               // 23. Date of Birth
+    'bloodGroup',        // 24. Blood Group
+    'bloodGroupRemarks', // 25. Blood Group Remarks
+    'country',           // 26. Country
+    'nationality',       // 27. Nationality
+    'state',             // 28. State
+    'address',           // 29. Address
+    'admissionMode',     // 30. Admission Mode
+    'admissionModeRemarks', // 31. Admission Mode Remarks
+    'incomeGroup',       // 32. Income Group
+    'income',            // 33. Income
+    'jeeRank',           // 34. JEE Rank
+    'categoryRank',      // 35. Category Rank
+  ];
+
+  // Student table column configuration for organized display
+  const STUDENT_TABLE_COLUMNS = [
+    { key: 'jeeAppNo', label: 'JEE Application', minWidth: '140px', fields: ['jeeAppNo', 'jee_app_no', 'Jee Main Application Number'] },
+    { key: 'rollNumber', label: 'Roll Number', minWidth: '120px', fields: ['rollNumber', 'roll_number', 'Institute Roll Number'] },
+    { key: 'name', label: 'Name', minWidth: '180px', fields: ['name', 'Name'] },
+    { key: 'branch', label: 'Discipline', minWidth: '200px', fields: ['discipline', 'branch', 'Discipline'] },
+    { key: 'gender', label: 'Gender', minWidth: '80px', fields: ['gender', 'Gender'] },
+    { key: 'category', label: 'Category', minWidth: '90px', fields: ['category', 'Category'] },
+    { key: 'allottedCategory', label: 'Allotted Cat', minWidth: '100px', fields: ['allottedcat', 'allotted_category', 'Allotted Category'] },
+    { key: 'allottedGender', label: 'Allotted Gender', minWidth: '120px', fields: ['allotted_gender', 'Allotted Gender'] },
+    { key: 'minority', label: 'Minority', minWidth: '90px', fields: ['minority', 'Minority'] },
+    { key: 'pwd', label: 'PwD', minWidth: '60px', fields: ['pwd', 'PWD'] },
+    { key: 'pwdCategory', label: 'PwD Category', minWidth: '120px', fields: ['pwdCategory', 'pwd_category', 'PwD Category'] },
+    { key: 'phoneNumber', label: 'Mobile', minWidth: '120px', fields: ['phoneNumber', 'phone_number', 'mobile', 'Mobile No'] },
+    { key: 'instituteEmail', label: 'Institute Email', minWidth: '200px', fields: ['instituteEmail', 'institute_email', 'Institute Email ID'] },
+    { key: 'alternateEmail', label: 'Alternate Email', minWidth: '200px', fields: ['alternateEmail', 'personal_email', 'Alternate Email ID'] },
+    { key: 'parentEmail', label: 'Parent Email', minWidth: '200px', fields: ['parentEmail', 'parent_email', 'Parent Email', "Parent's Email"] },
+    { key: 'fname', label: "Father's Name", minWidth: '150px', fields: ['fname', 'father_name', "Father's Name"] },
+    { key: 'fatherOccupation', label: "Father's Job", minWidth: '140px', fields: ['fatherOccupation', 'father_occupation', "Father's Occupation"] },
+    { key: 'fatherMobile', label: 'Father Mobile', minWidth: '120px', fields: ['fatherMobile', 'father_mobile', 'Father Mobile Number'] },
+    { key: 'mname', label: "Mother's Name", minWidth: '150px', fields: ['mname', 'mother_name', "Mother's Name"] },
+    { key: 'motherOccupation', label: "Mother's Job", minWidth: '140px', fields: ['motherOccupation', 'mother_occupation', "Mother's Occupation"] },
+    { key: 'motherMobile', label: 'Mother Mobile', minWidth: '120px', fields: ['motherMobile', 'mother_mobile', 'Mother Mobile Number'] },
+    { key: 'dob', label: 'DOB', minWidth: '100px', fields: ['dob', 'date_of_birth', 'Date of Birth'] },
+    { key: 'bloodGroup', label: 'Blood Group', minWidth: '100px', fields: ['bloodGroup', 'blood_group', 'Blood Group'] },
+    { key: 'country', label: 'Country', minWidth: '100px', fields: ['country', 'Country'] },
+    { key: 'nationality', label: 'Nationality', minWidth: '100px', fields: ['nationality', 'Nationality'] },
+    { key: 'admissionMode', label: 'Admission Mode', minWidth: '150px', fields: ['admissionMode', 'admission_mode', 'Admission Mode'] },
+    { key: 'incomeGroup', label: 'Income Group', minWidth: '130px', fields: ['incomeGroup', 'income_group', 'Income Group'] },
+    { key: 'income', label: 'Income', minWidth: '100px', fields: ['income', 'Income'] },
+    { key: 'jeeRank', label: 'AI Rank', minWidth: '80px', fields: ['jeeRank', 'ai_rank', 'jee_rank', 'AI rank'] },
+    { key: 'categoryRank', label: 'Category Rank', minWidth: '100px', fields: ['categoryRank', 'category_rank', 'Category Rank'] },
+    { key: 'state', label: 'State', minWidth: '80px', fields: ['state', 'State'] },
+    { key: 'address', label: 'Address', minWidth: '200px', fields: ['address', 'Address', 'Full Address'] },
+  ];
+
+  const getStudentFieldValue = (student, column) => {
+    for (const fieldName of column.fields) {
+      if (student.hasOwnProperty(fieldName) && student[fieldName] !== undefined && student[fieldName] !== null && student[fieldName] !== '') {
+        let value = student[fieldName];
+        
+        // Clean discipline names
+        if (column.key === 'branch') {
+          value = cleanDisciplineName(value);
+        }
+        
+        // Format dates
+        if (column.key === 'dob' && typeof value === 'string') {
+          value = value.split(' ')[0].split('T')[0];
+        }
+        
+        return String(value).trim();
+      }
+    }
+    
+    return "-";
   };
 
   // Enhanced Excel upload with workflow validation
@@ -2200,7 +2776,7 @@ const AdminUpcomingBatch = () => {
           `\n... and ${data.missing_batches.length - 5} more missing batches` : '';
         
         notifications.show({
-          title: "❌ Batches Required",
+          title: "Batches Required",
           message: (
             <div>
               <Text size="sm" mb={8}>
@@ -2223,7 +2799,6 @@ const AdminUpcomingBatch = () => {
         return validateBatchPrerequisitesFrontend(academicYear);
       }
       
-      console.error('Batch validation error:', error);
       return true; 
     }
   };
@@ -2233,7 +2808,7 @@ const AdminUpcomingBatch = () => {
     
     if (!currentBatches || currentBatches.length === 0) {
       notifications.show({
-        title: "❌ No Batches Found",
+        title: "No Batches Found",
         message: "Please create batches first before uploading students.",
         color: "red",
         autoClose: false,
@@ -2246,7 +2821,7 @@ const AdminUpcomingBatch = () => {
     
     if (batchesForYear.length === 0) {
       notifications.show({
-        title: "❌ No Batches for Current Year",
+        title: "No Batches for Current Year",
         message: `Please create batches for year ${currentYear} first.`,
         color: "red",
         autoClose: false,
@@ -2255,6 +2830,69 @@ const AdminUpcomingBatch = () => {
     }
     
     return true;
+  };
+
+  // Validate Excel data before upload
+  const validateExcelData = (data) => {
+    const validationErrors = [];
+    
+    data.forEach((student, index) => {
+      const rowNumber = index + 2;
+      
+      // Apply universal validation to each student
+      const errors = applyUniversalValidation(student, false);
+      
+      if (Object.keys(errors).length > 0) {
+        Object.entries(errors).forEach(([field, error]) => {
+          validationErrors.push({
+            row: rowNumber,
+            student: student.name || student.Name || `Row ${rowNumber}`,
+            field: STUDENT_FIELDS_CONFIG[field]?.label || field,
+            error: error
+          });
+        });
+      }
+
+      // Validate dropdown values
+      const dropdownValidations = {
+        admissionMode: STUDENT_FIELDS_CONFIG.admissionMode.options.map(opt => opt.value),
+        pwdCategory: STUDENT_FIELDS_CONFIG.pwdCategory.options.map(opt => opt.value), 
+        incomeGroup: STUDENT_FIELDS_CONFIG.incomeGroup.options.map(opt => opt.value),
+        bloodGroup: STUDENT_FIELDS_CONFIG.bloodGroup.options.map(opt => opt.value),
+        allottedGender: STUDENT_FIELDS_CONFIG.allottedGender.options.map(opt => opt.value),
+        allottedCategory: STUDENT_FIELDS_CONFIG.allottedCategory.options.map(opt => opt.value),
+        gender: STUDENT_FIELDS_CONFIG.gender.options.map(opt => opt.value),
+        category: STUDENT_FIELDS_CONFIG.category.options.map(opt => opt.value),
+        pwd: STUDENT_FIELDS_CONFIG.pwd.options.map(opt => opt.value),
+      };
+
+      Object.entries(dropdownValidations).forEach(([fieldKey, validOptions]) => {
+        const value = student[fieldKey];
+        if (value && value.trim() !== "" && value !== "-" && !validOptions.includes(value)) {
+          validationErrors.push({
+            row: rowNumber,
+            student: student.name || student.Name || `Row ${rowNumber}`,
+            field: STUDENT_FIELDS_CONFIG[fieldKey]?.label || fieldKey,
+            error: `Invalid value "${value}". Must be one of: ${validOptions.join(', ')}`
+          });
+        }
+      });
+
+      // Validate phone numbers for duplicates
+      const phoneErrors = validatePhoneNumbers(student);
+      if (Object.keys(phoneErrors).length > 0) {
+        Object.entries(phoneErrors).forEach(([field, error]) => {
+          validationErrors.push({
+            row: rowNumber,
+            student: student.name || student.Name || `Row ${rowNumber}`,
+            field: STUDENT_FIELDS_CONFIG[field]?.label || field,
+            error: error
+          });
+        });
+      }
+    });
+    
+    return validationErrors;
   };
 
   const handleExcelUpload = async () => {
@@ -2266,6 +2904,35 @@ const AdminUpcomingBatch = () => {
           title: "Error",
           message: "No data to upload. Please process an Excel file first.",
           color: "red",
+        });
+        return;
+      }
+
+      // Validate Excel data before proceeding
+      const excelValidationErrors = validateExcelData(dataToUpload);
+      
+      if (excelValidationErrors.length > 0) {
+        const errorMessages = excelValidationErrors.slice(0, 10).map(error => 
+          `• Row ${error.row} (${error.student}): ${error.field} - ${error.error}`
+        ).join('\n');
+        
+        const additionalErrors = excelValidationErrors.length > 10 ? 
+          `\n... and ${excelValidationErrors.length - 10} more validation errors` : '';
+        
+        notifications.show({
+          title: "Upload Failed - Data Validation Errors",
+          message: (
+            <div>
+              <Text size="sm" mb={8}>
+                <strong>Please fix the following errors in your Excel file:</strong>
+              </Text>
+              <Text size="xs" style={{ whiteSpace: 'pre-line', color: '#721c24' }}>
+                {errorMessages}{additionalErrors}
+              </Text>
+            </div>
+          ),
+          color: "red",
+          autoClose: false,
         });
         return;
       }
@@ -2334,7 +3001,7 @@ const AdminUpcomingBatch = () => {
           `\n... and ${batchValidationErrors.length - 5} more errors` : '';
         
         notifications.show({
-          title: "❌ Upload Failed - Batch Validation Errors",
+          title: "Upload Failed - Batch Validation Errors",
           message: (
             <div>
               <Text size="sm" mb={8}>
@@ -2379,14 +3046,14 @@ const AdminUpcomingBatch = () => {
       } else {
         if (response.error_code === 'BATCH_NOT_FOUND') {
           notifications.show({
-            title: "❌ Batch Required",
+            title: "Batch Required",
             message: response.required_action || response.message,
             color: "red",
             autoClose: false,
           });
         } else if (response.error_code === 'BATCH_MATCHING_ERROR') {
           notifications.show({
-            title: "❌ Configuration Error",
+            title: "Configuration Error",
             message: response.message,
             color: "red",
             autoClose: false,
@@ -2396,8 +3063,6 @@ const AdminUpcomingBatch = () => {
         }
       }
     } catch (error) {
-      console.error("Save students batch error:", error);
-      
       const errorData = error.response?.data;
       const errorMessage = errorData?.message || errorData?.error || error.message;
 
@@ -2440,21 +3105,6 @@ const AdminUpcomingBatch = () => {
   // Manual form navigation and submission
   const nextStep = async () => {
     if (currentStep < 3) {
-      const stepErrors = validateCurrentStep(
-        manualFormData,
-        currentStep,
-        !!editingStudent,
-      );
-      if (Object.keys(stepErrors).length > 0) {
-        setErrors(stepErrors);
-        notifications.show({
-          title: "Validation Error",
-          message:
-            "Please fill all required fields in this step before proceeding",
-          color: "red",
-        });
-        return;
-      }
       setErrors({});
       setCurrentStep(currentStep + 1);
     } else {
@@ -2463,13 +3113,27 @@ const AdminUpcomingBatch = () => {
           manualFormData,
           !!editingStudent,
         );
+        
         if (Object.keys(finalErrors).length > 0) {
           setErrors(finalErrors);
-          notifications.show({
-            title: "Validation Error",
-            message: "Please fill all required fields",
-            color: "red",
-          });
+          const phoneErrors = Object.values(finalErrors).filter(error => 
+            error.includes("mobile number cannot be the same") || 
+            error.includes("phone number cannot be the same")
+          );
+          
+          if (phoneErrors.length > 0) {
+            notifications.show({
+              title: "Duplicate Phone Number",
+              message: phoneErrors[0],
+              color: "red",
+            });
+          } else {
+            notifications.show({
+              title: "Validation Error",
+              message: "Please fill all required fields",
+              color: "red",
+            });
+          }
           return;
         }
 
@@ -2506,7 +3170,7 @@ const AdminUpcomingBatch = () => {
           
           if (!matchingBatch) {
             notifications.show({
-              title: "❌ Cannot Add Student",
+              title: "Cannot Add Student",
               message: (
                 <div>
                   <Text size="sm" mb={8}>
@@ -2526,7 +3190,7 @@ const AdminUpcomingBatch = () => {
           const totalStudentsForBatch = (matchingBatch.filledSeats || 0) + 1;
           if (totalStudentsForBatch > matchingBatch.totalSeats) {
             notifications.show({
-              title: "❌ Batch Full",
+              title: "Batch Full",
               message: (
                 <div>
                   <Text size="sm" mb={8}>
@@ -2638,14 +3302,14 @@ const AdminUpcomingBatch = () => {
           } else {
             if (response.error_code === 'BATCH_NOT_FOUND') {
               notifications.show({
-                title: "❌ Batch Required",
+                title: "Batch Required",
                 message: response.required_action || response.message,
                 color: "red",
                 autoClose: false,
               });
             } else if (response.error_code === 'BATCH_MATCHING_ERROR') {
               notifications.show({
-                title: "❌ Configuration Error", 
+                title: "Configuration Error", 
                 message: response.message,
                 color: "red",
                 autoClose: false,
@@ -2656,8 +3320,6 @@ const AdminUpcomingBatch = () => {
           }
         }
       } catch (error) {
-        console.error("Add/Update student error:", error);
-        
         const errorData = error.response?.data;
         const errorMessage = errorData?.message || errorData?.error || error.message;
 
@@ -2782,12 +3444,6 @@ const AdminUpcomingBatch = () => {
       });
     }
   };
-
-
-
-  // UPDATE - Cancel editing
-
-  // DELETE - Confirm delete
 
   // DELETE - Execute delete
   const handleDeleteBatch = async () => {
@@ -2914,9 +3570,11 @@ const AdminUpcomingBatch = () => {
       "Category",
       "Minority",
       "PwD",
+      "PwD Category",
       "MobileNo",
       "Institute Email ID",
-      "Alternet Email ID",
+      "Alternate Email ID",
+      "Parent Email",
       "Father's Name",
       "Father's Occupation",
       "Father Mobile Number",
@@ -2924,6 +3582,13 @@ const AdminUpcomingBatch = () => {
       "Mother's Occupation",
       "Mother Mobile Number",
       "Date of Birth",
+      "Blood Group",
+      "Country",
+      "Nationality",
+      "Admission Mode",
+      "Admission Mode Remarks",
+      "Income Group",
+      "Income",
       "AI rank",
       "Category Rank",
       "allottedcat",
@@ -2937,15 +3602,17 @@ const AdminUpcomingBatch = () => {
         1,
         "240310030189",
         "25BCS001",
-        "PRAJJWAL ARAS",
+        "PALLAVI ARAS",
         "Computer Science and Engineering (4 Years, Bachelor of Technology)",
-        "Male",
+        "Female",
         "General",
         "JAIN",
         "NO",
+        "", // PwD Category - empty since PwD is NO
         "9229109424",
         "25bcs001@iiitdmj.ac.in",
-        "PRAJJWAL.ARAS15@GMAIL.COM",
+        "ARAS15@GMAIL.COM",
+        "parent.aras@gmail.com",
         "SACHIN ARAS",
         "Business",
         "1234567890",
@@ -2953,10 +3620,17 @@ const AdminUpcomingBatch = () => {
         "Teacher",
         "1234567890",
         "5/10/2005",
-        "10,356",
-        "10,356",
+        "O+",
+        "India",
+        "Indian",
+        "JoSAA/CSAB Counselling",
+        "", // Admission Mode Remarks - empty since not "Any other"
+        "Between 4 to 6 Lakh",
+        "500000",
+        "10356",
+        "10356",
         "OPNO",
-        "Gender-Neutral",
+        "Female-Only (including Supernumerary)",
         "MADHYA PRADESH",
         "A 902 sterling skyline near mayank blue water park, indore, NA, Indore, MADHYA PRADESH, 452016",
       ],
@@ -2971,6 +3645,46 @@ const AdminUpcomingBatch = () => {
     }));
     worksheet["!cols"] = colWidths;
 
+    // Add data validation for dropdown fields
+    const dropdownValidations = {
+      'E': { // Gender column
+        type: 'list',
+        values: ['Male', 'Female', 'Other']
+      },
+      'F': { // Category column
+        type: 'list', 
+        values: ['GEN', 'OBC-NCL', 'SC', 'ST', 'EWS']
+      },
+      'H': { // PwD column
+        type: 'list',
+        values: ['YES', 'NO']
+      },
+      'I': { // PwD Category column
+        type: 'list',
+        values: ['Locomotor Disability', 'Low vision Disability', 'Deaf Disability', 'Cerebral Palsy', 'Dyslexia', 'Amputee (Both Hand)', 'Deafness', 'Any other (remarks)']
+      },
+      'V': { // Blood Group column  
+        type: 'list',
+        values: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+      },
+      'Y': { // Admission Mode column
+        type: 'list',
+        values: ['Direct Institute advertisement', 'CCMT Counselling', 'JoSAA/CSAB Counselling', 'UCEED Counselling', 'Study In India (SII) Counselling', 'DASA Counselling', 'Any other (remarks)']
+      },
+      'AA': { // Income Group column
+        type: 'list',
+        values: ['Between 0 to 2 Lakh', 'Between 2 to 4 Lakh', 'Between 4 to 6 Lakh', 'Between 6 to 8 Lakh', 'More than 8 Lakh']
+      },
+      'AE': { // Allotted Category column
+        type: 'list',
+        values: ['OPNO', 'OPPH', 'EWNO', 'EWPH', 'BCNO', 'BCPH', 'SCNO', 'SCPH', 'STNO']
+      },
+      'AF': { // Allotted Gender column
+        type: 'list',
+        values: ['Gender-Neutral', 'Female-Only (including Supernumerary)']
+      }
+    };
+
     XLSX.writeFile(
       workbook,
       `student_data_template_${activeSection.toUpperCase()}.xlsx`,
@@ -2978,16 +3692,11 @@ const AdminUpcomingBatch = () => {
 
     notifications.show({
       title: "Template Downloaded",
-      message: `Excel template with Indian sample data for ${activeSection.toUpperCase()} students has been downloaded`,
+      message: `Excel template with updated fields and sample data for ${activeSection.toUpperCase()} students has been downloaded`,
       color: "green",
     });
   };
-
-
-
-  // Synchronize total seats between tabs (both tabs get updated)
-
-
+  // Handle batch row click to fetch and display students
   const handleBatchRowClick = async (batch) => {
     setSelectedBatch(batch);
     setShowStudentModal(true);
@@ -3035,11 +3744,9 @@ const AdminUpcomingBatch = () => {
           return true;
         });
       } else {
-        console.error('Failed to fetch students:', response.status);
         await fetchBatchesWithStudents(batch);
       }
     } catch (error) {
-      console.error('Error fetching students:', error);
       await fetchBatchesWithStudents(batch);
     }
     
@@ -3090,16 +3797,55 @@ const AdminUpcomingBatch = () => {
             });
           }
           
-          setStudentList(students);
+          // Transform backend field names to frontend field names
+          const normalizedStudents = students.map(student => {
+            const normalizedStudent = { ...student };
+            
+            // Map backend fields to frontend fields for new fields
+            const backendToFrontendMapping = {
+              'parent_email': 'parentEmail',
+              'blood_group': 'bloodGroup', 
+              'blood_group_remarks': 'bloodGroupRemarks',
+              'admission_mode': 'admissionMode',
+              'admission_mode_remarks': 'admissionModeRemarks', 
+              'pwd_category': 'pwdCategory',
+              'pwd_category_remarks': 'pwdCategoryRemarks',
+              'income_group': 'incomeGroup',
+              'father_occupation': 'fatherOccupation',
+              'father_mobile': 'fatherMobile',
+              'mother_occupation': 'motherOccupation', 
+              'mother_mobile': 'motherMobile',
+              'roll_number': 'rollNumber',
+              'institute_email': 'instituteEmail',
+              'personal_email': 'alternateEmail',
+              'jee_app_no': 'jeeAppNo',
+              'father_name': 'fname',
+              'mother_name': 'mname',
+              'phone_number': 'phoneNumber',
+              'date_of_birth': 'dob',
+              'ai_rank': 'jeeRank',
+              'category_rank': 'categoryRank'
+            };
+
+            // Apply the mapping
+            Object.entries(backendToFrontendMapping).forEach(([backendField, frontendField]) => {
+              if (normalizedStudent[backendField] !== undefined && normalizedStudent[backendField] !== null && normalizedStudent[backendField] !== '') {
+                normalizedStudent[frontendField] = normalizedStudent[backendField];
+              }
+            });
+
+            return normalizedStudent;
+          });
+          setStudentList(normalizedStudents);
         } else {
           setStudentList([]);
         }
       } else {
-        console.error('Fallback API also failed:', response.status);
+
         setStudentList([]);
       }
     } catch (error) {
-      console.error('Fallback fetch error:', error);
+
       setStudentList([]);
     }
   };
@@ -3131,13 +3877,11 @@ const AdminUpcomingBatch = () => {
         const data = await response.json();
         return { success: true, data };
       } else {
-        console.error('❌ Failed to update student status:', response.status);
         const errorData = await response.json().catch(() => ({}));
         return { success: false, error: errorData };
       }
       
     } catch (error) {
-      console.error('❌ Error updating student status:', error);
       return { success: false, error: error.message };
     }
   };
@@ -3244,6 +3988,24 @@ const AdminUpcomingBatch = () => {
     }
   };
 
+  // Helper function to render status badge
+  const getReportedStatusBadge = (status) => {
+    const statusProps = getStatusProperties(status);
+    return (
+      <Badge
+        color={statusProps.color}
+        variant={statusProps.variant}
+        size="xs"
+        style={{
+          textTransform: "uppercase",
+          fontWeight: 600,
+        }}
+      >
+        {statusProps.label}
+      </Badge>
+    );
+  };
+
   // Bulk selection functionality
   const handleSelectStudent = (studentId) => {
     const newSelected = new Set(selectedStudents);
@@ -3257,6 +4019,16 @@ const AdminUpcomingBatch = () => {
     // Update "select all" state
     const allStudentIds = getFilteredStudents().map(student => student.id || student.student_id);
     setIsAllSelected(allStudentIds.length > 0 && allStudentIds.every(id => newSelected.has(id)));
+  };
+
+  const handleStudentSelect = (studentId) => {
+    const newSelected = new Set(selectedStudents);
+    if (newSelected.has(studentId)) {
+      newSelected.delete(studentId);
+    } else {
+      newSelected.add(studentId);
+    }
+    setSelectedStudents(newSelected);
   };
 
   const handleSelectAll = () => {
@@ -4666,71 +5438,24 @@ const AdminUpcomingBatch = () => {
                               <Table striped highlightOnHover fontSize="sm">
                                 <thead>
                                   <tr style={{ backgroundColor: "#f8f9fa" }}>
-                                    <th style={{ minWidth: "60px" }}>Sno</th>
-                                    <th style={{ minWidth: "150px" }}>
-                                      Jee Main Application Number
-                                    </th>
-                                    <th style={{ minWidth: "120px" }}>
-                                      Institute Roll Number
-                                    </th>
-                                    <th style={{ minWidth: "200px" }}>Name</th>
-                                    <th style={{ minWidth: "100px" }}>
-                                      Discipline
-                                    </th>
-                                    <th style={{ minWidth: "80px" }}>Gender</th>
-                                    <th style={{ minWidth: "80px" }}>
-                                      Category
-                                    </th>
-                                    <th style={{ minWidth: "80px" }}>
-                                      Minority
-                                    </th>
-                                    <th style={{ minWidth: "60px" }}>PWD</th>
-                                    <th style={{ minWidth: "120px" }}>
-                                      Mobile No
-                                    </th>
-                                    <th style={{ minWidth: "200px" }}>
-                                      Institute Email ID
-                                    </th>
-                                    <th style={{ minWidth: "200px" }}>
-                                      Alternate Email ID
-                                    </th>
-                                    <th style={{ minWidth: "150px" }}>
-                                      Father's Name
-                                    </th>
-                                    <th style={{ minWidth: "150px" }}>
-                                      Father's Occupation
-                                    </th>
-                                    <th style={{ minWidth: "120px" }}>
-                                      Father Mobile Number
-                                    </th>
-                                    <th style={{ minWidth: "150px" }}>
-                                      Mother's Name
-                                    </th>
-                                    <th style={{ minWidth: "150px" }}>
-                                      Mother's Occupation
-                                    </th>
-                                    <th style={{ minWidth: "120px" }}>
-                                      Mother Mobile Number
-                                    </th>
-                                    <th style={{ minWidth: "100px" }}>
-                                      Date of Birth
-                                    </th>
-                                    <th style={{ minWidth: "80px" }}>
-                                      AI rank
-                                    </th>
-                                    <th style={{ minWidth: "100px" }}>
-                                      Category Rank
-                                    </th>
-                                    <th style={{ minWidth: "100px" }}>
-                                      allotedcat
-                                    </th>
-                                    <th style={{ minWidth: "120px" }}>
-                                      Allotted Gender
-                                    </th>
-                                    <th style={{ minWidth: "100px" }}>State</th>
-                                    <th style={{ minWidth: "200px" }}>
-                                      Full Address
-                                    </th>
+                                    <th style={{ minWidth: "60px" }}>S.No</th>
+                                    {PREVIEW_FIELD_ORDER
+                                      .filter(fieldKey => STUDENT_FIELDS_CONFIG[fieldKey] && !STUDENT_FIELDS_CONFIG[fieldKey].systemGenerated)
+                                      .map((fieldKey) => {
+                                        const field = STUDENT_FIELDS_CONFIG[fieldKey];
+                                        return (
+                                          <th 
+                                            key={fieldKey} 
+                                            style={{ 
+                                              minWidth: field.type === 'email' ? "200px" : 
+                                                      fieldKey.includes('Remarks') || fieldKey.includes('address') || fieldKey.includes('Name') ? "150px" :
+                                                      fieldKey.includes('Number') || fieldKey.includes('Mobile') ? "120px" : "100px"
+                                            }}
+                                          >
+                                            {field.label}
+                                          </th>
+                                        );
+                                      })}
                                     {extractedData.some(
                                       (student) => student._validation_error,
                                     ) && (
@@ -4746,8 +5471,59 @@ const AdminUpcomingBatch = () => {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {extractedData
-                                    .map((student, index) => (
+                                  {extractedData.map((student, index) => {
+                                    const getFieldValue = (fieldKey) => {
+                                      const fieldInfo = STUDENT_FIELDS_CONFIG[fieldKey];
+                                      if (!fieldInfo) return "-";
+
+                                      let fieldValue = null;
+
+                                      // 1. Try direct field key first
+                                      fieldValue = student[fieldKey];
+                                      
+                                      // 2. Try backend field mapping
+                                      if (!fieldValue && fieldInfo.backendField) {
+                                        fieldValue = student[fieldInfo.backendField];
+                                      }
+                                      
+                                      // 3. Try configured excel column variations
+                                      if (!fieldValue && fieldInfo.excelColumns) {
+                                        for (const excelCol of fieldInfo.excelColumns) {
+                                          // Try exact match first
+                                          if (student[excelCol]) {
+                                            fieldValue = student[excelCol];
+                                            break;
+                                          }
+                                          // Try case-insensitive match
+                                          const matchedKey = Object.keys(student).find(
+                                            key => key.toLowerCase() === excelCol.toLowerCase()
+                                          );
+                                          if (matchedKey && student[matchedKey]) {
+                                            fieldValue = student[matchedKey];
+                                            break;
+                                          }
+                                        }
+                                      }
+                                      
+                                      // 4. Clean and format the value
+                                      if (fieldValue) {
+                                        // Clean discipline names
+                                        if (fieldKey === "branch") {
+                                          fieldValue = cleanDisciplineName(fieldValue);
+                                        }
+                                        
+                                        // Format dates
+                                        if (fieldKey === "dob" && typeof fieldValue === 'string') {
+                                          fieldValue = fieldValue.split(' ')[0].split('T')[0];
+                                        }
+                                        
+                                        return String(fieldValue).trim();
+                                      }
+                                      
+                                      return "-";
+                                    };
+
+                                    return (
                                       <tr
                                         key={index}
                                         style={
@@ -4761,142 +5537,13 @@ const AdminUpcomingBatch = () => {
                                             student.sno ||
                                             index + 1}
                                         </td>
-                                        <td>
-                                          {student.jee_main_application_number ||
-                                            student.jee_app_no ||
-                                            student[
-                                              "Jee Main Application Number"
-                                            ] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.institute_roll_number ||
-                                            student.roll_number ||
-                                            student["Institute Roll Number"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.name ||
-                                            student["Name"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.discipline ||
-                                            student.branch ||
-                                            student["Discipline"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.gender ||
-                                            student["Gender"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.category ||
-                                            student["Category"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.minority ||
-                                            student["Minority"] ||
-                                            student.minority_status ||
-                                            student["Minority Status"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.pwd ||
-                                            student.pwd_status ||
-                                            student["PwD"] ||
-                                            student["PWD"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.mobile_number ||
-                                            student.phone_number ||
-                                            student.mobile_no ||
-                                            student["MobileNo"] ||
-                                            student["Mobile No"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.institute_email ||
-                                            student["Institute Email ID"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.alternate_email ||
-                                            student.personal_email ||
-                                            student["Alternet Email ID"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.father_name ||
-                                            student["Father's Name"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.father_occupation ||
-                                            student["Father's Occupation"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.father_mobile ||
-                                            student["Father Mobile Number"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.mother_name ||
-                                            student["Mother's Name"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.mother_occupation ||
-                                            student["Mother's Occupation"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.mother_mobile ||
-                                            student["Mother Mobile Number"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.date_of_birth ||
-                                            student["Date of Birth"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.ai_rank ||
-                                            student["AI rank"] ||
-                                            student.jee_rank ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.category_rank ||
-                                            student["Category Rank"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.allotted_category ||
-                                            student.allotted_category ||
-                                            student["allottedcat"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.allotted_gender ||
-                                            student["Allotted Gender"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.state ||
-                                            student["State"] ||
-                                            "-"}
-                                        </td>
-                                        <td>
-                                          {student.full_address ||
-                                            student.address ||
-                                            student["Full Address"] ||
-                                            "-"}
-                                        </td>
+                                        {PREVIEW_FIELD_ORDER
+                                          .filter(fieldKey => STUDENT_FIELDS_CONFIG[fieldKey] && !STUDENT_FIELDS_CONFIG[fieldKey].systemGenerated)
+                                          .map((fieldKey) => (
+                                            <td key={fieldKey}>
+                                              {getFieldValue(fieldKey)}
+                                            </td>
+                                          ))}
                                         {student._validation_error && (
                                           <td
                                             style={{
@@ -4908,8 +5555,8 @@ const AdminUpcomingBatch = () => {
                                           </td>
                                         )}
                                       </tr>
-                                    ))}
-
+                                    );
+                                  })}
                                 </tbody>
                               </Table>
                             </ScrollArea>
@@ -4953,6 +5600,7 @@ const AdminUpcomingBatch = () => {
 
                                     setExtractedData([]);
                                     setShowPreview(false);
+                                    setShowExcelModal(false);
                                     forceRefreshData();
                                   } else {
                                     throw new Error(
@@ -5222,6 +5870,55 @@ const AdminUpcomingBatch = () => {
                               error={errors.pwd}
                             />
                           </Grid.Col>
+
+                          {/* PwD Category - Show only when PwD is YES */}
+                          {manualFormData.pwd === "YES" && (
+                            <Grid.Col span={isMobile ? 12 : 6}>
+                              <Select
+                                label={STUDENT_FIELDS_CONFIG.pwdCategory.label}
+                                placeholder={STUDENT_FIELDS_CONFIG.pwdCategory.placeholder}
+                                value={manualFormData.pwdCategory || ""}
+                                onChange={(value) => {
+                                  if (editingStudent) {
+                                    setEditingStudent({
+                                      ...editingStudent,
+                                      pwdCategory: value,
+                                    });
+                                  }
+                                  setManualFormData({
+                                    ...manualFormData,
+                                    pwdCategory: value,
+                                  });
+                                }}
+                                data={STUDENT_FIELDS_CONFIG.pwdCategory.options}
+                                error={errors.pwdCategory}
+                              />
+                            </Grid.Col>
+                          )}
+
+                          {/* PwD Category Remarks - Show only when "Any other (remarks)" is selected */}
+                          {manualFormData.pwdCategory === "Any other (remarks)" && (
+                            <Grid.Col span={isMobile ? 12 : 6}>
+                              <TextInput
+                                label={STUDENT_FIELDS_CONFIG.pwdCategoryRemarks.label}
+                                placeholder={STUDENT_FIELDS_CONFIG.pwdCategoryRemarks.placeholder}
+                                value={manualFormData.pwdCategoryRemarks || ""}
+                                onChange={(e) => {
+                                  if (editingStudent) {
+                                    setEditingStudent({
+                                      ...editingStudent,
+                                      pwdCategoryRemarks: e.target.value,
+                                    });
+                                  }
+                                  setManualFormData({
+                                    ...manualFormData,
+                                    pwdCategoryRemarks: e.target.value,
+                                  });
+                                }}
+                                error={errors.pwdCategoryRemarks}
+                              />
+                            </Grid.Col>
+                          )}
                         </Grid>
 
                         {/* Contact Information */}
@@ -5245,24 +5942,7 @@ const AdminUpcomingBatch = () => {
                               error={errors.phoneNumber}
                             />
                           </Grid.Col>
-                          <Grid.Col span={isMobile ? 12 : 6}>
-                            <TextInput
-                              type="email"
-                              label={STUDENT_FIELDS_CONFIG.email.label}
-                              placeholder={
-                                STUDENT_FIELDS_CONFIG.email.placeholder
-                              }
-                              value={manualFormData.email || ""}
-                              onChange={(e) =>
-                                setManualFormData({
-                                  ...manualFormData,
-                                  email: e.target.value,
-                                })
-                              }
-                              required={STUDENT_FIELDS_CONFIG.email.required}
-                              error={errors.email}
-                            />
-                          </Grid.Col>
+
                         </Grid>
                       </Stack>
                     </Stepper.Step>
@@ -5277,7 +5957,7 @@ const AdminUpcomingBatch = () => {
                           Additional Info
                         </Title>
 
-                        {/* Date of Birth */}
+                        {/* Date of Birth and Blood Group */}
                         <Grid>
                           <Grid.Col span={isMobile ? 12 : 6}>
                             <TextInput
@@ -5295,6 +5975,218 @@ const AdminUpcomingBatch = () => {
                               }
                               required={STUDENT_FIELDS_CONFIG.dob.required}
                               error={errors.dob}
+                            />
+                          </Grid.Col>
+                          <Grid.Col span={isMobile ? 12 : 6}>
+                            <Select
+                              label={STUDENT_FIELDS_CONFIG.bloodGroup.label}
+                              placeholder={STUDENT_FIELDS_CONFIG.bloodGroup.placeholder}
+                              value={manualFormData.bloodGroup || ""}
+                              onChange={(value) => {
+                                if (editingStudent) {
+                                  setEditingStudent({
+                                    ...editingStudent,
+                                    bloodGroup: value,
+                                  });
+                                }
+                                setManualFormData({
+                                  ...manualFormData,
+                                  bloodGroup: value,
+                                });
+                              }}
+                              data={STUDENT_FIELDS_CONFIG.bloodGroup.options}
+                              error={errors.bloodGroup}
+                            />
+                          </Grid.Col>
+                        </Grid>
+
+                        {/* Blood Group Remarks - Show only when "Other" is selected */}
+                        {manualFormData.bloodGroup === "Other" && (
+                          <Grid>
+                            <Grid.Col span={isMobile ? 12 : 6}>
+                              <TextInput
+                                label={STUDENT_FIELDS_CONFIG.bloodGroupRemarks.label}
+                                placeholder={STUDENT_FIELDS_CONFIG.bloodGroupRemarks.placeholder}
+                                value={manualFormData.bloodGroupRemarks || ""}
+                                onChange={(e) => {
+                                  if (editingStudent) {
+                                    setEditingStudent({
+                                      ...editingStudent,
+                                      bloodGroupRemarks: e.target.value,
+                                    });
+                                  }
+                                  setManualFormData({
+                                    ...manualFormData,
+                                    bloodGroupRemarks: e.target.value,
+                                  });
+                                }}
+                                error={errors.bloodGroupRemarks}
+                              />
+                            </Grid.Col>
+                          </Grid>
+                        )}
+
+                        {/* Country and Nationality */}
+                        <Grid>
+                          <Grid.Col span={isMobile ? 12 : 6}>
+                            <TextInput
+                              label={STUDENT_FIELDS_CONFIG.country.label}
+                              placeholder={STUDENT_FIELDS_CONFIG.country.placeholder}
+                              value={manualFormData.country || ""}
+                              onChange={(e) => {
+                                if (editingStudent) {
+                                  setEditingStudent({
+                                    ...editingStudent,
+                                    country: e.target.value,
+                                  });
+                                }
+                                setManualFormData({
+                                  ...manualFormData,
+                                  country: e.target.value,
+                                });
+                              }}
+                              error={errors.country}
+                            />
+                          </Grid.Col>
+                          <Grid.Col span={isMobile ? 12 : 6}>
+                            <TextInput
+                              label={STUDENT_FIELDS_CONFIG.nationality.label}
+                              placeholder={STUDENT_FIELDS_CONFIG.nationality.placeholder}
+                              value={manualFormData.nationality || ""}
+                              onChange={(e) => {
+                                if (editingStudent) {
+                                  setEditingStudent({
+                                    ...editingStudent,
+                                    nationality: e.target.value,
+                                  });
+                                }
+                                setManualFormData({
+                                  ...manualFormData,
+                                  nationality: e.target.value,
+                                });
+                              }}
+                              error={errors.nationality}
+                            />
+                          </Grid.Col>
+                        </Grid>
+
+                        {/* Admission Mode */}
+                        <Grid>
+                          <Grid.Col span={isMobile ? 12 : 6}>
+                            <Select
+                              key="admission-mode-field"
+                              label={STUDENT_FIELDS_CONFIG.admissionMode.label}
+                              placeholder={STUDENT_FIELDS_CONFIG.admissionMode.placeholder}
+                              value={manualFormData.admissionMode || ""}
+                              onChange={(value) => {
+                                if (editingStudent) {
+                                  setEditingStudent({
+                                    ...editingStudent,
+                                    admissionMode: value,
+                                  });
+                                }
+                                setManualFormData({
+                                  ...manualFormData,
+                                  admissionMode: value,
+                                });
+                              }}
+                              data={STUDENT_FIELDS_CONFIG.admissionMode.options}
+                              error={errors.admissionMode}
+                            />
+                          </Grid.Col>
+
+                          {/* Admission Mode Remarks - Show only when "Any other (remarks)" is selected */}
+                          {manualFormData.admissionMode === "Any other (remarks)" && (
+                            <Grid.Col span={isMobile ? 12 : 6}>
+                              <TextInput
+                                label={STUDENT_FIELDS_CONFIG.admissionModeRemarks.label}
+                                placeholder={STUDENT_FIELDS_CONFIG.admissionModeRemarks.placeholder}
+                                value={manualFormData.admissionModeRemarks || ""}
+                                onChange={(e) => {
+                                  if (editingStudent) {
+                                    setEditingStudent({
+                                      ...editingStudent,
+                                      admissionModeRemarks: e.target.value,
+                                    });
+                                  }
+                                  setManualFormData({
+                                    ...manualFormData,
+                                    admissionModeRemarks: e.target.value,
+                                  });
+                                }}
+                                error={errors.admissionModeRemarks}
+                              />
+                            </Grid.Col>
+                          )}
+                        </Grid>
+
+                        {/* Income Group and Income */}
+                        <Grid>
+                          <Grid.Col span={isMobile ? 12 : 6}>
+                            <Select
+                              label={STUDENT_FIELDS_CONFIG.incomeGroup.label}
+                              placeholder={STUDENT_FIELDS_CONFIG.incomeGroup.placeholder}
+                              value={manualFormData.incomeGroup || ""}
+                              onChange={(value) => {
+                                if (editingStudent) {
+                                  setEditingStudent({
+                                    ...editingStudent,
+                                    incomeGroup: value,
+                                  });
+                                }
+                                setManualFormData({
+                                  ...manualFormData,
+                                  incomeGroup: value,
+                                });
+                              }}
+                              data={STUDENT_FIELDS_CONFIG.incomeGroup.options}
+                              error={errors.incomeGroup}
+                            />
+                          </Grid.Col>
+                          <Grid.Col span={isMobile ? 12 : 6}>
+                            <TextInput
+                              type="number"
+                              label={STUDENT_FIELDS_CONFIG.income.label}
+                              placeholder={STUDENT_FIELDS_CONFIG.income.placeholder}
+                              value={manualFormData.income || ""}
+                              onChange={(e) => {
+                                if (editingStudent) {
+                                  setEditingStudent({
+                                    ...editingStudent,
+                                    income: e.target.value,
+                                  });
+                                }
+                                setManualFormData({
+                                  ...manualFormData,
+                                  income: e.target.value,
+                                });
+                              }}
+                              error={errors.income}
+                            />
+                          </Grid.Col>
+                        </Grid>
+
+                        {/* Parent Email */}
+                        <Grid>
+                          <Grid.Col span={isMobile ? 12 : 6}>
+                            <TextInput
+                              type="email"
+                              label={STUDENT_FIELDS_CONFIG.parentEmail.label}
+                              placeholder={STUDENT_FIELDS_CONFIG.parentEmail.placeholder}
+                              value={manualFormData.parentEmail || ""}
+                              onChange={(e) => {
+                                if (editingStudent) {
+                                  setEditingStudent({
+                                    ...editingStudent,
+                                    parentEmail: e.target.value,
+                                  });
+                                }
+                                setManualFormData({
+                                  ...manualFormData,
+                                  parentEmail: e.target.value,
+                                });
+                              }}
+                              error={errors.parentEmail}
                             />
                           </Grid.Col>
                         </Grid>
@@ -5523,17 +6415,18 @@ const AdminUpcomingBatch = () => {
                         <Grid>
                           <Grid.Col span={isMobile ? 12 : 6}>
                             <Select
+                              key="allotted-category-field"
                               label={STUDENT_FIELDS_CONFIG.allottedCategory.label}
                               placeholder={
                                 STUDENT_FIELDS_CONFIG.allottedCategory.placeholder
                               }
                               value={manualFormData.allottedCategory || ""}
-                              onChange={(value) =>
+                              onChange={(value) => {
                                 setManualFormData({
                                   ...manualFormData,
                                   allottedCategory: value,
-                                })
-                              }
+                                });
+                              }}
                               data={STUDENT_FIELDS_CONFIG.allottedCategory.options.map(option => ({
                                 value: option.value,
                                 label: option.label
@@ -5613,6 +6506,27 @@ const AdminUpcomingBatch = () => {
                               error={errors.instituteEmail}
                             />
                           </Grid.Col>
+                          
+                          <Grid.Col span={isMobile ? 12 : 6}>
+                            <TextInput
+                              type="email"
+                              label={STUDENT_FIELDS_CONFIG.alternateEmail.label}
+                              placeholder={
+                                STUDENT_FIELDS_CONFIG.alternateEmail.placeholder
+                              }
+                              value={manualFormData.alternateEmail || ""}
+                              onChange={(e) =>
+                                setManualFormData({
+                                  ...manualFormData,
+                                  alternateEmail: e.target.value,
+                                })
+                              }
+                              required={
+                                STUDENT_FIELDS_CONFIG.alternateEmail.required
+                              }
+                              error={errors.alternateEmail}
+                            />
+                          </Grid.Col>
                         </Grid>
                       </Stack>
                     </Stepper.Step>
@@ -5684,16 +6598,32 @@ const AdminUpcomingBatch = () => {
                               <Text size="xs" weight={600} color="dimmed" mb={2}>MINORITY</Text>
                               <Text size="sm" weight={500}>{manualFormData.minority || "Not specified"}</Text>
                             </div>
+                            <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                              <Text size="xs" weight={600} color="dimmed" mb={2}>PWD STATUS</Text>
+                              <Text size="sm" weight={500}>{manualFormData.pwd || "Not specified"}</Text>
+                            </div>
+                            {manualFormData.pwd === "YES" && manualFormData.pwdCategory && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>PWD CATEGORY</Text>
+                                <Text size="sm" weight={500}>{manualFormData.pwdCategory}</Text>
+                              </div>
+                            )}
+                            {manualFormData.pwdCategory === "Any other (remarks)" && manualFormData.pwdCategoryRemarks && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>PWD CATEGORY REMARKS</Text>
+                                <Text size="sm" weight={500}>{manualFormData.pwdCategoryRemarks}</Text>
+                              </div>
+                            )}
                             {manualFormData.phoneNumber && (
                               <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
                                 <Text size="xs" weight={600} color="dimmed" mb={2}>PHONE NUMBER</Text>
                                 <Text size="sm" weight={500}>{manualFormData.phoneNumber}</Text>
                               </div>
                             )}
-                            {manualFormData.email && (
+                            {manualFormData.parentEmail && (
                               <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
-                                <Text size="xs" weight={600} color="dimmed" mb={2}>PERSONAL EMAIL</Text>
-                                <Text size="sm" weight={500}>{manualFormData.email}</Text>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>PARENT'S EMAIL</Text>
+                                <Text size="sm" weight={500}>{manualFormData.parentEmail}</Text>
                               </div>
                             )}
                           </div>
@@ -5727,14 +6657,58 @@ const AdminUpcomingBatch = () => {
                             </Title>
                           </div>
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "12px" }}>
-                            <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
-                              <Text size="xs" weight={600} color="dimmed" mb={2}>PWD STATUS</Text>
-                              <Text size="sm" weight={500}>{manualFormData.pwd || "Not specified"}</Text>
-                            </div>
                             {manualFormData.dob && (
                               <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
                                 <Text size="xs" weight={600} color="dimmed" mb={2}>DATE OF BIRTH</Text>
                                 <Text size="sm" weight={500}>{manualFormData.dob}</Text>
+                              </div>
+                            )}
+                            {manualFormData.bloodGroup && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>BLOOD GROUP</Text>
+                                <Text size="sm" weight={500}>{manualFormData.bloodGroup}</Text>
+                              </div>
+                            )}
+                            {manualFormData.bloodGroupRemarks && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>BLOOD GROUP REMARKS</Text>
+                                <Text size="sm" weight={500}>{manualFormData.bloodGroupRemarks}</Text>
+                              </div>
+                            )}
+                            {manualFormData.country && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>COUNTRY</Text>
+                                <Text size="sm" weight={500}>{manualFormData.country}</Text>
+                              </div>
+                            )}
+                            {manualFormData.nationality && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>NATIONALITY</Text>
+                                <Text size="sm" weight={500}>{manualFormData.nationality}</Text>
+                              </div>
+                            )}
+                            {manualFormData.admissionMode && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>ADMISSION MODE</Text>
+                                <Text size="sm" weight={500}>{manualFormData.admissionMode}</Text>
+                              </div>
+                            )}
+                            {manualFormData.admissionMode === "Any other (remarks)" && manualFormData.admissionModeRemarks && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>ADMISSION MODE REMARKS</Text>
+                                <Text size="sm" weight={500}>{manualFormData.admissionModeRemarks}</Text>
+                              </div>
+                            )}
+                            {manualFormData.incomeGroup && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>INCOME GROUP</Text>
+                                <Text size="sm" weight={500}>{manualFormData.incomeGroup}</Text>
+                              </div>
+                            )}
+                            {manualFormData.income && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>INCOME</Text>
+                                <Text size="sm" weight={500}>₹{parseInt(manualFormData.income).toLocaleString('en-IN')}</Text>
                               </div>
                             )}
                             <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
@@ -5879,6 +6853,12 @@ const AdminUpcomingBatch = () => {
                               <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
                                 <Text size="xs" weight={600} color="dimmed" mb={2}>INSTITUTE EMAIL ID</Text>
                                 <Text size="sm" weight={500}>{manualFormData.instituteEmail}</Text>
+                              </div>
+                            )}
+                            {manualFormData.alternateEmail && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>ALTERNATE EMAIL</Text>
+                                <Text size="sm" weight={500}>{manualFormData.alternateEmail}</Text>
                               </div>
                             )}
                           </div>
@@ -6133,6 +7113,7 @@ const AdminUpcomingBatch = () => {
                           borderBottom: "2px solid #e2e8f0",
                         }}
                       >
+                        {/* S.No Column - Sticky */}
                         <th
                           style={{
                             padding: "16px 12px",
@@ -6151,300 +7132,39 @@ const AdminUpcomingBatch = () => {
                         >
                           S.No
                         </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "140px",
-                            position: "sticky",
-                            left: "60px", // Position after S.No column
-                            backgroundColor: "#f8fafc",
-                            zIndex: 20,
-                            borderRight: "2px solid #e2e8f0",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                            borderBottom: "2px solid #e2e8f0",
-                          }}
-                        >
-                          Roll Number
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "160px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          JEE Application
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "180px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Name
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "200px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Discipline
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "80px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Gender
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "90px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Category
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "90px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Minority
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "60px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          PwD
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "120px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Mobile
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "250px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Institute Email
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "220px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Alternate Email
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "150px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Father's Name
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "140px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Father's Job
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "120px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Father Mobile
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "150px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Mother's Name
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "140px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Mother's Job
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "120px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Mother Mobile
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "100px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          DOB
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "80px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          AI Rank
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "100px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Category Rank
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "100px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Allotted Cat
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "100px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Allotted Gender
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "80px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          State
-                        </th>
-                        <th
-                          style={{
-                            padding: "16px 12px",
-                            textAlign: "center",
-                            color: "#1e293b",
-                            minWidth: "250px",
-                            fontWeight: "bold",
-                            fontSize: "13px",
-                          }}
-                        >
-                          Address
-                        </th>
+                        {/* Dynamic Column Headers from STUDENT_TABLE_COLUMNS */}
+                        {STUDENT_TABLE_COLUMNS.map((column, index) => (
+                          <th
+                            key={column.key}
+                            style={{
+                              padding: "16px 12px",
+                              textAlign: "center",
+                              color: "#1e293b",
+                              minWidth: column.minWidth,
+                              fontWeight: "bold",
+                              fontSize: "13px",
+                              ...(index === 0 ? {
+                                // JEE Application Number - First sticky column
+                                position: "sticky",
+                                left: "60px",
+                                backgroundColor: "#f8fafc",
+                                zIndex: 20,
+                                borderRight: "2px solid #e2e8f0",
+                                borderBottom: "2px solid #e2e8f0",
+                              } : index === 1 ? {
+                                // Roll Number - Second sticky column
+                                position: "sticky", 
+                                left: "200px",
+                                backgroundColor: "#f8fafc",
+                                zIndex: 20,
+                                borderRight: "2px solid #e2e8f0",
+                                borderBottom: "2px solid #e2e8f0",
+                              } : {})
+                            }}
+                          >
+                            {column.label}
+                          </th>
+                        ))}
                         {isViewingCurrentYear() && (
                           <th
                             style={{
@@ -6530,348 +7250,51 @@ const AdminUpcomingBatch = () => {
                           >
                             {index + 1}
                           </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              position: "sticky",
-                              left: "60px",
-                              backgroundColor: "#ffffff",
-                              zIndex: 10,
-                              borderRight: "2px solid #e5e7eb",
-                            }}
-                          >
-                            <Badge color="blue" variant="light" size="sm">
-                              {student["Institute Roll Number"] ||
-                                student.rollNumber ||
-                                student.roll_number ||
-                                "-"}
-                            </Badge>
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#374151",
-                              wordBreak: "break-all",
-                              whiteSpace: "normal",
-                            }}
-                          >
-                            {student["Jee Main Application Number"] ||
-                              student.jeeAppNo ||
-                              student.jee_app_no ||
-                              student["JEE Main Application Number"] ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "left",
-                              fontSize: "13px",
-                              fontWeight: "500",
-                              color: "#111827",
-                            }}
-                          >
-                            {student.Name || student.name || "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#374151",
-                            }}
-                          >
-                            {student.Discipline ||
-                              student.discipline ||
-                              student.branch ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                            }}
-                          >
-                            <Badge variant="outline" size="sm" color="gray">
-                              {student.Gender || student.gender || "-"}
-                            </Badge>
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                            }}
-                          >
-                            <Badge variant="outline" size="sm" color="indigo">
-                              {student.Category || student.category || "-"}
-                            </Badge>
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                            }}
-                          >
-                            <Badge variant="outline" size="sm" color="cyan">
-                              {student.minority ||
-                                student["Minority"] ||
-                                student.minority_status ||
-                                student["Minority Status"] ||
-                                "-"}
-                            </Badge>
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                            }}
-                          >
-                            <Badge
-                              color={
-                                (
-                                  student.PwD ||
-                                  student.pwd ||
-                                  student.PWD ||
-                                  "NO"
-                                ).toUpperCase() === "YES"
-                                  ? "orange"
-                                  : "green"
-                              }
-                              variant="filled"
-                              size="sm"
+                          {/* Dynamic Data Columns from STUDENT_TABLE_COLUMNS */}
+                          {STUDENT_TABLE_COLUMNS.map((column, colIndex) => (
+                            <td
+                              key={column.key}
+                              style={{
+                                padding: "14px 12px",
+                                textAlign: colIndex === 0 || colIndex === 1 ? "left" : "center",
+                                fontSize: "12px",
+                                color: "#374151",
+                                wordBreak: "break-word",
+                                whiteSpace: "normal",
+                                ...(colIndex === 0 ? {
+                                  // JEE Application Number - First sticky column
+                                  position: "sticky",
+                                  left: "60px",
+                                  backgroundColor: "#ffffff",
+                                  zIndex: 10,
+                                  borderRight: "2px solid #e5e7eb",
+                                  fontSize: "13px",
+                                  fontWeight: "500",
+                                  color: "#111827",
+                                } : colIndex === 1 ? {
+                                  // Roll Number - Second sticky column
+                                  position: "sticky",
+                                  left: "200px",
+                                  backgroundColor: "#ffffff",
+                                  zIndex: 10,
+                                  borderRight: "2px solid #e5e7eb",
+                                  fontSize: "13px",
+                                  fontWeight: "500",
+                                  color: "#111827",
+                                } : {})
+                              }}
                             >
-                              {(
-                                student.PwD ||
-                                student.pwd ||
-                                student.PWD ||
-                                "NO"
-                              ).toUpperCase()}
-                            </Badge>
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#374151",
-                            }}
-                          >
-                            {student.MobileNo ||
-                              student.phoneNumber ||
-                              student.phone_number ||
-                              student.mobile ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "left",
-                              fontSize: "11px",
-                              color: "#6b7280",
-                            }}
-                          >
-                            {student["Institute Email ID"] ||
-                              student.instituteEmail ||
-                              student.institute_email ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "left",
-                              fontSize: "11px",
-                              color: "#6b7280",
-                            }}
-                          >
-                            {student["Alternet Email ID"] ||
-                              student.email ||
-                              student.personal_email ||
-                              student["Alternate Email ID"] ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "left",
-                              fontSize: "12px",
-                              color: "#374151",
-                            }}
-                          >
-                            {student["Father's Name"] ||
-                              student.fname ||
-                              student.father_name ||
-                              student.fatherName ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#374151",
-                            }}
-                          >
-                            {student["Father's Occupation"] ||
-                              student.fatherOccupation ||
-                              student.father_occupation ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#374151",
-                            }}
-                          >
-                            {student["Father Mobile Number"] ||
-                              student.fatherMobile ||
-                              student.father_mobile ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "left",
-                              fontSize: "12px",
-                              color: "#374151",
-                            }}
-                          >
-                            {student["Mother's Name"] ||
-                              student.mname ||
-                              student.mother_name ||
-                              student.motherName ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#374151",
-                            }}
-                          >
-                            {student["Mother's Occupation"] ||
-                              student.motherOccupation ||
-                              student.mother_occupation ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#374151",
-                            }}
-                          >
-                            {student["Mother Mobile Number"] ||
-                              student.motherMobile ||
-                              student.mother_mobile ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#374151",
-                            }}
-                          >
-                            {student["Date of Birth"] ||
-                              student.dob ||
-                              student.date_of_birth ||
-                              student.DOB ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              color: "#1f2937",
-                            }}
-                          >
-                            <Badge variant="filled" color="yellow" size="sm">
-                              {student["AI rank"] ||
-                                student.aiRank ||
-                                student.ai_rank ||
-                                student["AI Rank"] ||
-                                "-"}
-                            </Badge>
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#374151",
-                            }}
-                          >
-                            {student["Category Rank"] ||
-                              student.categoryRank ||
-                              student.category_rank ||
-                              "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                            }}
-                          >
-                            <Badge variant="outline" size="sm" color="purple">
-                              {student.allottedcat ||
-                                student.allottedCategory ||
-                                student.allotted_category ||
-                                student["Allotted Cat"] ||
-                                "-"}
-                            </Badge>
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                            }}
-                          >
-                            <Badge variant="outline" size="sm" color="pink">
-                              {student["Allotted Gender"] ||
-                                student.allottedGender ||
-                                student.allotted_gender ||
-                                "-"}
-                            </Badge>
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "center",
-                              fontSize: "12px",
-                              color: "#374151",
-                            }}
-                          >
-                            {student.State || student.state || "-"}
-                          </td>
-                          <td
-                            style={{
-                              padding: "14px 12px",
-                              textAlign: "left",
-                              fontSize: "11px",
-                              color: "#6b7280",
-                            }}
-                          >
-                            {student["Full Address"] ||
-                              student.address ||
-                              student.Address ||
-                              "-"}
-                          </td>
+                              {colIndex === 1 && column.key === 'rollNumber' ? (
+                                <Badge color="blue" variant="light" size="sm">
+                                  {getStudentFieldValue(student, column)}
+                                </Badge>
+                              ) : (
+                                getStudentFieldValue(student, column)
+                              )}
+                            </td>
+                          ))}
+
+                          {/* Status and Actions Columns */}
                           {isViewingCurrentYear() && (
                             <td
                               style={{
@@ -6879,54 +7302,15 @@ const AdminUpcomingBatch = () => {
                                 textAlign: "center",
                                 fontSize: "12px",
                               }}
-                              onClick={(e) => e.stopPropagation()}
                             >
                               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                                {/* Status Display and Selection */}
-                                <div style={{ minWidth: "120px" }}>
-                                  <Select
-                                    size="xs"
-                                    variant="filled"
-                                    data={[
-                                      { value: "NOT_REPORTED", label: "○ Not Reported" },
-                                      { value: "REPORTED", label: "✓ Reported" },
-                                      { value: "WITHDRAWAL", label: "⚠ Withdrawal" }
-                                    ]}
-                                    value={student.reportedStatus || student.reported_status || "NOT_REPORTED"}
-                                    onChange={(value) => handleReportedStatusChange(
-                                      student.id || student.student_id, 
-                                      value
-                                    )}
-                                    disabled={updatingReportStatus === (student.id || student.student_id)}
-                                    styles={() => {
-                                      const currentStatus = student.reportedStatus || student.reported_status || "NOT_REPORTED";
-                                      const statusProps = getStatusProperties(currentStatus);
-                                      return {
-                                        input: {
-                                          backgroundColor: statusProps.color === "green" ? "#d4f7dc" : 
-                                                         statusProps.color === "red" ? "#fde8e8" : "#fef3c7",
-                                          color: statusProps.color === "green" ? "#047857" : 
-                                                statusProps.color === "red" ? "#dc2626" : "#d97706",
-                                          fontSize: "11px",
-                                          fontWeight: "500",
-                                          border: `1px solid ${statusProps.color === "green" ? "#10b981" : 
-                                                               statusProps.color === "red" ? "#ef4444" : "#f59e0b"}`,
-                                          cursor: "pointer"
-                                        },
-                                        dropdown: {
-                                          fontSize: "11px"
-                                        }
-                                      };
-                                    }}
-                                  />
-                                </div>
+                                {getReportedStatusBadge(student.reportedStatus || student.reported_status || "NOT_REPORTED")}
                                 <Checkbox
                                   checked={selectedStudents.has(student.id || student.student_id)}
-                                  onChange={() => handleSelectStudent(student.id || student.student_id)}
+                                  onChange={() => handleStudentSelect(student.id || student.student_id)}
                                   size="sm"
                                   color="blue"
-                                  label=""
-                                  aria-label={`Select student ${student.name || student.Name}`}
+                                  aria-label={`Select student ${student.name || student.rollNumber || student.roll_number}`}
                                 />
                               </div>
                             </td>
@@ -6939,7 +7323,20 @@ const AdminUpcomingBatch = () => {
                                 fontSize: "12px",
                               }}
                             >
-                              <Flex gap="8px" justify="center">
+                              <Flex gap="8px" justify="center" align="center">
+                                <Select
+                                  data={[
+                                    { value: "REPORTED", label: "Reported" },
+                                    { value: "NOT_REPORTED", label: "Not Reported" },
+                                    { value: "WITHDRAWAL", label: "Withdrawal" },
+                                  ]}
+                                  value={student.reportedStatus || student.reported_status || "NOT_REPORTED"}
+                                  onChange={(value) => handleReportedStatusChange(student.id || student.student_id, value)}
+                                  size="xs"
+                                  variant="filled"
+                                  disabled={updatingReportStatus === (student.id || student.student_id)}
+                                  style={{ minWidth: "100px" }}
+                                />
                                 <ActionIcon
                                   size="sm"
                                   variant="outline"
@@ -7202,9 +7599,8 @@ const AdminUpcomingBatch = () => {
           </Stack>
         </Modal>
 
-        {
-          /* Export Modal */
-          <Modal
+        {/* Export Modal */}
+        <Modal
             opened={showExportModal}
             onClose={() => setShowExportModal(false)}
             title={
@@ -7382,7 +7778,6 @@ const AdminUpcomingBatch = () => {
               </Group>
             </Stack>
           </Modal>
-        }
       </Container>
     </>
   );
