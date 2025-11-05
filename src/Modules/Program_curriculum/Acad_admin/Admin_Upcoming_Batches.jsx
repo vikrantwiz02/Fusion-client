@@ -622,6 +622,25 @@ const STUDENT_FIELDS_CONFIG = {
       "family income"
     ],
   },
+  reportedStatus: {
+    label: "Status",
+    placeholder: "Student reporting status",
+    required: false,
+    type: "select",
+    backendField: "reported_status",
+    systemField: true,
+    options: [
+      { value: "NOT_REPORTED", label: "Not Reported" },
+      { value: "REPORTED", label: "Reported" },
+      { value: "WITHDRAWAL", label: "Withdrawal" },
+    ],
+    excelColumns: [
+      "Status",
+      "status", 
+      "reported status", 
+      "reporting status"
+    ],
+  },
 };
 
 const INITIAL_FORM_DATA = {
@@ -879,111 +898,180 @@ const AdminUpcomingBatch = () => {
   // Proactive validation check before attempting student operations
 
 
-  const getBatchForBranch = (branch, batches) => {
-    if (!branch || !batches || batches.length === 0) return null;
-
-    const normalizedBranch = branch.toLowerCase().trim();
-
-    const branchMappings = {
-      'computer science': 'CSE',
-      'computer science and engineering': 'CSE',
-      'cse': 'CSE',
-      'cs': 'CSE',
-      'computer science (b.tech)': 'CSE',
-      'computer science and engineering (b.tech)': 'CSE',
-      'computer science (m.tech)': 'CSE',
-      'computer science and engineering (m.tech)': 'CSE',
-      'computer science (phd)': 'CSE',
-      'computer science and engineering (phd)': 'CSE',
-
-      'electronics': 'ECE',
-      'electronics and communication': 'ECE',
-      'electronics and communication engineering': 'ECE',
-      'ece': 'ECE',
-      'ec': 'ECE',
-      'electronics (b.tech)': 'ECE',
-      'electronics and communication engineering (b.tech)': 'ECE',
-      'electronics (m.tech)': 'ECE',
-      'electronics and communication engineering (m.tech)': 'ECE',
-      'electronics (phd)': 'ECE',
-      'electronics and communication engineering (phd)': 'ECE',
-
-      'mechanical': 'ME',
-      'mechanical engineering': 'ME',
-      'me': 'ME',
-      'mech': 'ME',
-      'mechanical (b.tech)': 'ME',
-      'mechanical engineering (b.tech)': 'ME',
-      'mechanical (m.tech)': 'ME',
-      'mechanical engineering (m.tech)': 'ME',
-      'mechanical (phd)': 'ME',
-      'mechanical engineering (phd)': 'ME',
-
-      'smart manufacturing': 'SM',
-      'sm': 'SM',
-      'smart manufacturing (b.tech)': 'SM',
-      'smart manufacturing (m.tech)': 'SM',
-      'smart manufacturing (phd)': 'SM',
-
-      'design': ['Design', 'Des.', 'DES', 'Des'],
-      'design (b.des)': ['Design', 'Des.', 'DES', 'Des'],
-      'design (m.des)': ['Design', 'Des.', 'DES', 'Des'],
-      'design (phd)': ['Design', 'Des.', 'DES', 'Des'],
-    };
-
-    const targetBatchCode = branchMappings[normalizedBranch];
+  const getBatchForBranch = (targetBranch, batchesToSearch) => {
+    if (!targetBranch || !batchesToSearch) return null;
     
-    if (targetBatchCode) {
-      const possibleCodes = Array.isArray(targetBatchCode) ? targetBatchCode : [targetBatchCode];
-      
-      const foundBatch = batches.find(batch => {
-        const matches = {
-          displayBranch: possibleCodes.some(code => batch.displayBranch === code),
-          discipline: possibleCodes.some(code => batch.discipline === code),
-          branch: possibleCodes.some(code => batch.branch === code),
-          nameIncludes: possibleCodes.some(code => batch.name?.includes(code))
-        };
-        
-        return matches.displayBranch || matches.discipline || matches.branch || matches.nameIncludes;
-      });
-      
-      if (foundBatch) {
-        return foundBatch;
-      }
-    }
-
-    for (const batch of batches) {
-      const batchBranch = (batch.displayBranch || batch.discipline || batch.branch || '').toLowerCase();
-      const isDesignBatch = batchBranch.includes('des') || batchBranch.includes('design');
-      const isDesignStudent = normalizedBranch.includes('design') || normalizedBranch.includes('des');
-      
-      let fallbackMatch = false;
-      
-      if (isDesignStudent && isDesignBatch) {
-        fallbackMatch = true;
-      } else {
-        fallbackMatch = batchBranch.includes(normalizedBranch) || normalizedBranch.includes(batchBranch);
-      }
-      
-      if (fallbackMatch) {
-        return batch;
-      }
-    }
+    const normalizedBranch = targetBranch.toLowerCase().trim();
     
-    return null;
+    return batchesToSearch.find(batch => {
+      const batchBranch = (batch.discipline || batch.branch || '').toLowerCase().trim();
+      return batchBranch === normalizedBranch || 
+             batchBranch.includes(normalizedBranch) ||
+             normalizedBranch.includes(batchBranch);
+    });
   };
 
-  // Function to handle student branch transfer
-  const handleBranchTransfer = async (studentData, oldBatch, newBatch) => {
+  const getBatchForBranchTransfer = (targetBranch, targetYear = null, programmeType = null, allBatches = null) => {
+    if (!targetBranch) return null;
+
+    const batchesToSearch = allBatches || getCurrentBatches();
+    if (!batchesToSearch || batchesToSearch.length === 0) return null;
+
+    const normalizedBranch = targetBranch.toLowerCase().trim();
+
+    const branchMappings = {
+      'computer science': ['CSE', 'Computer Science and Engineering', 'Computer Science'],
+      'computer science and engineering': ['CSE', 'Computer Science and Engineering'],
+      'cse': ['CSE', 'Computer Science and Engineering'],
+      'cs': ['CSE', 'Computer Science and Engineering'],
+
+      'electronics': ['ECE', 'Electronics and Communication Engineering', 'Electronics'],
+      'electronics and communication': ['ECE', 'Electronics and Communication Engineering'],
+      'electronics and communication engineering': ['ECE', 'Electronics and Communication Engineering'],
+      'ece': ['ECE', 'Electronics and Communication Engineering'],
+      'ec': ['ECE', 'Electronics and Communication Engineering'],
+
+      'mechanical': ['ME', 'Mechanical Engineering', 'Mechanical'],
+      'mechanical engineering': ['ME', 'Mechanical Engineering'],
+      'me': ['ME', 'Mechanical Engineering'],
+      'mech': ['ME', 'Mechanical Engineering'],
+
+      'smart manufacturing': ['SM', 'Smart Manufacturing'],
+      'sm': ['SM', 'Smart Manufacturing'],
+
+      'design': ['Design', 'Des.', 'DES', 'Des'],
+    };
+
+    const targetCodes = branchMappings[normalizedBranch] || [targetBranch];
+
+    // Filter batches by programme type if specified
+    let filteredBatches = batchesToSearch;
+    if (programmeType) {
+      filteredBatches = batchesToSearch.filter(batch => {
+        const batchProgramme = (batch.programme || '').toLowerCase();
+        switch (programmeType) {
+          case 'ug':
+            return batchProgramme.includes('b.tech') || batchProgramme.includes('b.des');
+          case 'pg':
+            return batchProgramme.includes('m.tech') || batchProgramme.includes('m.des');
+          case 'phd':
+            return batchProgramme.includes('phd') || batchProgramme.includes('ph.d');
+          default:
+            return true;
+        }
+      });
+    }
+
+    if (targetYear) {
+      filteredBatches = filteredBatches.filter(batch => batch.year === parseInt(targetYear));
+    }
+    const exactMatch = filteredBatches.find(batch => {
+      return targetCodes.some(code => {
+        const batchDiscipline = (batch.discipline || '').toLowerCase();
+        const batchBranch = (batch.branch || '').toLowerCase();
+        const batchDisplayBranch = (batch.displayBranch || '').toLowerCase();
+        const batchName = (batch.name || '').toLowerCase();
+        
+        return batchDiscipline === code.toLowerCase() ||
+               batchBranch === code.toLowerCase() ||
+               batchDisplayBranch === code.toLowerCase() ||
+               batchName.includes(code.toLowerCase()) ||
+               batch.discipline === code ||
+               batch.branch === code ||
+               batch.displayBranch === code;
+      });
+    });
+
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    // Fuzzy match as fallback
+    const fuzzyMatch = filteredBatches.find(batch => {
+      const batchFields = [
+        batch.discipline,
+        batch.branch,
+        batch.displayBranch,
+        batch.name
+      ].filter(Boolean).map(field => field.toLowerCase());
+
+      return targetCodes.some(code => {
+        return batchFields.some(field => {
+          return field.includes(code.toLowerCase()) || code.toLowerCase().includes(field);
+        });
+      });
+    });
+
+    return fuzzyMatch || null;
+  };
+
+  const getAvailableTargetBatches = (currentBatch, transferType = 'batch_change') => {
+    const allBatches = [...ugBatches, ...pgBatches, ...phdBatches];
+    
+    return allBatches.filter(batch => {
+      if (batch.id === currentBatch?.id) return false;
+      const availableSeats = (batch.totalSeats || 0) - (batch.filledSeats || 0);
+      if (availableSeats <= 0) return false;
+
+      switch (transferType) {
+        case 'batch_change':
+          return batch.discipline === currentBatch?.discipline;
+        
+        case 'branch_change':
+          const currentProgrammeType = getCurrentProgrammeType(currentBatch);
+          const batchProgrammeType = getCurrentProgrammeType(batch);
+          return batchProgrammeType === currentProgrammeType && 
+                 batch.discipline !== currentBatch?.discipline;
+        
+        case 'programme_change':
+          const currentProgramme = getCurrentProgrammeType(currentBatch);
+          const targetProgramme = getCurrentProgrammeType(batch);
+          return targetProgramme !== currentProgramme;
+        
+        default:
+          return true;
+      }
+    }).sort((a, b) => {
+      if (a.programme !== b.programme) {
+        return a.programme.localeCompare(b.programme);
+      }
+      if (a.discipline !== b.discipline) {
+        return a.discipline.localeCompare(b.discipline);
+      }
+      return b.year - a.year; // Latest year first
+    });
+  };
+
+  // Function to handle student batch/branch transfer
+  const handleBatchBranchTransfer = async (studentData, transferDetails) => {
     try {
+      // Frontend validation only
+      const transferValidation = validateTransferCompatibility(
+        transferDetails.currentBatch, 
+        transferDetails.newBatch, 
+        transferDetails.transferType
+      );
+      
+      if (!transferValidation.isValid) {
+        throw new Error(transferValidation.message);
+      }
+
+      // Call backend - it handles everything
+      const result = await performBatchBranchChangeAPI(studentData, transferDetails);
+
+      // Show success notification
       notifications.show({
-        title: "Branch Transfer",
-        message: `Student ${studentData.name || studentData.Name || 'Unknown'} is being transferred from ${oldBatch?.displayBranch || 'current batch'} to ${newBatch?.displayBranch || 'new batch'}`,
-        color: "blue",
+        title: "Transfer Successful",
+        message: result.message || "Student transferred successfully",
+        color: "green",
         autoClose: 5000,
       });
 
-      if (selectedBatch && (selectedBatch.id === oldBatch?.id)) {
+      // Refresh data from backend
+      await fetchBatchData(); // Let backend provide updated counts
+
+      // Remove from current view if needed
+      if (selectedBatch && (selectedBatch.id === transferDetails.currentBatch?.id)) {
         setStudentList((prev) => 
           prev.filter(student => 
             (student.id || student.student_id) !== (studentData.id || studentData.student_id)
@@ -991,50 +1079,144 @@ const AdminUpcomingBatch = () => {
         );
       }
 
-      const updateBatchCount = (batches, setBatches, batchId, delta) => {
-        setBatches(prev => prev.map(batch => {
-          if (batch.id === batchId) {
-            return {
-              ...batch,
-              studentsCount: Math.max(0, (batch.studentsCount || 0) + delta),
-              studentCount: Math.max(0, (batch.studentCount || 0) + delta)
-            };
-          }
-          return batch;
-        }));
-      };
+      return { success: true, message: result.message };
 
-      if (oldBatch) {
-        if (activeSection === 'ug') {
-          updateBatchCount(ugBatches, setUgBatches, oldBatch.id, -1);
-        } else if (activeSection === 'pg') {
-          updateBatchCount(pgBatches, setPgBatches, oldBatch.id, -1);
-        } else if (activeSection === 'phd') {
-          updateBatchCount(phdBatches, setPhdBatches, oldBatch.id, -1);
-        }
-      }
-
-      if (newBatch) {
-        if (activeSection === 'ug') {
-          updateBatchCount(ugBatches, setUgBatches, newBatch.id, 1);
-        } else if (activeSection === 'pg') {
-          updateBatchCount(pgBatches, setPgBatches, newBatch.id, 1);
-        } else if (activeSection === 'phd') {
-          updateBatchCount(phdBatches, setPhdBatches, newBatch.id, 1);
-        }
-      }
-
-      fetchBatchData();
-      
-      return true;
     } catch (error) {
       notifications.show({
         title: "Transfer Error",
         message: `Failed to transfer student: ${error.message}`,
         color: "red",
       });
-      return false;
+      return { success: false, error: error.message };
     }
+  };
+
+  const validateTransferCompatibility = (currentBatch, newBatch, transferType) => {
+    if (!currentBatch || !newBatch) {
+      return {
+        isValid: false,
+        message: "Both current and new batch information are required"
+      };
+    }
+
+    // Same batch transfer not allowed
+    if (currentBatch.id === newBatch.id) {
+      return {
+        isValid: false,
+        message: "Cannot transfer student to the same batch"
+      };
+    }
+
+    const availableSeats = (newBatch.totalSeats || 0) - (newBatch.filledSeats || 0);
+    if (availableSeats <= 0) {
+      return {
+        isValid: false,
+        message: `Target batch ${newBatch.discipline} ${newBatch.year} has no available seats`
+      };
+    }
+
+    // Validate based on transfer type
+    switch (transferType) {
+      case 'batch_change':
+        // Same discipline, potentially different year
+        if (currentBatch.discipline !== newBatch.discipline) {
+          return {
+            isValid: false,
+            message: "Batch change requires same discipline. Use branch change for different disciplines."
+          };
+        }
+        break;
+      
+      case 'branch_change':
+        // Different discipline, same or different programme level
+        if (currentBatch.discipline === newBatch.discipline) {
+          return {
+            isValid: false,
+            message: "Branch change requires different discipline. Use batch change for same discipline."
+          };
+        }
+        break;
+      
+      case 'programme_change':
+        // Different programme (UG to PG, etc.)
+        const currentProgramme = getCurrentProgrammeType(currentBatch);
+        const newProgramme = getCurrentProgrammeType(newBatch);
+        if (currentProgramme === newProgramme) {
+          return {
+            isValid: false,
+            message: "Programme change requires different programme level."
+          };
+        }
+        break;
+    }
+
+    return {
+      isValid: true,
+      message: "Transfer is valid"
+    };
+  };
+
+  // Helper function to determine programme type from batch
+  const getCurrentProgrammeType = (batch) => {
+    if (!batch) return null;
+    
+    const programme = (batch.programme || '').toLowerCase();
+    if (programme.includes('b.tech') || programme.includes('b.des')) {
+      return 'ug';
+    } else if (programme.includes('m.tech') || programme.includes('m.des')) {
+      return 'pg';
+    } else if (programme.includes('phd') || programme.includes('ph.d')) {
+      return 'phd';
+    }
+    
+    // Fallback based on programme_type field
+    return batch.programme_type || 'ug';
+  };
+
+  const performBatchBranchChangeAPI = async (studentData, transferDetails) => {
+    const token = localStorage.getItem("authToken");
+    if (!token) throw new Error("Authentication token not found");
+
+    const payload = {
+      student_id: studentData.id || studentData.student_id,
+      current_batch_id: transferDetails.currentBatch.id,
+      new_batch_id: transferDetails.newBatch.id,
+      transfer_type: transferDetails.transferType,
+      reason: transferDetails.reason || 'Administrative transfer'
+    };
+
+    const response = await fetch(`${host}/academic-information/batch-branch-change/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${token}`,
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Transfer failed' }));
+      throw new Error(errorData.message || 'Failed to transfer student');
+    }
+
+    return await response.json();
+  };
+
+  const getCsrfToken = () => {
+    const csrfCookie = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('csrftoken='));
+    return csrfCookie ? csrfCookie.split('=')[1] : '';
+  };
+
+  const handleBranchTransfer = async (studentData, oldBatch, newBatch) => {
+    return await handleBatchBranchTransfer(studentData, {
+      currentBatch: oldBatch,
+      newBatch: newBatch,
+      transferType: 'branch_change',
+      reason: 'Automatic branch transfer'
+    });
   };
 
   const { userDetails } = useSelector((state) => state.user);
@@ -1201,6 +1383,7 @@ const AdminUpcomingBatch = () => {
       "admissionMode",
       "pwdCategory",
       "incomeGroup",
+      "categoryRank",
     ];
 
     Object.keys(STUDENT_FIELDS_CONFIG).forEach((fieldKey) => {
@@ -1235,6 +1418,7 @@ const AdminUpcomingBatch = () => {
       "allottedCategory",
       "pwd",
       "branch",
+      "categoryRank",
     ];
 
     switch (step) {
@@ -2154,6 +2338,7 @@ const AdminUpcomingBatch = () => {
       'nationality',
       'state',
       'address',
+      'reportedStatus',
     ];
     
     // Return fields in the organized order, filtering out non-existent fields
@@ -2163,6 +2348,7 @@ const AdminUpcomingBatch = () => {
         key,
         label: STUDENT_FIELDS_CONFIG[key].label,
         type: STUDENT_FIELDS_CONFIG[key].type,
+        systemField: STUDENT_FIELDS_CONFIG[key].systemField,
       }));
   };
 
@@ -2249,6 +2435,7 @@ const AdminUpcomingBatch = () => {
       'nationality',
       'state',
       'address',
+      'reportedStatus',
     ];
 
     // Sort selected fields according to organized order
@@ -2337,6 +2524,15 @@ const AdminUpcomingBatch = () => {
             student["institute email"] ||
             student["official email"] ||
             "";
+        } else if (fieldKey === "reportedStatus") {
+          // Handle reported status with proper labels
+          const statusValue = student.reportedStatus || student.reported_status || "NOT_REPORTED";
+          const statusLabels = {
+            "NOT_REPORTED": "Not Reported",
+            "REPORTED": "Reported", 
+            "WITHDRAWAL": "Withdrawal"
+          };
+          value = statusLabels[statusValue] || statusValue;
         } else {
           value = student[fieldKey] || "";
 
@@ -3271,17 +3467,18 @@ const AdminUpcomingBatch = () => {
             let successMessage = "Student updated successfully!";
 
             if (branchChanged && targetBatch) {
-              await handleBranchTransfer(updateData, selectedBatch, targetBatch);
-              successMessage = `Student successfully transferred from ${selectedBatch?.displayBranch || 'current batch'} to ${targetBatch.displayBranch} batch!`;
+              await syncWithFusionBatchChange(updateData, selectedBatch, targetBatch, oldBranch, newBranch);
+              successMessage = `Student successfully transferred from ${oldBranch} to ${newBranch}. Academic batch assignment and seat allocation updated automatically.`;
             } else if (branchChanged) {
-              successMessage += ` Branch updated to "${newBranch}" but no matching batch found for automatic transfer.`;
+              await syncBranchChangeWithFusion(updateData, oldBranch, newBranch);
+              successMessage += ` Discipline updated to "${newBranch}". Academic batch assignment updated automatically.`;
             }
             
             notifications.show({
-              title: branchChanged ? "Transfer Completed" : "Update Successful",
+              title: branchChanged ? "Discipline Change Completed" : "Update Successful",
               message: successMessage,
               color: "green",
-              autoClose: branchChanged ? 8000 : 4000,
+              autoClose: branchChanged ? 10000 : 4000,
             });
 
             setStudentList((prev) =>
@@ -3603,6 +3800,7 @@ const AdminUpcomingBatch = () => {
       "Minority",
       "PwD",
       "PwD Category",
+      "PwD Category Remarks",
       "MobileNo",
       "Institute Email ID",
       "Alternate Email ID",
@@ -3615,6 +3813,7 @@ const AdminUpcomingBatch = () => {
       "Mother Mobile Number",
       "Date of Birth",
       "Blood Group",
+      "Blood Group Remarks",
       "Country",
       "Nationality",
       "Admission Mode",
@@ -3641,6 +3840,7 @@ const AdminUpcomingBatch = () => {
         "JAIN",
         "NO",
         "", // PwD Category - empty since PwD is NO
+        "", // PwD Category Remarks - empty since PwD is NO
         "9229109424",
         "25bcs001@iiitdmj.ac.in",
         "ARAS15@GMAIL.COM",
@@ -3653,6 +3853,7 @@ const AdminUpcomingBatch = () => {
         "1234567890",
         "5/10/2005",
         "O+",
+        "", // Blood Group Remarks - empty since blood group is standard
         "India",
         "Indian",
         "JoSAA/CSAB Counselling",
@@ -3679,39 +3880,39 @@ const AdminUpcomingBatch = () => {
 
     // Add data validation for dropdown fields
     const dropdownValidations = {
-      'E': { // Gender column
+      'F': { // Gender column
         type: 'list',
         values: ['Male', 'Female', 'Other']
       },
-      'F': { // Category column
+      'G': { // Category column
         type: 'list', 
-        values: ['GEN', 'OBC-NCL', 'SC', 'ST', 'EWS']
+        values: ['General', 'OBC-NCL', 'SC', 'ST', 'GEN-EWS']
       },
-      'H': { // PwD column
+      'I': { // PwD column
         type: 'list',
         values: ['YES', 'NO']
       },
-      'I': { // PwD Category column
+      'J': { // PwD Category column
         type: 'list',
         values: ['Locomotor Disability', 'Low vision Disability', 'Deaf Disability', 'Cerebral Palsy', 'Dyslexia', 'Amputee (Both Hand)', 'Deafness', 'Any other (remarks)']
       },
-      'V': { // Blood Group column  
+      'W': { // Blood Group column
         type: 'list',
-        values: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+        values: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Other']
       },
-      'Y': { // Admission Mode column
+      'AA': { // Admission Mode column
         type: 'list',
         values: ['Direct Institute advertisement', 'CCMT Counselling', 'JoSAA/CSAB Counselling', 'UCEED Counselling', 'Study In India (SII) Counselling', 'DASA Counselling', 'Any other (remarks)']
       },
-      'AA': { // Income Group column
+      'AC': { // Income Group column
         type: 'list',
         values: ['Between 0 to 2 Lakh', 'Between 2 to 4 Lakh', 'Between 4 to 6 Lakh', 'Between 6 to 8 Lakh', 'More than 8 Lakh']
       },
-      'AE': { // Allotted Category column
+      'AG': { // Allotted Category column
         type: 'list',
         values: ['OPNO', 'OPPH', 'EWNO', 'EWPH', 'BCNO', 'BCPH', 'SCNO', 'SCPH', 'STNO']
       },
-      'AF': { // Allotted Gender column
+      'AH': { // Allotted Gender column
         type: 'list',
         values: ['Gender-Neutral', 'Female-Only (including Supernumerary)']
       }
@@ -5632,7 +5833,7 @@ const AdminUpcomingBatch = () => {
 
                                     setExtractedData([]);
                                     setShowPreview(false);
-                                    setShowExcelModal(false);
+                                    setShowAddModal(false);
                                     forceRefreshData();
                                   } else {
                                     throw new Error(
