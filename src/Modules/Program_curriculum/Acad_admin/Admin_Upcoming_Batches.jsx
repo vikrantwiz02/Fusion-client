@@ -216,11 +216,11 @@ const STUDENT_FIELDS_CONFIG = {
     type: "select",
     backendField: "category",
     options: [
-      { value: "GEN", label: "General (GEN)" },
-      { value: "OBC-NCL", label: "Other Backward Class (Non-Creamy Layer) (OBC-NCL)" },
-      { value: "SC", label: "Scheduled Caste (SC)" },
-      { value: "ST", label: "Scheduled Tribe (ST)" },
-      { value: "EWS", label: "Economically Weaker Section (EWS)" },
+      { value: "General", label: "General" },
+      { value: "OBC-NCL", label: "Other Backward Class (Non-Creamy Layer)" },
+      { value: "SC", label: "Scheduled Caste" },
+      { value: "ST", label: "Scheduled Tribe" },
+      { value: "GEN-EWS", label: "Economically Weaker Section (GEN-EWS)" },
     ],
     excelColumns: ["category", "caste", "reservation"],
   },
@@ -1065,11 +1065,17 @@ const AdminUpcomingBatch = () => {
 
   const mapCategoryValue = (value) => {
     const categoryMapping = {
-      "General": "GEN",
-      "Other Backward Class": "OBC", 
+      "GEN": "General",
+      "General": "General",
+      "Other Backward Class (Non-Creamy Layer)": "OBC-NCL",
+      "OBC-NCL": "OBC-NCL",
       "Scheduled Caste": "SC",
-      "Scheduled Tribe": "ST",
-      "Economically Weaker Section": "EWS"
+      "SC": "SC",
+      "Scheduled Tribe": "ST", 
+      "ST": "ST",
+      "Economically Weaker Section": "GEN-EWS",
+      "EWS": "GEN-EWS",
+      "GEN-EWS": "GEN-EWS"
     };
     return categoryMapping[value] || value;
   };
@@ -2839,8 +2845,34 @@ const AdminUpcomingBatch = () => {
     data.forEach((student, index) => {
       const rowNumber = index + 2;
       
-      // Apply universal validation to each student
-      const errors = applyUniversalValidation(student, false);
+      // Transform student data to standardized field names before validation
+      const transformedStudent = {};
+      Object.keys(STUDENT_FIELDS_CONFIG).forEach((fieldKey) => {
+        const fieldInfo = STUDENT_FIELDS_CONFIG[fieldKey];
+        let fieldValue = student[fieldKey];
+
+        if (!fieldValue && fieldInfo.backendField) {
+          fieldValue = student[fieldInfo.backendField];
+        }
+
+        if (!fieldValue && fieldInfo.excelColumns) {
+          for (const excelCol of fieldInfo.excelColumns) {
+            const matchedKey = Object.keys(student).find(
+              key => key.toLowerCase() === excelCol.toLowerCase()
+            );
+            if (matchedKey && student[matchedKey]) {
+              fieldValue = student[matchedKey];
+              break;
+            }
+          }
+        }
+        
+        if (fieldValue) {
+          transformedStudent[fieldKey] = fieldValue;
+        }
+      });
+
+      const errors = applyUniversalValidation(transformedStudent, false);
       
       if (Object.keys(errors).length > 0) {
         Object.entries(errors).forEach(([field, error]) => {
