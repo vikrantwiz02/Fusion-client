@@ -1995,6 +1995,38 @@ const AdminUpcomingBatch = () => {
             allottedGender: ["allotted_gender", "Allotted Gender"],
             pwd: ["PWD"],
             branch: ["Branch", "discipline", "Discipline"],
+            pwdCategoryRemarks: [
+              "pwd_category_remarks", 
+              "pwdCategoryRemarks", 
+              "pwd category remarks"
+            ],
+            bloodGroupRemarks: [
+              "blood_group_remarks", 
+              "bloodGroupRemarks", 
+              "blood group remarks"
+            ],
+            admissionModeRemarks: [
+              "admission_mode_remarks", 
+              "admissionModeRemarks", 
+              "admission mode remarks"
+            ],
+            categoryRank: ["category_rank", "categoryRank", "cat rank"],
+            rollNumber: ["roll_number", "rollNumber", "institute_roll_number"],
+            instituteEmail: ["institute_email", "instituteEmail", "official_email"],
+            alternateEmail: ["personal_email", "alternate_email", "alternateEmail"],
+            parentEmail: ["parent_email", "parentEmail", "guardian_email"],
+            fatherOccupation: ["father_occupation", "fatherOccupation"],
+            fatherMobile: ["father_mobile", "fatherMobile", "father_phone"],
+            motherOccupation: ["mother_occupation", "motherOccupation"],
+            motherMobile: ["mother_mobile", "motherMobile", "mother_phone"],
+            bloodGroup: ["blood_group", "bloodGroup"],
+            country: ["Country", "nation"],
+            nationality: ["Nationality", "citizenship"],
+            admissionMode: ["admission_mode", "admissionMode"],
+            pwdCategory: ["pwd_category", "pwdCategory", "disability_category"],
+            incomeGroup: ["income_group", "incomeGroup"],
+            income: ["Income", "annual_income", "family_income"],
+            minority: ["Minority", "minority_status", "religious_minority"],
           };
 
           const variations = specialMappings[fieldKey] || [];
@@ -2906,6 +2938,7 @@ const AdminUpcomingBatch = () => {
     { key: 'minority', label: 'Minority', minWidth: '90px', fields: ['minority', 'Minority'] },
     { key: 'pwd', label: 'PwD', minWidth: '60px', fields: ['pwd', 'PWD'] },
     { key: 'pwdCategory', label: 'PwD Category', minWidth: '120px', fields: ['pwdCategory', 'pwd_category', 'PwD Category'] },
+    { key: 'pwdCategoryRemarks', label: 'PwD Category Remarks', minWidth: '150px', fields: ['pwdCategoryRemarks', 'pwd_category_remarks', 'PwD Category Remarks'] },
     { key: 'phoneNumber', label: 'Mobile', minWidth: '120px', fields: ['phoneNumber', 'phone_number', 'mobile', 'Mobile No'] },
     { key: 'instituteEmail', label: 'Institute Email', minWidth: '200px', fields: ['instituteEmail', 'institute_email', 'Institute Email ID'] },
     { key: 'alternateEmail', label: 'Alternate Email', minWidth: '200px', fields: ['alternateEmail', 'personal_email', 'Alternate Email ID'] },
@@ -2918,9 +2951,11 @@ const AdminUpcomingBatch = () => {
     { key: 'motherMobile', label: 'Mother Mobile', minWidth: '120px', fields: ['motherMobile', 'mother_mobile', 'Mother Mobile Number'] },
     { key: 'dob', label: 'DOB', minWidth: '100px', fields: ['dob', 'date_of_birth', 'Date of Birth'] },
     { key: 'bloodGroup', label: 'Blood Group', minWidth: '100px', fields: ['bloodGroup', 'blood_group', 'Blood Group'] },
+    { key: 'bloodGroupRemarks', label: 'Blood Group Remarks', minWidth: '150px', fields: ['bloodGroupRemarks', 'blood_group_remarks', 'Blood Group Remarks'] },
     { key: 'country', label: 'Country', minWidth: '100px', fields: ['country', 'Country'] },
     { key: 'nationality', label: 'Nationality', minWidth: '100px', fields: ['nationality', 'Nationality'] },
     { key: 'admissionMode', label: 'Admission Mode', minWidth: '150px', fields: ['admissionMode', 'admission_mode', 'Admission Mode'] },
+    { key: 'admissionModeRemarks', label: 'Admission Mode Remarks', minWidth: '180px', fields: ['admissionModeRemarks', 'admission_mode_remarks', 'Admission Mode Remarks'] },
     { key: 'incomeGroup', label: 'Income Group', minWidth: '130px', fields: ['incomeGroup', 'income_group', 'Income Group'] },
     { key: 'income', label: 'Income', minWidth: '100px', fields: ['income', 'Income'] },
     { key: 'jeeRank', label: 'AI Rank', minWidth: '80px', fields: ['jeeRank', 'ai_rank', 'jee_rank', 'AI rank'] },
