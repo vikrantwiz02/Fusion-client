@@ -608,22 +608,17 @@ export const addSingleStudent = async (studentData, programmeType) => {
       branch: studentData.branch,
       gender: studentData.gender,
       category: studentData.category,
+      minority: studentData.minority,
       pwd: studentData.pwd,
       address: studentData.address,
-
-      // OPTIONAL FIELDS - Keep original names for process_batch_allocation
       programme_type: programmeType || "ug",
       phone_number: studentData.phoneNumber || studentData.phone_number,
       personal_email: studentData.email || studentData.personal_email,
       date_of_birth: studentData.dob || studentData.date_of_birth,
       ai_rank: studentData.jeeRank || studentData.ai_rank,
       category_rank: studentData.categoryRank || studentData.category_rank,
-
-      // Keep original field names for process_batch_allocation to find them
       rollNumber: studentData.rollNumber || studentData.roll_number,
       instituteEmail: studentData.instituteEmail || studentData.institute_email,
-
-      // Also include mapped versions for database storage
       roll_number: studentData.rollNumber || studentData.roll_number,
       institute_email:
         studentData.instituteEmail || studentData.institute_email,
@@ -642,6 +637,18 @@ export const addSingleStudent = async (studentData, programmeType) => {
       tenth_marks: studentData.tenthMarks || studentData.tenth_marks,
       twelfth_marks: studentData.twelfthMarks || studentData.twelfth_marks,
       aadhar_number: studentData.aadharNumber || studentData.aadhar_number,
+      parent_email: studentData.parentEmail || studentData.parent_email,
+      blood_group: studentData.bloodGroup || studentData.blood_group,
+      blood_group_remarks: studentData.bloodGroupRemarks || studentData.blood_group_remarks,
+      country: studentData.country,
+      nationality: studentData.nationality,
+      admission_mode: studentData.admissionMode || studentData.admission_mode,
+      admission_mode_remarks: studentData.admissionModeRemarks || studentData.admission_mode_remarks,
+      pwd_category: studentData.pwdCategory || studentData.pwd_category,
+      pwd_category_remarks: studentData.pwdCategoryRemarks || studentData.pwd_category_remarks,
+      income_group: studentData.incomeGroup || studentData.income_group,
+      income: studentData.income,
+      alternateEmail: studentData.alternateEmail || studentData.personal_email,
     };
 
     // Remove undefined fields
