@@ -31,3 +31,4 @@ export const get_course_reg_academic_years = `${host}/examination/api/unique-cou
 export const get_student_grades_academic_years = `${host}/examination/api/unique-stu-grades-years/`
 
 export const get_result_semesters = `${host}/examination/api/student/result_semesters/`;
+export const grade_status = `${host}/examination/api/grade_status/`;
