@@ -90,6 +90,7 @@ export default function Nav() {
     { title: "Result", path: "/examination/result", roles: ["student"] },
 
     { title: "Announce Result", path: "/examination/result-announcement", roles: ["acadadmin", "Dean Academic"] },
+    { title: "Grade Status", path: "/examination/grade-status", roles: ["acadadmin", "Dean Academic"] },
   ];
 
   // Filter tabs based on user role
