@@ -327,21 +327,24 @@ function BDesAcadView() {
                     borderRight: "1px solid #d3d3d3",
                   }}
                 >
-                  {/* {curr.batch.map((b, i) => (
+                  {curr.batches && curr.batches.length > 0 ? (
+                    curr.batches.map((batch, i) => (
                       <React.Fragment key={i}>
                         <span
                           style={{
                             marginRight: "10px",
                           }}
                         >
-                          {b}
+                          {batch.name} {batch.discipline} {batch.year}
                         </span>
-                        {i < curr.batch.length - 1 && (
+                        {i < curr.batches.length - 1 && (
                           <span style={{ margin: "0 10px" }}>|</span>
                         )}
                       </React.Fragment>
-                    ))} */}
-                  {batchName} {curr.year}
+                    ))
+                  ) : (
+                    "No batches available"
+                  )}
                 </td>
                 <td
                   style={{
@@ -487,28 +490,30 @@ function BDesAcadView() {
                 <td
                   style={{
                     padding: "15px 20px",
-                    display: "flex",
                     textAlign: "center",
                     borderRight: "1px solid #d3d3d3",
                   }}
                 >
-                  {/* {curr.batch.map((b, i) => (
+                  {curr.batches && curr.batches.length > 0 ? (
+                    curr.batches.map((batch, i) => (
                       <React.Fragment key={i}>
                         <span
                           style={{
                             marginRight: "10px",
-                            color: "black", // Set the text color to black or any color of your choice
-                            textDecoration: "none", // Remove the underline
+                            color: "black",
+                            textDecoration: "none",
                           }}
                         >
-                          {b}
+                          {batch.name} {batch.discipline} {batch.year}
                         </span>
-                        {i < curr.batch.length - 1 && (
+                        {i < curr.batches.length - 1 && (
                           <span style={{ margin: "0 10px" }}>|</span>
                         )}
                       </React.Fragment>
-                    ))} */}
-                  {curr.batch}
+                    ))
+                  ) : (
+                    "No batches available"
+                  )}
                 </td>
                 <td
                   style={{
