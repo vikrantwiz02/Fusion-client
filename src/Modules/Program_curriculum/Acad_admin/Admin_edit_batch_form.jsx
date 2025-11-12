@@ -96,16 +96,25 @@ function Admin_edit_batch_form() {
         const multiSelectEnabled = shouldEnableMultiSelect(batchName);
         setIsMultiSelectMode(multiSelectEnabled);
         
+        // Extract curriculum IDs from the batch data
+        const curriculumIds = [];
+        if (existingBatchData.curriculum && Array.isArray(existingBatchData.curriculum)) {
+          // If batch has multiple curricula
+          curriculumIds.push(...existingBatchData.curriculum.map(curr => curr.id.toString()));
+        } else if (existingBatchData.batch.curriculum_id) {
+          // If batch has single curriculum
+          curriculumIds.push(existingBatchData.batch.curriculum_id.toString());
+        } else if (curriculumId) {
+          // Fallback to URL parameter
+          curriculumIds.push(curriculumId);
+        }
+        
         form.setValues({
           batchName: batchName,
           discipline: existingBatchData.batch.discipline.toString(),
           batchYear: existingBatchData.batch.year,
-          disciplineBatch: multiSelectEnabled ? "" : (existingBatchData.batch.curriculum_id
-            ? existingBatchData.batch.curriculum_id.toString()
-            : curriculumId || ""),
-          multipleCurricula: multiSelectEnabled ? (existingBatchData.batch.curriculum_id
-            ? [existingBatchData.batch.curriculum_id.toString()]
-            : []) : [],
+          disciplineBatch: multiSelectEnabled ? "" : (curriculumIds.length > 0 ? curriculumIds[0] : ""),
+          multipleCurricula: multiSelectEnabled ? curriculumIds : [],
           runningBatch: existingBatchData.batch.running_batch,
           totalSeats: existingBatchData.batch.total_seats || 0,
         });
@@ -133,22 +142,19 @@ function Admin_edit_batch_form() {
     setIsMultiSelectMode(multiSelectEnabled);
     
     // Clear curriculum selections when switching modes
-    if (multiSelectEnabled) {
-      form.setFieldValue("disciplineBatch", "");
-      form.setFieldValue("multipleCurricula", []);
-    } else {
-      form.setFieldValue("multipleCurricula", []);
-      form.setFieldValue("disciplineBatch", "");
-    }
+    form.setFieldValue("disciplineBatch", "");
+    form.setFieldValue("multipleCurricula", []);
   };
 
   const handleSubmit = async () => {
     try {
       localStorage.setItem("AdminBatchesCachechange", "true");
       const token = localStorage.getItem("authToken");
+      
       if (!token) {
         throw new Error("Authorization token is required");
       }
+      
       let curriculumData;
       if (isMultiSelectMode) {
         curriculumData = form.values.multipleCurricula.length > 0 ? form.values.multipleCurricula : "";
@@ -158,11 +164,21 @@ function Admin_edit_batch_form() {
       
       const payload = {
         batch_name: form.values.batchName,
-        discipline: form.values.discipline,
-        batchYear: form.values.batchYear,
-        disciplineBatch: curriculumData,
+        discipline: parseInt(form.values.discipline, 10),
+        batchYear: parseInt(form.values.batchYear, 10),
         runningBatch: form.values.runningBatch,
-        total_seats: form.values.totalSeats,
+        total_seats: parseInt(form.values.totalSeats, 10),
+        // Send curriculums in a consistent format - ensure IDs are integers
+        ...(isMultiSelectMode && Array.isArray(curriculumData) && curriculumData.length > 0
+          ? { 
+              curricula: curriculumData.map(id => parseInt(id, 10)), 
+              disciplineBatch: curriculumData.map(id => parseInt(id, 10)) 
+            }
+          : { 
+              curriculum: curriculumData ? parseInt(curriculumData, 10) : null, 
+              disciplineBatch: curriculumData ? parseInt(curriculumData, 10) : null 
+            }
+        )
       };
       
       const response = await axios.put(
@@ -174,6 +190,7 @@ function Admin_edit_batch_form() {
           },
         },
       );
+      
       if (response.data.message) {
         notifications.show({
           title: '✅ Success',
@@ -186,14 +203,30 @@ function Admin_edit_batch_form() {
             color: '#155724',
           },
         });
+        
+        // Clear curriculum cache to force refresh of curriculum-batch relationships
+        localStorage.removeItem("AdminCurriculumsCache");
+        localStorage.removeItem("AdminCurriculumsTimestamp");
+        localStorage.setItem("AdminCurriculumsCachechange", "true");
+        
         navigate("/programme_curriculum/admin_batches/");
       } else {
         throw new Error(response.data.message || "Failed to update batch");
       }
     } catch (err) {
+      
+      let errorMessage = 'Failed to update batch';
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       notifications.show({
         title: '❌ Error',
-        message: err.message || 'Failed to update batch',
+        message: errorMessage,
         color: 'red',
         autoClose: 5000,
         style: {
@@ -202,7 +235,7 @@ function Admin_edit_batch_form() {
           color: '#721c24',
         },
       });
-      setError(err.message);
+      setError(errorMessage);
     }
   };
 
