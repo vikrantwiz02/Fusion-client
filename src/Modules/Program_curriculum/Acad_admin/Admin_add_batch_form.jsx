@@ -112,13 +112,8 @@ function Admin_add_batch_form() {
     const multiSelectEnabled = shouldEnableMultiSelect(value);
     setIsMultiSelectMode(multiSelectEnabled);
 
-    if (multiSelectEnabled) {
-      form.setFieldValue("disciplineBatch", "");
-      form.setFieldValue("multipleCurricula", []);
-    } else {
-      form.setFieldValue("multipleCurricula", []);
-      form.setFieldValue("disciplineBatch", "");
-    }
+    form.setFieldValue("disciplineBatch", "");
+    form.setFieldValue("multipleCurricula", []);
   };
 
   const handleCancel = () => {
@@ -154,11 +149,20 @@ function Admin_add_batch_form() {
       
       const payload = {
         batch_name: form.values.batchName,
-        discipline: form.values.discipline,
-        batchYear: form.values.batchYear,
-        disciplineBatch: curriculumData,
+        discipline: parseInt(form.values.discipline, 10),
+        batchYear: parseInt(form.values.batchYear, 10),
         runningBatch: form.values.runningBatch,
-        total_seats: form.values.totalSeats || 0,
+        total_seats: parseInt(form.values.totalSeats, 10) || 0,
+        ...(isMultiSelectMode && Array.isArray(curriculumData) && curriculumData.length > 0
+          ? { 
+              curricula: curriculumData.map(id => parseInt(id, 10)), 
+              disciplineBatch: curriculumData.map(id => parseInt(id, 10)) 
+            }
+          : { 
+              curriculum: curriculumData ? parseInt(curriculumData, 10) : null, 
+              disciplineBatch: curriculumData ? parseInt(curriculumData, 10) : null 
+            }
+        )
       };
       
       const response = await axios.post(
@@ -170,6 +174,7 @@ function Admin_add_batch_form() {
           },
         },
       );
+      
       if (response.data.message) {
         notifications.show({
           title: "✅ Batch Added Successfully!",

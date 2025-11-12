@@ -24,7 +24,7 @@ import { showNotification } from "@mantine/notifications";
 import {
   availableCoursesRoute,   // NEW endpoint: GET /aims/api/available-courses/
   generatexlsheet,         // POST /aims/api/generate-xlsheet/
-  batchesRoute,            // unchanged: for prereg tab
+  listBatchesRoute,        // Academic procedures API for prereg tab
   generateprereport,       // unchanged: for prereg tab
 } from "../../routes/academicRoutes";
 
@@ -250,13 +250,14 @@ export default function GenerateStudentList() {
         return;
       }
       try {
-        const res = await axios.get(batchesRoute, {
+        const res = await axios.get(listBatchesRoute, {
           headers: { Authorization: `Token ${token}` },
         });
+        
         setBatchOptions(
-          res.data.batches.map(b => ({
-            value: String(b.batch_id),
-            label: `${b.name} ${b.discipline} ${b.year}`,
+          (res.data.batches || res.data).map(b => ({
+            value: String(b.batch_id || b.id),
+            label: `${b.name || b.label || `Batch ${b.year}`} ${b.discipline || ''}`,
           }))
         );
       } catch (err) {

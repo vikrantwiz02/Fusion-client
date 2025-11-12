@@ -723,18 +723,7 @@ const INITIAL_FORM_DATA = {
 
 const AdminUpcomingBatch = () => {
   const getCurrentBatchYear = () => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const month = now.getMonth();
-
-    if (month >= 6) {
-      // July to December - return current year
-      return currentYear;
-    } else {
-      // January to June - return current year (changed from currentYear - 1)
-      // This ensures we can see 2025 batches when it's 2025
-      return currentYear;
-    }
+    return new Date().getFullYear();
   };
 
   // Automatically adds new years in July, separate for UG/PG/PHD
@@ -2220,6 +2209,24 @@ const AdminUpcomingBatch = () => {
     return matchesSearch && matchesYear && matchesProgramme && matchesViewYear;
   });
 
+  // Constants for field mapping
+  const jeeAppKeys = [
+    'JEE App. No./CCMT Roll. No.',
+    'JEE App. No. / CCMT Roll No.',
+    'JEE App No / CCMT Roll No',
+    'Jee Main Application Number',
+    'jee_app_no'
+  ];
+  
+  const specializationKeys = [
+    'Specialization',
+    'specialization',
+    'Specialisation',
+    'specialisation',
+    'Stream',
+    'stream'
+  ];
+
   // Handle file upload for Excel - Now connected to backend with enhanced programme detection
   const handleFileUpload = async (file) => {
     setUploadedFile(file);
@@ -2241,14 +2248,6 @@ const AdminUpcomingBatch = () => {
 
           const transformStudentData = (student) => {
             const transformed = { ...student };
-
-            const jeeAppKeys = [
-              'JEE App. No./CCMT Roll. No.',
-              'JEE App. No. / CCMT Roll No.',
-              'JEE App No / CCMT Roll No',
-              'Jee Main Application Number',
-              'jee_app_no'
-            ];
             
             for (const key of jeeAppKeys) {
               if (transformed[key] && !transformed.jeeAppNo) {
@@ -2256,15 +2255,6 @@ const AdminUpcomingBatch = () => {
                 break;
               }
             }
-
-            const specializationKeys = [
-              'Specialization',
-              'specialization',
-              'Specialisation',
-              'specialisation',
-              'Stream',
-              'stream'
-            ];
             
             for (const key of specializationKeys) {
               if (transformed[key] && !transformed.specialization) {
@@ -5050,8 +5040,20 @@ const AdminUpcomingBatch = () => {
                           }}
                         >
                           <Badge variant="light" color="cyan" size="sm">
-                            {batch.curriculum_display || batch.curriculum || batch.curriculum_name || "N/A"}
-                            {!batch.curriculum_display && (batch.curriculumVersion || batch.curriculum_version) && ` v${batch.curriculumVersion || batch.curriculum_version}`}
+                            {(() => {
+                              const display = batch.curriculum_display || batch.curriculum || batch.curriculum_name || "N/A";
+                              const version = batch.curriculumVersion || batch.curriculum_version;
+                              function hasVersionInfo(display, version) {
+                                if (!version) return false;
+                                // Accept "vX", "V X", "version X", etc.
+                                const regex = new RegExp(`\\bv?\\s*${version}\\b`, "i");
+                                return regex.test(display);
+                              }
+                              if (version && !hasVersionInfo(display, version)) {
+                                return `${display} v${version}`;
+                              }
+                              return display;
+                            })()}
                           </Badge>
                         </td>
                         <td

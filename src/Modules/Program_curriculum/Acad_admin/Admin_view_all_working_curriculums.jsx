@@ -23,46 +23,46 @@ function Admin_view_all_working_curriculums() {
   const [deleteModalOpened, setDeleteModalOpened] = useState(false);
   const [curriculumToDelete, setCurriculumToDelete] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const cachedData = localStorage.getItem("AdminCurriculumsCache");
-        const timestamp = localStorage.getItem("AdminCurriculumsTimestamp");
-        const isCacheValid =
-          timestamp && Date.now() - parseInt(timestamp, 10) < 10 * 60 * 1000;
-        const cachedDatachange = localStorage.getItem(
-          "AdminCurriculumsCachechange",
+  const fetchData = async () => {
+    try {
+      const cachedData = localStorage.getItem("AdminCurriculumsCache");
+      const timestamp = localStorage.getItem("AdminCurriculumsTimestamp");
+      const isCacheValid =
+        timestamp && Date.now() - parseInt(timestamp, 10) < 10 * 60 * 1000;
+      const cachedDatachange = localStorage.getItem(
+        "AdminCurriculumsCachechange",
+      );
+      if (cachedData && isCacheValid && cachedDatachange === "false") {
+        setCurriculums(JSON.parse(cachedData));
+      } else {
+        const token = localStorage.getItem("authToken");
+        if (!token) throw new Error("Authorization token not found");
+
+        const data = await fetchWorkingCurriculumsData(token);
+        localStorage.setItem("AdminCurriculumsCachechange", "false");
+        setCurriculums(data.curriculums);
+        localStorage.setItem(
+          "AdminCurriculumsCache",
+          JSON.stringify(data.curriculums),
         );
-        if (cachedData && isCacheValid && cachedDatachange === "false") {
-          setCurriculums(JSON.parse(cachedData));
-        } else {
-          const token = localStorage.getItem("authToken");
-          if (!token) throw new Error("Authorization token not found");
-
-          const data = await fetchWorkingCurriculumsData(token);
-          localStorage.setItem("AdminCurriculumsCachechange", "false");
-          setCurriculums(data.curriculums);
-          localStorage.setItem(
-            "AdminCurriculumsCache",
-            JSON.stringify(data.curriculums),
-          );
-          localStorage.setItem(
-            "AdminCurriculumsTimestamp",
-            Date.now().toString(),
-          );
-        }
-      } catch (error) {
-        notifications.show({
-          title: "Load Error",
-          message: "Failed to load curriculums. Please refresh the page.",
-          color: "red",
-          autoClose: 3000,
-        });
-      } finally {
-        setLoading(false);
+        localStorage.setItem(
+          "AdminCurriculumsTimestamp",
+          Date.now().toString(),
+        );
       }
-    };
+    } catch (error) {
+      notifications.show({
+        title: "Load Error",
+        message: "Failed to load curriculums. Please refresh the page.",
+        color: "red",
+        autoClose: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -261,6 +261,16 @@ function Admin_view_all_working_curriculums() {
               onChange={(event) => setSearchTerm(event.currentTarget.value)}
               style={{ width: "400px" }}
             />
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setLoading(true);
+                localStorage.removeItem("AdminCurriculumsCache");
+                fetchData();
+              }}
+            >
+              Refresh
+            </Button>
             <Link to="/programme_curriculum/acad_admin_add_curriculum_form">
               <Button variant="filled" color="blue" radius="sm">
                 Add Curriculum
