@@ -79,6 +79,7 @@ function AdminViewAllBatches() {
           available_seats: batch.available_seats,
           curriculum: batch.curriculum,
           curriculum_name: batch.curriculum,
+          curriculum_display: batch.curriculum_display,
           curriculumId: batch.curriculum_id,
           curriculum_id: batch.curriculum_id,
           status: batch.status
@@ -396,19 +397,27 @@ function AdminViewAllBatches() {
                               borderRight: "1px solid #d3d3d3",
                             }}
                           >
-                            <Link
-                              to={`/programme_curriculum/view_curriculum?curriculum=${batch.curriculumId || batch.curriculum_id}`}
-                              className="course-link"
-                              style={{
-                                color: "#3498db",
-                                textDecoration: "none",
-                                fontSize: "14px",
-                              }}
-                            >
-                              {batch.curriculum
-                                ? `${batch.curriculum}${batch.curriculumVersion || batch.curriculum_version ? ` v${batch.curriculumVersion || batch.curriculum_version}` : ''}`
-                                : ""}
-                            </Link>
+                            {batch.curriculum_display || batch.curriculum ? (
+                              <Link
+                                to={`/programme_curriculum/view_curriculum?curriculum=${batch.curriculumId || batch.curriculum_id}`}
+                                className="course-link"
+                                style={{
+                                  color: "#3498db",
+                                  textDecoration: "none",
+                                  fontSize: "14px",
+                                }}
+                              >
+                                {batch.curriculum_display || 
+                                  (batch.curriculum
+                                    ? `${batch.curriculum}${batch.curriculumVersion || batch.curriculum_version ? ` v${batch.curriculumVersion || batch.curriculum_version}` : ''}`
+                                    : "")
+                                }
+                              </Link>
+                            ) : (
+                              <span style={{ color: "#666", fontSize: "14px" }}>
+                                No curriculum assigned
+                              </span>
+                            )}
                           </td>
                           <td
                             style={{
@@ -671,15 +680,23 @@ function AdminViewAllBatches() {
                               borderRight: "1px solid #d3d3d3",
                             }}
                           >
-                            <Link
-                              to={`/programme_curriculum/view_curriculum?curriculum=${batch.curriculumId || batch.curriculum_id}`}
-                              className="course-link"
-                              style={{ textDecoration: "none" }}
-                            >
-                              {batch.curriculum
-                                ? `${batch.curriculum}${batch.curriculumVersion || batch.curriculum_version ? ` v${batch.curriculumVersion || batch.curriculum_version}` : ''}`
-                                : ""}
-                            </Link>
+                            {batch.curriculum_display || batch.curriculum ? (
+                              <Link
+                                to={`/programme_curriculum/view_curriculum?curriculum=${batch.curriculumId || batch.curriculum_id}`}
+                                className="course-link"
+                                style={{ textDecoration: "none" }}
+                              >
+                                {batch.curriculum_display || 
+                                  (batch.curriculum
+                                    ? `${batch.curriculum}${batch.curriculumVersion || batch.curriculum_version ? ` v${batch.curriculumVersion || batch.curriculum_version}` : ''}`
+                                    : "")
+                                }
+                              </Link>
+                            ) : (
+                              <span style={{ color: "#666", fontSize: "14px" }}>
+                                No curriculum assigned
+                              </span>
+                            )}
                           </td>
                           <td
                             style={{

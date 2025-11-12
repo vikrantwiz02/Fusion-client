@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   Select,
+  MultiSelect,
   NumberInput,
   Checkbox,
   Button,
@@ -29,8 +30,17 @@ function Admin_edit_batch_form() {
   const [batchNames, setBatchNames] = useState([]);
   const [disciplines, setDisciplines] = useState([]);
   const [unlinkedCurriculums, setUnlinkedCurriculums] = useState([]);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const shouldEnableMultiSelect = (batchName) => {
+    if (!batchName) return false;
+    const name = batchName.toLowerCase();
+    return name.includes('m.tech') || name.includes('mtech') || 
+           name.includes('m.des') || name.includes('mdes') || 
+           name.includes('phd') || name.includes('ph.d');
+  };
 
   const form = useForm({
     initialValues: {
@@ -38,8 +48,25 @@ function Admin_edit_batch_form() {
       discipline: "",
       batchYear: 2024,
       disciplineBatch: "",
+      multipleCurricula: [],
       runningBatch: false,
       totalSeats: 0,
+    },
+    validate: {
+      batchName: (value) => (!value ? "Batch name is required" : null),
+      discipline: (value) => (!value ? "Discipline is required" : null),
+      disciplineBatch: (value, values) => {
+        if (!isMultiSelectMode && !value) {
+          return "Curriculum is required";
+        }
+        return null;
+      },
+      multipleCurricula: (value, values) => {
+        if (isMultiSelectMode && (!value || value.length === 0)) {
+          return "At least one curriculum is required";
+        }
+        return null;
+      },
     },
   });
 
@@ -64,13 +91,21 @@ function Admin_edit_batch_form() {
           ]);
         }
         
+        // Check if multi-select mode should be enabled based on existing batch name
+        const batchName = existingBatchData.batch.name;
+        const multiSelectEnabled = shouldEnableMultiSelect(batchName);
+        setIsMultiSelectMode(multiSelectEnabled);
+        
         form.setValues({
-          batchName: existingBatchData.batch.name,
+          batchName: batchName,
           discipline: existingBatchData.batch.discipline.toString(),
           batchYear: existingBatchData.batch.year,
-          disciplineBatch: existingBatchData.batch.curriculum_id
+          disciplineBatch: multiSelectEnabled ? "" : (existingBatchData.batch.curriculum_id
             ? existingBatchData.batch.curriculum_id.toString()
-            : curriculumId || "",
+            : curriculumId || ""),
+          multipleCurricula: multiSelectEnabled ? (existingBatchData.batch.curriculum_id
+            ? [existingBatchData.batch.curriculum_id.toString()]
+            : []) : [],
           runningBatch: existingBatchData.batch.running_batch,
           totalSeats: existingBatchData.batch.total_seats || 0,
         });
@@ -90,6 +125,23 @@ function Admin_edit_batch_form() {
     loadData();
   }, [batchId]);
 
+  // Handler for batch name change
+  const handleBatchNameChange = (value) => {
+    form.setFieldValue("batchName", value);
+    
+    const multiSelectEnabled = shouldEnableMultiSelect(value);
+    setIsMultiSelectMode(multiSelectEnabled);
+    
+    // Clear curriculum selections when switching modes
+    if (multiSelectEnabled) {
+      form.setFieldValue("disciplineBatch", "");
+      form.setFieldValue("multipleCurricula", []);
+    } else {
+      form.setFieldValue("multipleCurricula", []);
+      form.setFieldValue("disciplineBatch", "");
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       localStorage.setItem("AdminBatchesCachechange", "true");
@@ -97,11 +149,18 @@ function Admin_edit_batch_form() {
       if (!token) {
         throw new Error("Authorization token is required");
       }
+      let curriculumData;
+      if (isMultiSelectMode) {
+        curriculumData = form.values.multipleCurricula.length > 0 ? form.values.multipleCurricula : "";
+      } else {
+        curriculumData = form.values.disciplineBatch || "";
+      }
+      
       const payload = {
         batch_name: form.values.batchName,
         discipline: form.values.discipline,
         batchYear: form.values.batchYear,
-        disciplineBatch: form.values.disciplineBatch || "",
+        disciplineBatch: curriculumData,
         runningBatch: form.values.runningBatch,
         total_seats: form.values.totalSeats,
       };
@@ -199,7 +258,7 @@ function Admin_edit_batch_form() {
                   placeholder="-- Select Batch Name --"
                   data={batchNames}
                   value={form.values.batchName}
-                  onChange={(value) => form.setFieldValue("batchName", value)}
+                  onChange={handleBatchNameChange}
                   required
                 />
 
@@ -222,18 +281,38 @@ function Admin_edit_batch_form() {
                   required
                 />
 
-                <Select
-                  label="Select Curriculum for Batch"
-                  placeholder="-- Select Curriculum for Batch Students --"
-                  data={unlinkedCurriculums.map((curriculum) => ({
-                    value: curriculum.id.toString(),
-                    label: `${curriculum.name} - v${curriculum.version}`,
-                  }))}
-                  value={form.values.disciplineBatch}
-                  onChange={(value) =>
-                    form.setFieldValue("disciplineBatch", value)
-                  }
-                />
+                {isMultiSelectMode ? (
+                  <MultiSelect
+                    label="Select Curricula for Batch"
+                    placeholder="-- Select Multiple Curricula for Batch Students --"
+                    data={unlinkedCurriculums.map((curriculum) => ({
+                      value: curriculum.id.toString(),
+                      label: `${curriculum.name} - v${curriculum.version}`,
+                    }))}
+                    value={form.values.multipleCurricula}
+                    onChange={(value) =>
+                      form.setFieldValue("multipleCurricula", value)
+                    }
+                    searchable
+                    clearable
+                    description="You can select multiple curricula for M.Tech/M.Des/PhD programs"
+                  />
+                ) : (
+                  <Select
+                    label="Select Curriculum for Batch"
+                    placeholder="-- Select Curriculum for Batch Students --"
+                    data={unlinkedCurriculums.map((curriculum) => ({
+                      value: curriculum.id.toString(),
+                      label: `${curriculum.name} - v${curriculum.version}`,
+                    }))}
+                    value={form.values.disciplineBatch}
+                    onChange={(value) =>
+                      form.setFieldValue("disciplineBatch", value)
+                    }
+                    searchable
+                    clearable
+                  />
+                )}
 
                 <Checkbox
                   label="Running Batch"

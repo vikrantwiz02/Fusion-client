@@ -773,12 +773,17 @@ export const updateStudentStatus = async (statusData) => {
 export const createBatch = async (batchData) => {
   try {
     const token = localStorage.getItem("authToken");
+    if (!token) {
+      throw new Error("Authorization token is required");
+    }
 
     const payload = {
       programme: batchData.programme || batchData.program,
       discipline: batchData.discipline,
       year: parseInt(batchData.year, 10),
       total_seats: parseInt(batchData.total_seats || batchData.totalSeats, 10),
+      curriculum: batchData.curriculum,
+      specialization: batchData.specialization,
     };
 
     // Validate required fields
@@ -794,7 +799,7 @@ export const createBatch = async (batchData) => {
     }
 
     const response = await axios.post(
-      `${BASE_URL}/programme_curriculum/api/batches/create/`,
+      `${BASE_URL}/programme_curriculum/api/admin_add_batch/`,
       payload,
       {
         headers: {
