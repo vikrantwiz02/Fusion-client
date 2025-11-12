@@ -15,7 +15,7 @@ import {
 import axios from "axios";
 import { saveAs } from "file-saver";
 import {
-  batchesRoute,
+  listBatchesRoute,
   courseListRoute,
   studentListRoute,
   verifyRegistrationRoute,
@@ -45,12 +45,12 @@ function VerifyStudentRegistration() {
         return;
       }
       try {
-        const response = await axios.get(batchesRoute, {
+        const response = await axios.get(listBatchesRoute, {
           headers: {
             Authorization: `Token ${token}`,
           },
         });
-        setBatches(response.data.batches);
+        setBatches(response.data.batches || response.data);
       } catch (fetchError) {
         setError(fetchError);
       } finally {
@@ -204,8 +204,8 @@ function VerifyStudentRegistration() {
           setBatch(val);
         }}
         data={batches.map((bat) => ({
-          value: bat.id.toString(),
-          label: `${bat.name} ${bat.discipline} ${bat.year}`,
+          value: (bat.id || bat.batch_id).toString(),
+          label: `${bat.name || bat.label || `Batch ${bat.year}`} ${bat.discipline || ''}`,
         }))}
         disabled={loading}
         searchable
@@ -230,7 +230,7 @@ function VerifyStudentRegistration() {
 
       {error && (
         <Notification color="red" mt="md">
-          {error}
+          {error.message || error}
         </Notification>
       )}
 
