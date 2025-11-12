@@ -144,19 +144,56 @@ const PROGRAMME_TYPES = {
 
 const STUDENT_FIELDS_CONFIG = {
   jeeAppNo: {
-    label: "JEE App. No.",
-    placeholder: "Enter JEE application number",
+    label: "JEE App. No. / CCMT Roll No.",
+    placeholder: "Enter JEE application number or CCMT roll number",
     required: true,
     backendField: "jee_app_no",
     excelColumns: [
       "jee main application number",
       "jee app. no.",
+      "jee app. no./ccmt roll. no.",
+      "jee app. no. / ccmt roll no.",
+      "jee app no / ccmt roll no",
+      "jee app no/ccmt roll no",
       "jee application number",
+      "ccmt roll no",
+      "ccmt roll number", 
       "jeeprep",
       "jee app no",
       "rollno",
       "isprep",
+      "application number",
+      "app no",
+      "app. no.",
+      "application no",
+      "jee roll no",
+      "jee roll number",
     ],
+  },
+  specialization: {
+    label: "Specialization",
+    placeholder: "Select specialization",
+    required: true,
+    type: "select",
+    backendField: "specialization", 
+    options: [
+      { value: "AI & ML", label: "AI & ML" },
+      { value: "Data Science", label: "Data Science" },
+      { value: "Communication and Signal Processing", label: "Communication and Signal Processing" },
+      { value: "Nanoelectronics and VLSI Design", label: "Nanoelectronics and VLSI Design" },
+      { value: "Power & Control", label: "Power & Control" },
+      { value: "Design", label: "Design" },
+      { value: "CAD/CAM", label: "CAD/CAM" },
+      { value: "Manufacturing and Automation", label: "Manufacturing and Automation" },
+      { value: "Mechatronics", label: "Mechatronics" },
+    ],
+    excelColumns: [
+      "specialization",
+      "specialisation", 
+      "stream",
+      "track",
+    ],
+    showForProgrammes: ["PG", "PHD"],
   },
   name: {
     label: "Full Name",
@@ -645,6 +682,7 @@ const STUDENT_FIELDS_CONFIG = {
 
 const INITIAL_FORM_DATA = {
   jeeAppNo: "",
+  specialization: "",
   name: "",
   fname: "",
   mname: "",
@@ -690,11 +728,12 @@ const AdminUpcomingBatch = () => {
     const month = now.getMonth();
 
     if (month >= 6) {
-      // July to December
+      // July to December - return current year
       return currentYear;
     } else {
-      // January to June
-      return currentYear - 1;
+      // January to June - return current year (changed from currentYear - 1)
+      // This ensures we can see 2025 batches when it's 2025
+      return currentYear;
     }
   };
 
@@ -1740,6 +1779,7 @@ const AdminUpcomingBatch = () => {
           availableSeats: batch.available_seats,
           available_seats: batch.available_seats,
           curriculum: batch.curriculum,
+          curriculum_display: batch.curriculum_display,
           curriculum_name: batch.curriculum,
           curriculumId: batch.curriculum_id,
           curriculum_id: batch.curriculum_id,
@@ -1986,6 +2026,7 @@ const AdminUpcomingBatch = () => {
               "jeeAppNo",
               "application_no",
               "Application No",
+              "JEE App. No. / CCMT Roll No.",
             ],
             address: ["Address", "permanent_address", "permanentAddress"],
             state: ["State", "home_state", "homeState"],
@@ -2083,6 +2124,7 @@ const AdminUpcomingBatch = () => {
         availableSeats,
         name: batch.name || batch.programme || "Unknown",
         curriculum: batch.curriculum || batch.curriculum_name || "N/A",
+        curriculum_display: batch.curriculum_display,
         curriculumVersion: batch.curriculumVersion || batch.curriculum_version || null,
       };
     });
@@ -2139,6 +2181,7 @@ const AdminUpcomingBatch = () => {
           availableSeats: batch.available_seats,
           available_seats: batch.available_seats,
           curriculum: batch.curriculum,
+          curriculum_display: batch.curriculum_display,
           curriculum_name: batch.curriculum,
           curriculumId: batch.curriculum_id,
           curriculum_id: batch.curriculum_id,
@@ -2193,7 +2236,53 @@ const AdminUpcomingBatch = () => {
         setUploadProgress(80);
 
         if (response.success) {
-          setExtractedData(response.valid_students);
+          const validStudents = response.valid_students || [];
+          const invalidStudents = response.invalid_students || [];
+
+          const transformStudentData = (student) => {
+            const transformed = { ...student };
+
+            const jeeAppKeys = [
+              'JEE App. No./CCMT Roll. No.',
+              'JEE App. No. / CCMT Roll No.',
+              'JEE App No / CCMT Roll No',
+              'Jee Main Application Number',
+              'jee_app_no'
+            ];
+            
+            for (const key of jeeAppKeys) {
+              if (transformed[key] && !transformed.jeeAppNo) {
+                transformed.jeeAppNo = transformed[key];
+                break;
+              }
+            }
+
+            const specializationKeys = [
+              'Specialization',
+              'specialization',
+              'Specialisation',
+              'specialisation',
+              'Stream',
+              'stream'
+            ];
+            
+            for (const key of specializationKeys) {
+              if (transformed[key] && !transformed.specialization) {
+                transformed.specialization = transformed[key];
+                break;
+              }
+            }
+            
+            return transformed;
+          };
+
+          const transformedValidStudents = validStudents.map(transformStudentData);
+          const transformedInvalidStudents = invalidStudents.map(item => ({
+            ...transformStudentData(item.data || item),
+            _validation_error: item.error, 
+            _row_number: item.row,
+          }));
+          
           setUploadProgress(100);
 
           notifications.show({
@@ -2202,16 +2291,7 @@ const AdminUpcomingBatch = () => {
             color: "green",
           });
 
-          const validStudents = response.valid_students || [];
-          const invalidStudents = response.invalid_students || [];
-
-          const invalidStudentData = invalidStudents.map((item) => ({
-            ...item.data,
-            _validation_error: item.error, 
-            _row_number: item.row,
-          }));
-
-          const allStudents = [...validStudents, ...invalidStudentData];
+          const allStudents = [...transformedValidStudents, ...transformedInvalidStudents];
 
           setExtractedData(allStudents);
           setShowPreview(true);
@@ -2900,8 +2980,9 @@ const AdminUpcomingBatch = () => {
     'pwdCategory',       // 10. PWD Category
     'pwdCategoryRemarks',// 11. PWD Category Remarks
     'branch',            // 12. Branch/Discipline
-    'phoneNumber',       // 13. Mobile Number
-    'email',             // 14. Institute Email
+    'specialization',    // 13. Specialization (PG/PhD only)
+    'phoneNumber',       // 14. Mobile Number
+    'email',             // 15. Institute Email
     'alternateEmail',    // 15. Alternate Email
     'parentEmail',       // 16. Parent Email
     'fname',             // 17. Father Name
@@ -2931,6 +3012,7 @@ const AdminUpcomingBatch = () => {
     { key: 'rollNumber', label: 'Roll Number', minWidth: '120px', fields: ['rollNumber', 'roll_number', 'Institute Roll Number'] },
     { key: 'name', label: 'Name', minWidth: '180px', fields: ['name', 'Name'] },
     { key: 'branch', label: 'Discipline', minWidth: '200px', fields: ['discipline', 'branch', 'Discipline'] },
+    { key: 'specialization', label: 'Specialization', minWidth: '180px', fields: ['specialization', 'Specialization'] },
     { key: 'gender', label: 'Gender', minWidth: '80px', fields: ['gender', 'Gender'] },
     { key: 'category', label: 'Category', minWidth: '90px', fields: ['category', 'Category'] },
     { key: 'allottedCategory', label: 'Allotted Cat', minWidth: '100px', fields: ['allottedcat', 'allotted_category', 'Allotted Category'] },
@@ -4968,8 +5050,8 @@ const AdminUpcomingBatch = () => {
                           }}
                         >
                           <Badge variant="light" color="cyan" size="sm">
-                            {batch.curriculum || batch.curriculum_name || "N/A"}
-                            {(batch.curriculumVersion || batch.curriculum_version) && ` v${batch.curriculumVersion || batch.curriculum_version}`}
+                            {batch.curriculum_display || batch.curriculum || batch.curriculum_name || "N/A"}
+                            {!batch.curriculum_display && (batch.curriculumVersion || batch.curriculum_version) && ` v${batch.curriculumVersion || batch.curriculum_version}`}
                           </Badge>
                         </td>
                         <td
@@ -5449,6 +5531,11 @@ const AdminUpcomingBatch = () => {
                                   <th style={{ width: "130px" }}>
                                     JEE App. No.
                                   </th>
+                                  {(activeSection === "pg" || activeSection === "phd") && (
+                                    <th style={{ width: "140px" }}>
+                                      Specialization
+                                    </th>
+                                  )}
                                   <th style={{ width: "100px" }}>
                                     Branch Code
                                   </th>
@@ -5551,6 +5638,25 @@ const AdminUpcomingBatch = () => {
                                     >
                                       {student.jeeAppNo || "N/A"}
                                     </td>
+                                    {(activeSection === "pg" || activeSection === "phd") && (
+                                      <td
+                                        style={{
+                                          padding: "8px 12px",
+                                          fontSize: "11px",
+                                        }}
+                                      >
+                                        <Badge
+                                          color="blue"
+                                          variant="light"
+                                          style={{
+                                            fontSize: "10px",
+                                            whiteSpace: "nowrap",
+                                          }}
+                                        >
+                                          {student.specialization || "N/A"}
+                                        </Badge>
+                                      </td>
+                                    )}
                                     <td style={{ padding: "8px 12px" }}>
                                       <Badge
                                         color="green"
@@ -5708,7 +5814,18 @@ const AdminUpcomingBatch = () => {
                                   <tr style={{ backgroundColor: "#f8f9fa" }}>
                                     <th style={{ minWidth: "60px" }}>S.No</th>
                                     {PREVIEW_FIELD_ORDER
-                                      .filter(fieldKey => STUDENT_FIELDS_CONFIG[fieldKey] && !STUDENT_FIELDS_CONFIG[fieldKey].systemGenerated)
+                                      .filter(fieldKey => {
+                                        const field = STUDENT_FIELDS_CONFIG[fieldKey];
+                                        if (!field || field.systemGenerated) return false;
+                                        
+                                        // Check if field should show for current program type
+                                        if (field.showForProgrammes) {
+                                          const currentProgramType = activeSection.toUpperCase();
+                                          return field.showForProgrammes.includes(currentProgramType);
+                                        }
+                                        
+                                        return true;
+                                      })
                                       .map((fieldKey) => {
                                         const field = STUDENT_FIELDS_CONFIG[fieldKey];
                                         return (
@@ -5806,7 +5923,17 @@ const AdminUpcomingBatch = () => {
                                             index + 1}
                                         </td>
                                         {PREVIEW_FIELD_ORDER
-                                          .filter(fieldKey => STUDENT_FIELDS_CONFIG[fieldKey] && !STUDENT_FIELDS_CONFIG[fieldKey].systemGenerated)
+                                          .filter(fieldKey => {
+                                            const field = STUDENT_FIELDS_CONFIG[fieldKey];
+                                            if (!field || field.systemGenerated) return false;
+                                    
+                                            if (field.showForProgrammes) {
+                                              const currentProgramType = activeSection.toUpperCase();
+                                              return field.showForProgrammes.includes(currentProgramType);
+                                            }
+                                            
+                                            return true;
+                                          })
                                           .map((fieldKey) => (
                                             <td key={fieldKey}>
                                               {getFieldValue(fieldKey)}
@@ -6459,26 +6586,22 @@ const AdminUpcomingBatch = () => {
                           </Grid.Col>
                         </Grid>
 
-                        {/* JEE App No and Aadhar */}
-                        <Grid>
-                          <Grid.Col span={isMobile ? 12 : 6}>
-                            <TextInput
-                              label={STUDENT_FIELDS_CONFIG.jeeAppNo.label}
-                              placeholder={
-                                STUDENT_FIELDS_CONFIG.jeeAppNo.placeholder
-                              }
-                              value={manualFormData.jeeAppNo}
-                              onChange={(e) =>
-                                setManualFormData({
-                                  ...manualFormData,
-                                  jeeAppNo: e.target.value,
-                                })
-                              }
-                              required={STUDENT_FIELDS_CONFIG.jeeAppNo.required}
-                              error={errors.jeeAppNo}
-                            />
-                          </Grid.Col>
-                        </Grid>
+                        {/* JEE App No */}
+                        <TextInput
+                          label={STUDENT_FIELDS_CONFIG.jeeAppNo.label}
+                          placeholder={
+                            STUDENT_FIELDS_CONFIG.jeeAppNo.placeholder
+                          }
+                          value={manualFormData.jeeAppNo}
+                          onChange={(e) =>
+                            setManualFormData({
+                              ...manualFormData,
+                              jeeAppNo: e.target.value,
+                            })
+                          }
+                          required={STUDENT_FIELDS_CONFIG.jeeAppNo.required}
+                          error={errors.jeeAppNo}
+                        />
 
                         {/* Address */}
                         <Textarea
@@ -6637,6 +6760,34 @@ const AdminUpcomingBatch = () => {
                           error={errors.branch}
                           searchable
                         />
+
+                        {/* Specialization - Only for PG and PhD programmes */}
+                        {(activeSection === "pg" || activeSection === "phd") && (
+                          <Select
+                            label={STUDENT_FIELDS_CONFIG.specialization.label}
+                            placeholder={
+                              STUDENT_FIELDS_CONFIG.specialization.placeholder
+                            }
+                            value={manualFormData.specialization || ""}
+                            onChange={(value) => {
+                              if (editingStudent) {
+                                setEditingStudent({
+                                  ...editingStudent,
+                                  specialization: value,
+                                });
+                              }
+                              setManualFormData({
+                                ...manualFormData,
+                                specialization: value,
+                              });
+                            }}
+                            data={STUDENT_FIELDS_CONFIG.specialization.options}
+                            required={STUDENT_FIELDS_CONFIG.specialization.required}
+                            error={errors.specialization}
+                            searchable
+                            clearable
+                          />
+                        )}
                         {/* AI Rank and Category Rank */}
                         <Grid>
                           <Grid.Col span={isMobile ? 12 : 6}>
@@ -6983,6 +7134,12 @@ const AdminUpcomingBatch = () => {
                               <Text size="xs" weight={600} color="dimmed" mb={2}>JEE APPLICATION NO.</Text>
                               <Text size="sm" weight={500}>{manualFormData.jeeAppNo || "Not provided"}</Text>
                             </div>
+                            {(activeSection === "pg" || activeSection === "phd") && manualFormData.specialization && (
+                              <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>SPECIALIZATION</Text>
+                                <Text size="sm" weight={500}>{manualFormData.specialization}</Text>
+                              </div>
+                            )}
                             {manualFormData.address && (
                               <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px", gridColumn: "1 / -1" }}>
                                 <Text size="xs" weight={600} color="dimmed" mb={2}>ADDRESS</Text>
@@ -7087,6 +7244,12 @@ const AdminUpcomingBatch = () => {
                               <Text size="xs" weight={600} color="dimmed" mb={2}>BRANCH</Text>
                               <Text size="sm" weight={500}>{manualFormData.branch || "Not selected"}</Text>
                             </div>
+                            {(activeSection === "pg" || activeSection === "phd") && manualFormData.specialization && (
+                              <div style={{ padding: "8px", backgroundColor: "#e8f4fd", borderRadius: "6px" }}>
+                                <Text size="xs" weight={600} color="dimmed" mb={2}>SPECIALIZATION</Text>
+                                <Text size="sm" weight={500}>{manualFormData.specialization}</Text>
+                              </div>
+                            )}
                             {manualFormData.jeeRank && (
                               <div style={{ padding: "8px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
                                 <Text size="xs" weight={600} color="dimmed" mb={2}>AI RANK</Text>
