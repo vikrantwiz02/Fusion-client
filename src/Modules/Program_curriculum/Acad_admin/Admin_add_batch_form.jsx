@@ -27,20 +27,11 @@ function Admin_add_batch_form() {
   const [batchNames, setBatchNames] = useState([]); // State for batch names
   const [disciplines, setDisciplines] = useState([]); // State for disciplines
   const [unlinkedCurriculums, setUnlinkedCurriculums] = useState([]); // State for unlinked curriculums
-  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false); // State for multi-select mode
 
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true); // State for loading
   const [error, setError] = useState(null); // State for error handling
-
-  const shouldEnableMultiSelect = (batchName) => {
-    if (!batchName) return false;
-    const name = batchName.toLowerCase();
-    return name.includes('m.tech') || name.includes('mtech') || 
-           name.includes('m.des') || name.includes('mdes') || 
-           name.includes('phd') || name.includes('ph.d');
-  };
 
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -59,7 +50,6 @@ function Admin_add_batch_form() {
       discipline: "",
       batchYear: 2024,
       disciplineBatch: curriculumId || "",
-      multipleCurricula: [],
       runningBatch: false,
       totalSeats: 0,
     },
@@ -67,18 +57,7 @@ function Admin_add_batch_form() {
       batchName: (value) => (!value ? "Batch name is required" : null),
       discipline: (value) => (!value ? "Discipline is required" : null),
       totalSeats: (value) => (value < 0 ? "Total seats cannot be negative" : null),
-      disciplineBatch: (value, values) => {
-        if (!isMultiSelectMode && !value) {
-          return "Curriculum is required";
-        }
-        return null;
-      },
-      multipleCurricula: (value, values) => {
-        if (isMultiSelectMode && (!value || value.length === 0)) {
-          return "At least one curriculum is required";
-        }
-        return null;
-      },
+      disciplineBatch: (value) => (!value ? "Curriculum is required" : null),
     },
   });
 
@@ -109,11 +88,7 @@ function Admin_add_batch_form() {
   const handleBatchNameChange = (value) => {
     form.setFieldValue("batchName", value);
     
-    const multiSelectEnabled = shouldEnableMultiSelect(value);
-    setIsMultiSelectMode(multiSelectEnabled);
-
     form.setFieldValue("disciplineBatch", "");
-    form.setFieldValue("multipleCurricula", []);
   };
 
   const handleCancel = () => {
@@ -140,12 +115,7 @@ function Admin_add_batch_form() {
         throw new Error("Authorization token is required");
       }
 
-      let curriculumData;
-      if (isMultiSelectMode) {
-        curriculumData = form.values.multipleCurricula.length > 0 ? form.values.multipleCurricula : "";
-      } else {
-        curriculumData = form.values.disciplineBatch || "";
-      }
+      const curriculumData = form.values.disciplineBatch || "";
       
       const payload = {
         batch_name: form.values.batchName,
@@ -153,16 +123,8 @@ function Admin_add_batch_form() {
         batchYear: parseInt(form.values.batchYear, 10),
         runningBatch: form.values.runningBatch,
         total_seats: parseInt(form.values.totalSeats, 10) || 0,
-        ...(isMultiSelectMode && Array.isArray(curriculumData) && curriculumData.length > 0
-          ? { 
-              curricula: curriculumData.map(id => parseInt(id, 10)), 
-              disciplineBatch: curriculumData.map(id => parseInt(id, 10)) 
-            }
-          : { 
-              curriculum: curriculumData ? parseInt(curriculumData, 10) : null, 
-              disciplineBatch: curriculumData ? parseInt(curriculumData, 10) : null 
-            }
-        )
+        curriculum: curriculumData ? parseInt(curriculumData, 10) : null, 
+        disciplineBatch: curriculumData ? parseInt(curriculumData, 10) : null
       };
       
       const response = await axios.post(
@@ -325,40 +287,21 @@ function Admin_add_batch_form() {
                   required
                 />
 
-                {isMultiSelectMode ? (
-                  <MultiSelect
-                    label="Select Curricula for Batch"
-                    placeholder="-- Select Multiple Curricula for Batch Students --"
-                    data={unlinkedCurriculums.map((curriculum) => ({
-                      value: curriculum.id.toString(),
-                      label: `${curriculum.name} - v${curriculum.version}`,
-                    }))}
-                    value={form.values.multipleCurricula}
-                    onChange={(value) =>
-                      form.setFieldValue("multipleCurricula", value)
-                    }
-                    required
-                    searchable
-                    clearable
-                    description="You can select multiple curricula for M.Tech/M.Des/PhD programs"
-                  />
-                ) : (
-                  <Select
-                    label="Select Curriculum for Batch"
-                    placeholder="-- Select Curriculum for Batch Students --"
-                    data={unlinkedCurriculums.map((curriculum) => ({
-                      value: curriculum.id.toString(),
-                      label: `${curriculum.name} - v${curriculum.version}`,
-                    }))}
-                    value={form.values.disciplineBatch}
-                    onChange={(value) =>
-                      form.setFieldValue("disciplineBatch", value)
-                    }
-                    required
-                    searchable
-                    clearable
-                  />
-                )}
+                <Select
+                  label="Select Curriculum for Batch"
+                  placeholder="-- Select Curriculum for Batch Students --"
+                  data={unlinkedCurriculums.map((curriculum) => ({
+                    value: curriculum.id.toString(),
+                    label: `${curriculum.name} - v${curriculum.version}`,
+                  }))}
+                  value={form.values.disciplineBatch}
+                  onChange={(value) =>
+                    form.setFieldValue("disciplineBatch", value)
+                  }
+                  required
+                  searchable
+                  clearable
+                />
 
                 <Checkbox
                   label="Running Batch"

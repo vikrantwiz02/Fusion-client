@@ -2412,6 +2412,7 @@ const AdminUpcomingBatch = () => {
       
       // Academic Information
       'branch',
+      'specialization',
       'jeeRank',
       'categoryRank',
       
@@ -2878,9 +2879,6 @@ const AdminUpcomingBatch = () => {
   };
 
   const transformDataForDatabase = (studentList) => {
-    if (studentList?.length > 0) {
-    }
-
     return studentList.map((student) => {
       const transformedStudent = {};
 
@@ -2925,6 +2923,31 @@ const AdminUpcomingBatch = () => {
           }
         }
 
+        // Extract specialization from batch name if not found in student data
+        if (fieldKey === "specialization" && (!fieldValue || fieldValue === "")) {
+          const studentBranch = student.branch || student.discipline || student.Discipline || "";
+          const studentYear = student.year || student.Year || "";
+
+          if (studentBranch && (studentBranch.includes("M.Tech") || studentBranch.includes("M.Des"))) {
+            const extractedSpec = extractSpecializationFromBatchName(`${studentBranch} ${studentYear}`);
+            if (extractedSpec) {
+              fieldValue = extractedSpec;
+            } else {
+              if (studentBranch.includes("Design") || studentBranch === "Design") {
+                fieldValue = "Design";
+              } else if (studentBranch.includes("Mechatronics") || studentBranch === "Mechatronics") {
+                fieldValue = "Mechatronics";
+              }
+            }
+          } else if (studentBranch && !studentBranch.includes("B.Tech") && !studentBranch.includes("B.Des")) {
+            if (studentBranch.includes("Design") || studentBranch === "Design") {
+              fieldValue = "Design";
+            } else if (studentBranch.includes("Mechatronics") || studentBranch === "Mechatronics") {
+              fieldValue = "Mechatronics";
+            }
+          }
+        }
+
         if (fieldKey === "dob" && fieldValue) {
           fieldValue = typeof fieldValue === 'string' ? fieldValue.split(' ')[0].split('T')[0] : fieldValue;
         }
@@ -2953,6 +2976,11 @@ const AdminUpcomingBatch = () => {
       transformedStudent.id = student.id;
       transformedStudent._validation_error = student._validation_error;
 
+      // Ensure specialization field exists (even if empty)
+      if (!transformedStudent.hasOwnProperty('specialization')) {
+        transformedStudent.specialization = "";
+      }
+
       return transformedStudent;
     });
   };
@@ -2972,9 +3000,9 @@ const AdminUpcomingBatch = () => {
     'branch',            // 12. Branch/Discipline
     'specialization',    // 13. Specialization (PG/PhD only)
     'phoneNumber',       // 14. Mobile Number
-    'email',             // 15. Institute Email
-    'alternateEmail',    // 15. Alternate Email
-    'parentEmail',       // 16. Parent Email
+    'instituteEmail',    // 15. Institute Email
+    'alternateEmail',    // 16. Alternate Email
+    'parentEmail',       // 17. Parent Email
     'fname',             // 17. Father Name
     'fatherOccupation',  // 18. Father Occupation
     'fatherMobile',      // 19. Father Mobile
@@ -3849,7 +3877,14 @@ const AdminUpcomingBatch = () => {
       ];
     } else if (activeSection === "pg") {
       return [
-        { value: "M.Tech", label: "M.Tech" },
+        { value: "M.Tech AI & ML", label: "M.Tech AI & ML" },
+        { value: "M.Tech Data Science", label: "M.Tech Data Science" },
+        { value: "M.Tech Communication and Signal Processing", label: "M.Tech Communication and Signal Processing" },
+        { value: "M.Tech Nanoelectronics and VLSI Design", label: "M.Tech Nanoelectronics and VLSI Design" },
+        { value: "M.Tech Power & Control", label: "M.Tech Power & Control" },
+        { value: "M.Tech Design", label: "M.Tech Design" },
+        { value: "M.Tech CAD/CAM", label: "M.Tech CAD/CAM" },
+        { value: "M.Tech Manufacturing and Automation", label: "M.Tech Manufacturing and Automation" },
         { value: "M.Des", label: "M.Des" },
       ];
     } else {
@@ -3859,7 +3894,37 @@ const AdminUpcomingBatch = () => {
 
   // Helper function to get discipline options based on programme
   const getDisciplineOptions = (programme) => {
-    if (programme === "B.Tech" || programme === "M.Tech") {
+    if (programme === "B.Tech") {
+      return [
+        {
+          value: "Computer Science and Engineering",
+          label: "Computer Science and Engineering",
+        },
+        {
+          value: "Electronics and Communication Engineering",
+          label: "Electronics and Communication Engineering",
+        },
+        { value: "Mechanical Engineering", label: "Mechanical Engineering" },
+        { value: "Smart Manufacturing", label: "Smart Manufacturing" },
+      ];
+    } else if (programme && programme.startsWith("M.Tech")) {
+      if (programme.includes("AI & ML")) {
+        return [{ value: "Computer Science and Engineering", label: "Computer Science and Engineering" }];
+      } else if (programme.includes("Data Science")) {
+        return [{ value: "Computer Science and Engineering", label: "Computer Science and Engineering" }];
+      } else if (programme.includes("Communication and Signal Processing")) {
+        return [{ value: "Electronics and Communication Engineering", label: "Electronics and Communication Engineering" }];
+      } else if (programme.includes("Nanoelectronics and VLSI Design")) {
+        return [{ value: "Electronics and Communication Engineering", label: "Electronics and Communication Engineering" }];
+      } else if (programme.includes("Power & Control")) {
+        return [{ value: "Electronics and Communication Engineering", label: "Electronics and Communication Engineering" }];
+      } else if (programme.includes("Design")) {
+        return [{ value: "Design", label: "Design" }];
+      } else if (programme.includes("CAD/CAM")) {
+        return [{ value: "Mechanical Engineering", label: "Mechanical Engineering" }];
+      } else if (programme.includes("Manufacturing and Automation")) {
+        return [{ value: "Mechanical Engineering", label: "Mechanical Engineering" }];
+      }
       return [
         {
           value: "Computer Science and Engineering",
@@ -4036,6 +4101,48 @@ const AdminUpcomingBatch = () => {
       color: "green",
     });
   };
+  // Helper function to extract specialization from batch name for PG programs
+  const extractSpecializationFromBatchName = (batchName) => {
+    if (!batchName) return null;
+
+    if (batchName.includes("M.Tech")) {
+      if (batchName.includes("AI & ML")) return "AI & ML";
+      if (batchName.includes("Data Science")) return "Data Science";
+      if (batchName.includes("Communication and Signal Processing")) return "Communication and Signal Processing";
+      if (batchName.includes("Nanoelectronics and VLSI Design")) return "Nanoelectronics and VLSI Design";
+      if (batchName.includes("Power & Control")) return "Power & Control";
+      if (batchName.includes("Design")) return "Design";
+      if (batchName.includes("CAD/CAM")) return "CAD/CAM";
+      if (batchName.includes("Manufacturing and Automation")) return "Manufacturing and Automation";
+      if (batchName.includes("Mechatronics")) return "Mechatronics";
+    }
+    
+    return null;
+  };
+
+  // Helper function to filter students by specialization for PG programs
+  const filterStudentsBySpecialization = (students, batch) => {
+    const batchName = batch.name || batch.programme || "";
+    const expectedSpecialization = extractSpecializationFromBatchName(batchName);
+
+    if (!expectedSpecialization) {
+      return students;
+    }
+
+    const filteredStudents = students.filter(student => {
+      const studentSpecialization = student.specialization || student.specialisation || "";
+      const studentDiscipline = student.discipline || "";
+
+      if (studentSpecialization && studentSpecialization.trim() !== "") {
+        return studentSpecialization === expectedSpecialization;
+      }
+
+      return studentDiscipline === expectedSpecialization;
+    });
+    
+    return filteredStudents;
+  };
+
   // Handle batch row click to fetch and display students
   const handleBatchRowClick = async (batch) => {
     setSelectedBatch(batch);
@@ -4083,11 +4190,16 @@ const AdminUpcomingBatch = () => {
           seenStudents.add(identifier);
           return true;
         });
+
+        // Apply specialization filtering for PG programs
+        students = filterStudentsBySpecialization(students, batch);
       } else {
         await fetchBatchesWithStudents(batch);
+        return; // Exit early as fetchBatchesWithStudents will handle the filtering and setStudentList
       }
     } catch (error) {
       await fetchBatchesWithStudents(batch);
+      return; // Exit early as fetchBatchesWithStudents will handle the filtering and setStudentList
     }
     
     setStudentList(students);
@@ -4176,7 +4288,10 @@ const AdminUpcomingBatch = () => {
 
             return normalizedStudent;
           });
-          setStudentList(normalizedStudents);
+
+          // Apply specialization filtering for PG programs
+          const filteredStudents = filterStudentsBySpecialization(normalizedStudents, targetBatch);
+          setStudentList(filteredStudents);
         } else {
           setStudentList([]);
         }

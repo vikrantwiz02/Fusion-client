@@ -79,7 +79,7 @@ function RegistrationSearch() {
         deletePreRegistrationRoute,
         {
           roll_no: searchResults.student_registration_check.student_id,
-          sem_no: searchResults.initial_registration[0].semester_id.semester_no,
+          sem_no: searchResults.initial_registration[0]?.semester_id?.semester_no,
         },
         {
           headers: {
@@ -102,12 +102,12 @@ function RegistrationSearch() {
   const columnNames = ["Course", "Semester", "Course Slot", "Type", "Priority"];
 
   const mappedResults = searchResults
-    ? searchResults?.initial_registration.map((result) => ({
-        Course: result.course_id.name,
-        Semester: result.semester_id.semester_no,
-        "Course Slot": result.course_slot_id.name,
-        Type: result.registration_type,
-        Priority: result.priority,
+    ? searchResults.initial_registration.map((result) => ({
+        Course: result.course_id?.name || "N/A",
+        Semester: result.semester_id?.semester_no || "N/A",
+        "Course Slot": result.course_slot_id?.name || "N/A",
+        Type: result.registration_type || "N/A",
+        Priority: result.priority || "N/A",
       }))
     : [];
 
