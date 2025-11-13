@@ -53,14 +53,13 @@ function RegistrationSearch() {
           },
         },
       );
-      console.log(response.data);
+
       if (response.data.student_registration_check) {
         setSearchResults(response.data);
       } else {
         setError("No Registration Found!");
       }
     } catch (err) {
-      console.error("Error searching:", err);
       setError(err);
     } finally {
       setLoading(false); // Stop loading
@@ -79,7 +78,8 @@ function RegistrationSearch() {
         deletePreRegistrationRoute,
         {
           roll_no: searchResults.student_registration_check.student_id,
-          sem_no: searchResults.initial_registration[0]?.semester_id?.semester_no,
+          sem_no:
+            searchResults.initial_registration[0]?.semester_id?.semester_no,
         },
         {
           headers: {
@@ -87,12 +87,10 @@ function RegistrationSearch() {
           },
         },
       );
-      console.log(response.data.message);
       setDeleteModalOpen(false);
       alert(response.data.message);
       setSearchResults(null);
     } catch (er) {
-      console.error("Error searching:", er);
       setError(er);
     } finally {
       setLoading(false); // Stop loading
