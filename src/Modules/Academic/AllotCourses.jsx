@@ -13,7 +13,7 @@ import { showNotification } from "@mantine/notifications";
 import { IconUpload, IconDownload } from "@tabler/icons-react";
 import axios from "axios";
 import * as XLSX from "xlsx";
-import { allotCoursesRoute, batchesRoute } from "../../routes/academicRoutes";
+import { allotCoursesRoute, listBatchesRoute } from "../../routes/academicRoutes";
 
 export default function AllotCourses() {
   const [programmeOptions, setProgrammeOptions] = useState([]);
@@ -71,17 +71,17 @@ export default function AllotCourses() {
       return;
     }
     axios
-      .get(batchesRoute, { headers: { Authorization: `Token ${token}` } })
+      .get(listBatchesRoute, { headers: { Authorization: `Token ${token}` } })
       .then((res) => {
-        if (res.data && res.data.batches && Array.isArray(res.data.batches)) {
-          // Filter out invalid batches and create unique options
-          const validBatches = res.data.batches.filter(bat => 
-            bat.id && bat.name && bat.discipline && bat.year
+        if (res.data && Array.isArray(res.data)) {
+          const validBatches = res.data.filter(bat => 
+            bat.batch_id && bat.batch_name && bat.discipline_name && bat.year
           );
           
           const uniqueOptions = validBatches.map((bat) => ({
-            value: String(bat.id),
-            label: `${bat.name} ${bat.discipline} ${bat.year}`
+            value: String(bat.batch_id),
+            label: `${bat.batch_name} ${bat.discipline_name} ${bat.year}`,
+            batchData: bat
           }));
           
           // Remove any potential duplicates by value
@@ -96,7 +96,6 @@ export default function AllotCourses() {
           
           setProgrammeOptions(deduplicatedOptions);
         } else {
-          console.error("Invalid batches data received:", res.data);
           showNotification({ title: "Error", message: "Invalid data format received", color: "red" });
         }
       })
@@ -132,6 +131,31 @@ export default function AllotCourses() {
       showNotification({ title: "Incomplete", message: "Please fill all fields and select a file", color: "yellow" });
       return;
     }
+
+    const selectedBatch = programmeOptions.find(option => option.value === programme);
+    const batchLabel = selectedBatch?.label || "";
+    let extractedSpecialization = null;
+
+    if (batchLabel.includes("M.Tech")) {
+      const specializationMap = {
+        "AI & ML": "AI & ML",
+        "Data Science": "Data Science", 
+        "Signal Processing": "Signal Processing",
+        "CAD/CAM": "CAD/CAM",
+        "Thermal": "Thermal",
+        "VLSI": "VLSI",
+        "Communication": "Communication",
+        "Mechatronics": "Mechatronics"
+      };
+      
+      for (const [key, value] of Object.entries(specializationMap)) {
+        if (batchLabel.includes(key)) {
+          extractedSpecialization = value;
+          break;
+        }
+      }
+    }
+    
     setIsUploading(true);
     setLoading(true);
     const token = localStorage.getItem("authToken");
@@ -141,12 +165,15 @@ export default function AllotCourses() {
     formData.append("semester", semester);
     formData.append("semester_type", semesterType);
     formData.append("academic_year", academicYear);
+    if (extractedSpecialization) {
+      formData.append("specialization", extractedSpecialization);
+    }
 
     axios
       .post(allotCoursesRoute, formData, {
         headers: { "Content-Type": "multipart/form-data", Authorization: `Token ${token}` },
       })
-      .then(() => {
+      .then((response) => {
         showNotification({ title: "Success", message: "Courses allotted successfully", color: "green" });
         resetForm();
       })

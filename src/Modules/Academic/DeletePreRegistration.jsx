@@ -53,14 +53,13 @@ function RegistrationSearch() {
           },
         },
       );
-      console.log(response.data);
+
       if (response.data.student_registration_check) {
         setSearchResults(response.data);
       } else {
         setError("No Registration Found!");
       }
     } catch (err) {
-      console.error("Error searching:", err);
       setError(err);
     } finally {
       setLoading(false); // Stop loading
@@ -79,7 +78,8 @@ function RegistrationSearch() {
         deletePreRegistrationRoute,
         {
           roll_no: searchResults.student_registration_check.student_id,
-          sem_no: searchResults.initial_registration[0].semester_id.semester_no,
+          sem_no:
+            searchResults.initial_registration[0]?.semester_id?.semester_no,
         },
         {
           headers: {
@@ -87,12 +87,10 @@ function RegistrationSearch() {
           },
         },
       );
-      console.log(response.data.message);
       setDeleteModalOpen(false);
       alert(response.data.message);
       setSearchResults(null);
     } catch (er) {
-      console.error("Error searching:", er);
       setError(er);
     } finally {
       setLoading(false); // Stop loading
@@ -102,12 +100,12 @@ function RegistrationSearch() {
   const columnNames = ["Course", "Semester", "Course Slot", "Type", "Priority"];
 
   const mappedResults = searchResults
-    ? searchResults?.initial_registration.map((result) => ({
-        Course: result.course_id.name,
-        Semester: result.semester_id.semester_no,
-        "Course Slot": result.course_slot_id.name,
-        Type: result.registration_type,
-        Priority: result.priority,
+    ? searchResults.initial_registration.map((result) => ({
+        Course: result.course_id?.name || "N/A",
+        Semester: result.semester_id?.semester_no || "N/A",
+        "Course Slot": result.course_slot_id?.name || "N/A",
+        Type: result.registration_type || "N/A",
+        Priority: result.priority || "N/A",
       }))
     : [];
 
