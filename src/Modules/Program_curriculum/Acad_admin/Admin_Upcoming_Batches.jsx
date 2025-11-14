@@ -146,9 +146,11 @@ const STUDENT_FIELDS_CONFIG = {
   jeeAppNo: {
     label: "JEE App. No. / CCMT Roll No.",
     placeholder: "Enter JEE application number or CCMT roll number",
-    required: true,
+    required: false,
     backendField: "jee_app_no",
     excelColumns: [
+      "jee app. no / ccmt roll no",
+      "jee app. no / ccmt roll no.",
       "jee main application number",
       "jee app. no.",
       "jee app. no./ccmt roll. no.",
@@ -160,7 +162,6 @@ const STUDENT_FIELDS_CONFIG = {
       "ccmt roll number", 
       "jeeprep",
       "jee app no",
-      "rollno",
       "isprep",
       "application number",
       "app no",
@@ -1742,7 +1743,7 @@ const AdminUpcomingBatch = () => {
     }
     try {
       const token = localStorage.getItem("authToken");
-      if (!token) throw new Error("Authorization token not found");
+      if (!token) throw new Error("Authorization token not found");   
       const response = await axios.get(
         `${host}/programme_curriculum/api/batches/sync/`,
         {
@@ -2185,7 +2186,6 @@ const AdminUpcomingBatch = () => {
           phd: mappedBatches.filter(b => b.name.toLowerCase().includes('phd'))
         });
         
-      } else {
       }
     } catch (error) {
     }
@@ -2211,11 +2211,15 @@ const AdminUpcomingBatch = () => {
 
   // Constants for field mapping
   const jeeAppKeys = [
+    'jee_app_no',
+    'jee_app_number',
+    'application_number', 
+    'app_no',
+    'JEE App. No / CCMT Roll No',
     'JEE App. No./CCMT Roll. No.',
     'JEE App. No. / CCMT Roll No.',
     'JEE App No / CCMT Roll No',
-    'Jee Main Application Number',
-    'jee_app_no'
+    'Jee Main Application Number'
   ];
   
   const specializationKeys = [
@@ -3188,6 +3192,10 @@ const AdminUpcomingBatch = () => {
 
         if (!fieldValue && fieldInfo.excelColumns) {
           for (const excelCol of fieldInfo.excelColumns) {
+            if (student[excelCol]) {
+              fieldValue = student[excelCol];
+              break;
+            }
             const matchedKey = Object.keys(student).find(
               key => key.toLowerCase() === excelCol.toLowerCase()
             );
@@ -3963,10 +3971,11 @@ const AdminUpcomingBatch = () => {
   const generateExcelTemplate = () => {
     const headers = [
       "Sno",
-      "Jee Main Application Number",
+      "JEE App. No. / CCMT Roll No.",
       "Institute Roll Number",
       "Name",
       "Discipline",
+      "Specialization",
       "Gender",
       "Category",
       "Minority",
@@ -4007,6 +4016,7 @@ const AdminUpcomingBatch = () => {
         "25BCS001",
         "PALLAVI ARAS",
         "Computer Science and Engineering (4 Years, Bachelor of Technology)",
+        "",
         "Female",
         "General",
         "JAIN",
@@ -4052,39 +4062,39 @@ const AdminUpcomingBatch = () => {
 
     // Add data validation for dropdown fields
     const dropdownValidations = {
-      'F': { // Gender column
+      'G': { // Gender column (moved right by one after adding Specialization)
         type: 'list',
         values: ['Male', 'Female', 'Other']
       },
-      'G': { // Category column
+      'H': { // Category column (moved right by one)
         type: 'list', 
         values: ['General', 'OBC-NCL', 'SC', 'ST', 'GEN-EWS']
       },
-      'I': { // PwD column
+      'J': { // PwD column (moved right by one)
         type: 'list',
         values: ['YES', 'NO']
       },
-      'J': { // PwD Category column
+      'K': { // PwD Category column (moved right by one)
         type: 'list',
         values: ['Locomotor Disability', 'Low vision Disability', 'Deaf Disability', 'Cerebral Palsy', 'Dyslexia', 'Amputee (Both Hand)', 'Deafness', 'Any other (remarks)']
       },
-      'W': { // Blood Group column
+      'X': { // Blood Group column (moved right by one)
         type: 'list',
         values: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Other']
       },
-      'AA': { // Admission Mode column
+      'AB': { // Admission Mode column (moved right by one)
         type: 'list',
         values: ['Direct Institute advertisement', 'CCMT Counselling', 'JoSAA/CSAB Counselling', 'UCEED Counselling', 'Study In India (SII) Counselling', 'DASA Counselling', 'Any other (remarks)']
       },
-      'AC': { // Income Group column
+      'AD': { // Income Group column (moved right by one)
         type: 'list',
         values: ['Between 0 to 2 Lakh', 'Between 2 to 4 Lakh', 'Between 4 to 6 Lakh', 'Between 6 to 8 Lakh', 'More than 8 Lakh']
       },
-      'AG': { // Allotted Category column
+      'AH': { // Allotted Category column (moved right by one)
         type: 'list',
         values: ['OPNO', 'OPPH', 'EWNO', 'EWPH', 'BCNO', 'BCPH', 'SCNO', 'SCPH', 'STNO']
       },
-      'AH': { // Allotted Gender column
+      'AI': { // Allotted Gender column (moved right by one)
         type: 'list',
         values: ['Gender-Neutral', 'Female-Only (including Supernumerary)']
       }
@@ -4105,16 +4115,42 @@ const AdminUpcomingBatch = () => {
   const extractSpecializationFromBatchName = (batchName) => {
     if (!batchName) return null;
 
+    if (batchName.includes("M.Des") || batchName.includes("B.Des") || batchName === "M.Des" || batchName === "B.Des") {
+      return null;
+    }
+
     if (batchName.includes("M.Tech")) {
-      if (batchName.includes("AI & ML")) return "AI & ML";
-      if (batchName.includes("Data Science")) return "Data Science";
-      if (batchName.includes("Communication and Signal Processing")) return "Communication and Signal Processing";
-      if (batchName.includes("Nanoelectronics and VLSI Design")) return "Nanoelectronics and VLSI Design";
-      if (batchName.includes("Power & Control")) return "Power & Control";
-      if (batchName.includes("Design")) return "Design";
-      if (batchName.includes("CAD/CAM")) return "CAD/CAM";
-      if (batchName.includes("Manufacturing and Automation")) return "Manufacturing and Automation";
-      if (batchName.includes("Mechatronics")) return "Mechatronics";
+      if (batchName.includes("AI & ML")) {
+        return "AI & ML";
+      }
+      if (batchName.includes("Data Science")) {
+        return "Data Science";
+      }
+      if (batchName.includes("Communication and Signal Processing")) {
+        return "Communication and Signal Processing";
+      }
+      if (batchName.includes("Nanoelectronics and VLSI Design")) {
+        return "Nanoelectronics and VLSI Design";
+      }
+      if (batchName.includes("Power & Control")) {
+        return "Power & Control";
+      }
+      if (batchName.includes("Design")) {
+        return "Design";
+      }
+      if (batchName.includes("CAD/CAM")) {
+        return "CAD/CAM";
+      }
+      if (batchName.includes("Manufacturing and Automation")) {
+        return "Manufacturing and Automation";
+      }
+      if (batchName.includes("Mechatronics")) {
+        return "Mechatronics";
+      }
+
+      if (batchName.trim() === "M.Tech") {
+        return null;
+      }
     }
     
     return null;
@@ -4125,6 +4161,10 @@ const AdminUpcomingBatch = () => {
     const batchName = batch.name || batch.programme || "";
     const expectedSpecialization = extractSpecializationFromBatchName(batchName);
 
+    if (batchName.includes("M.Des") || batchName.includes("B.Des") || batchName === "M.Des" || batchName === "B.Des") {
+      return students;
+    }
+
     if (!expectedSpecialization) {
       return students;
     }
@@ -4132,12 +4172,25 @@ const AdminUpcomingBatch = () => {
     const filteredStudents = students.filter(student => {
       const studentSpecialization = student.specialization || student.specialisation || "";
       const studentDiscipline = student.discipline || "";
-
+      const studentBranch = student.branch || "";
+      
+      // Try multiple field matches
+      let matches = false;
       if (studentSpecialization && studentSpecialization.trim() !== "") {
-        return studentSpecialization === expectedSpecialization;
+        matches = studentSpecialization === expectedSpecialization || 
+                 studentSpecialization.includes(expectedSpecialization) ||
+                 expectedSpecialization.includes(studentSpecialization);
+      } else if (studentDiscipline && studentDiscipline.trim() !== "") {
+        matches = studentDiscipline === expectedSpecialization ||
+                 studentDiscipline.includes(expectedSpecialization) ||
+                 expectedSpecialization.includes(studentDiscipline);
+      } else if (studentBranch && studentBranch.trim() !== "") {
+        matches = studentBranch === expectedSpecialization ||
+                 studentBranch.includes(expectedSpecialization) ||
+                 expectedSpecialization.includes(studentBranch);
       }
 
-      return studentDiscipline === expectedSpecialization;
+      return matches;
     });
     
     return filteredStudents;
@@ -4155,6 +4208,15 @@ const AdminUpcomingBatch = () => {
     let students = batch.students || [];
     try {
       const token = localStorage.getItem("authToken");
+      if (!token) {
+        notifications.show({
+          title: "Authentication Error",
+          message: "Please refresh the page and try again",
+          color: "red",
+        });
+        return;
+      }
+      
       const response = await fetch(
         `${host}/programme_curriculum/api/batches/${batch.id}/students/`,
         {
@@ -4164,15 +4226,20 @@ const AdminUpcomingBatch = () => {
       
       if (response.ok) {
         const data = await response.json();
-
+        
         const uploadStudents = data.upload_students || [];
         const academicStudents = data.academic_students || [];
+        const directStudents = data.students || [];
 
-        const combinedStudents = [...uploadStudents, ...academicStudents];
+        const combinedStudents = [...uploadStudents, ...academicStudents, ...directStudents];
+        
+        if (combinedStudents.length === 0) {
+          await tryFallbackStudentFetch(batch);
+          return;
+        }
 
         const seenStudents = new Set();
         students = combinedStudents.filter(student => {
-
           const identifier = student.id || 
                            student.student_id || 
                            student.jee_app_no || 
@@ -4194,25 +4261,24 @@ const AdminUpcomingBatch = () => {
         // Apply specialization filtering for PG programs
         students = filterStudentsBySpecialization(students, batch);
       } else {
-        await fetchBatchesWithStudents(batch);
-        return; // Exit early as fetchBatchesWithStudents will handle the filtering and setStudentList
+        await tryFallbackStudentFetch(batch);
+        return;
       }
     } catch (error) {
-      await fetchBatchesWithStudents(batch);
-      return; // Exit early as fetchBatchesWithStudents will handle the filtering and setStudentList
+      await tryFallbackStudentFetch(batch);
+      return;
     }
     
     setStudentList(students);
   };
 
-  // Fallback function to fetch batch with students from main API (only for student details, not counts)
-  const fetchBatchesWithStudents = async (targetBatch) => {
+  // Fallback method to try alternative API endpoints when primary fails
+  const tryFallbackStudentFetch = async (batch) => {
+    const token = localStorage.getItem("authToken");
+    
     try {
-      const token = localStorage.getItem("authToken");
-      // Note: Using admin_batches here only for fetching individual student records, 
-      // not for filled_seats counts which should use batches/sync/ endpoint
       const response = await fetch(
-        `${host}/programme_curriculum/api/admin_batches/?include_students=true`,
+        `${host}/programme_curriculum/api/admin_batches/`,
         {
           headers: { Authorization: `Token ${token}` },
         }
@@ -4220,87 +4286,34 @@ const AdminUpcomingBatch = () => {
       
       if (response.ok) {
         const data = await response.json();
-        const batch = data.find(b => b.id === targetBatch.id);
+        const targetBatch = data.find(b => b.id === batch.id);
         
-        if (batch && (batch.students || batch.upload_students || batch.academic_students)) {
-          let students = batch.students || [];
-          
-          // If students are in separate arrays, combine and deduplicate
-          if (!students.length && (batch.upload_students || batch.academic_students)) {
-            const uploadStudents = batch.upload_students || [];
-            const academicStudents = batch.academic_students || [];
-            const combinedStudents = [...uploadStudents, ...academicStudents];
-            
-            const seenStudents = new Set();
-            students = combinedStudents.filter(student => {
-              const identifier = student.id || 
-                               student.student_id || 
-                               student.jee_app_no || 
-                               student.jeeAppNo ||
-                               student.roll_number || 
-                               student.rollNumber ||
-                               `${student.name}_${student.dob || student.date_of_birth}`;
-              
-              if (seenStudents.has(identifier)) {
-                return false;
-              }
-              seenStudents.add(identifier);
-              return true;
-            });
-          }
-          
-          // Transform backend field names to frontend field names
-          const normalizedStudents = students.map(student => {
-            const normalizedStudent = { ...student };
-            
-            // Map backend fields to frontend fields for new fields
-            const backendToFrontendMapping = {
-              'parent_email': 'parentEmail',
-              'blood_group': 'bloodGroup', 
-              'blood_group_remarks': 'bloodGroupRemarks',
-              'admission_mode': 'admissionMode',
-              'admission_mode_remarks': 'admissionModeRemarks', 
-              'pwd_category': 'pwdCategory',
-              'pwd_category_remarks': 'pwdCategoryRemarks',
-              'income_group': 'incomeGroup',
-              'father_occupation': 'fatherOccupation',
-              'father_mobile': 'fatherMobile',
-              'mother_occupation': 'motherOccupation', 
-              'mother_mobile': 'motherMobile',
-              'roll_number': 'rollNumber',
-              'institute_email': 'instituteEmail',
-              'personal_email': 'alternateEmail',
-              'jee_app_no': 'jeeAppNo',
-              'father_name': 'fname',
-              'mother_name': 'mname',
-              'phone_number': 'phoneNumber',
-              'date_of_birth': 'dob',
-              'ai_rank': 'jeeRank',
-              'category_rank': 'categoryRank'
-            };
+        if (targetBatch) {
+          let students = [];
 
-            // Apply the mapping
-            Object.entries(backendToFrontendMapping).forEach(([backendField, frontendField]) => {
-              if (normalizedStudent[backendField] !== undefined && normalizedStudent[backendField] !== null && normalizedStudent[backendField] !== '') {
-                normalizedStudent[frontendField] = normalizedStudent[backendField];
-              }
-            });
+          if (targetBatch.students) students.push(...targetBatch.students);
+          if (targetBatch.upload_students) students.push(...targetBatch.upload_students);
+          if (targetBatch.academic_students) students.push(...targetBatch.academic_students);
 
-            return normalizedStudent;
+          const seenStudents = new Set();
+          students = students.filter(student => {
+            const identifier = student.id || student.student_id || student.jee_app_no || student.name;
+            if (seenStudents.has(identifier)) return false;
+            seenStudents.add(identifier);
+            return true;
           });
-
-          // Apply specialization filtering for PG programs
-          const filteredStudents = filterStudentsBySpecialization(normalizedStudents, targetBatch);
-          setStudentList(filteredStudents);
-        } else {
-          setStudentList([]);
+          students = filterStudentsBySpecialization(students, batch);
+          
+          if (students.length > 0) {
+            setStudentList(students);
+            return;
+          }
         }
-      } else {
-
-        setStudentList([]);
       }
-    } catch (error) {
 
+      setStudentList([]);
+      
+    } catch (error) {
       setStudentList([]);
     }
   };
@@ -5203,11 +5216,14 @@ const AdminUpcomingBatch = () => {
                           style={{
                             padding: "15px 20px",
                             textAlign: "center",
-                            color: "black",
+                            color: batch.filledSeats > 0 ? "#16a34a" : "#6b7280",
                             borderRight: "1px solid #d3d3d3",
+                            position: "relative",
                           }}
                         >
-                          {batch.filledSeats}
+                          <div>
+                            {batch.filledSeats}
+                          </div>
                         </td>
                         <td
                           style={{
