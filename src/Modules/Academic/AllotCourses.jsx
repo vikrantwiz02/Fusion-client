@@ -69,18 +69,32 @@ export default function AllotCourses() {
       showNotification({ title: "Error", message: "No auth token", color: "red" });
       setLoading(false);
       return;
-    }
+    }   
     axios
       .get(listBatchesRoute, { headers: { Authorization: `Token ${token}` } })
       .then((res) => {
         if (res.data && Array.isArray(res.data)) {
-          const validBatches = res.data.filter(bat => 
-            bat.batch_id && bat.batch_name && bat.discipline_name && bat.year
-          );
+          const validBatches = res.data.filter((bat) => {
+            const hasId = bat.id;
+            const hasLabel = bat.label;
+            const hasYear = bat.year;
+            
+            return hasId && hasLabel && hasYear;
+          });
+          
+          if (validBatches.length === 0) {
+            showNotification({ 
+              title: "No Batches Available", 
+              message: "No valid batch data found. Please contact administrator.", 
+              color: "yellow" 
+            });
+            setProgrammeOptions([]);
+            return;
+          }
           
           const uniqueOptions = validBatches.map((bat) => ({
-            value: String(bat.batch_id),
-            label: `${bat.batch_name} ${bat.discipline_name} ${bat.year}`,
+            value: String(bat.id),
+            label: bat.label,
             batchData: bat
           }));
           
@@ -99,7 +113,11 @@ export default function AllotCourses() {
           showNotification({ title: "Error", message: "Invalid data format received", color: "red" });
         }
       })
-      .catch((err) => showNotification({ title: "Error fetching batches", message: err.message, color: "red" }))
+      .catch((err) => {
+        console.error("API Error:", err);
+        const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message;
+        showNotification({ title: "Error fetching batches", message: errorMsg, color: "red" });
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -136,15 +154,16 @@ export default function AllotCourses() {
     const batchLabel = selectedBatch?.label || "";
     let extractedSpecialization = null;
 
+    // Extract specialization from the label (format: "B.Des Des. 2021" or "M.Tech AI & ML 2024")
     if (batchLabel.includes("M.Tech")) {
       const specializationMap = {
         "AI & ML": "AI & ML",
         "Data Science": "Data Science", 
         "Signal Processing": "Signal Processing",
+        "Communication": "Communication",
         "CAD/CAM": "CAD/CAM",
         "Thermal": "Thermal",
         "VLSI": "VLSI",
-        "Communication": "Communication",
         "Mechatronics": "Mechatronics"
       };
       

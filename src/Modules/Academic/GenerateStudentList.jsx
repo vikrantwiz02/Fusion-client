@@ -43,6 +43,12 @@ const SEMESTER_CHOICES = [
   { value: "Summer Semester", label: "Summer Semester" },
 ];
 
+const PROGRAMME_TYPE_CHOICES = [
+  { value: "UG", label: "Undergraduate (UG)" },
+  { value: "PG", label: "Postgraduate (PG)" },
+  { value: "All", label: "All Programmes" },
+];
+
 const LIST_TYPE_CHOICES = [
   { value: "Regular", label: "Regular" },
   { value: "Backlog", label: "Backlog" },
@@ -58,6 +64,7 @@ export default function GenerateStudentList() {
   // Roll List states
   const [academicYear, setAcademicYear] = useState("");
   const [semesterType, setSemesterType] = useState("");
+  const [programmeType, setProgrammeType] = useState("All");
   const [listType, setListType]         = useState("");
   const [course, setCourse]             = useState("");
   const [courseOptions, setCourseOptions] = useState([]);
@@ -136,6 +143,9 @@ export default function GenerateStudentList() {
       if (listType && listType.trim() !== '') {
         payload.list_type = listType;
       }
+      if (programmeType && programmeType !== 'All') {
+        payload.programme_type = programmeType;
+      }
 
       const res = await axios.post(generatexlsheet, payload, {
         headers: {
@@ -144,7 +154,9 @@ export default function GenerateStudentList() {
         },
       });
       
-      setPreviewData(res.data.students || res.data || []);
+      let students = res.data.students || res.data || [];
+      
+      setPreviewData(students);
       setShowPreview(true);
     } catch (err) {
       if (err.response?.status === 400 || err.response?.data?.detail?.includes("preview_only")) {
@@ -190,6 +202,9 @@ export default function GenerateStudentList() {
       if (listType && listType.trim() !== '') {
         payload.list_type = listType;
       }
+      if (programmeType && programmeType !== 'All') {
+        payload.programme_type = programmeType;
+      }
 
       const res = await axios.post(generatexlsheet, payload, {
         headers: {
@@ -208,7 +223,8 @@ export default function GenerateStudentList() {
         }
       } else {
         const listTypeName = listType || "All";
-        filename = `${listTypeName}StudentList_${course}.xlsx`;
+        const progTypeName = programmeType && programmeType !== 'All' ? `_${programmeType}` : '';
+        filename = `${listTypeName}StudentList_${course}${progTypeName}.xlsx`;
       }
 
       const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -222,9 +238,10 @@ export default function GenerateStudentList() {
       
       setShowPreview(false);
       const listTypeName = listType || "All";
+      const progTypeName = programmeType && programmeType !== 'All' ? ` (${programmeType})` : '';
       showNotification({
         title: "Success",
-        message: `${listTypeName} student list generated successfully`,
+        message: `${listTypeName} student list${progTypeName} generated successfully`,
         color: "green",
       });
     } catch (err) {
@@ -328,6 +345,13 @@ export default function GenerateStudentList() {
               value={semesterType}
               onChange={setSemesterType}
             />
+            <Select
+              label="Programme Type"
+              placeholder="All Programmes"
+              data={PROGRAMME_TYPE_CHOICES}
+              value={programmeType}
+              onChange={setProgrammeType}
+            />
           </Group>
 {/* 
           <Select
@@ -363,7 +387,7 @@ export default function GenerateStudentList() {
             loading={loading || previewLoading}
             disabled={!academicYear || !semesterType || !course}
           >
-            Preview {listType || 'All'} Students
+            Preview {programmeType !== 'All' ? `${programmeType} ` : ''}{listType || 'All'} Students
           </Button>
         </Tabs.Panel>
 
@@ -406,9 +430,9 @@ export default function GenerateStudentList() {
         opened={showPreview}
         onClose={() => setShowPreview(false)}
         title={
-          <Title order={3} style={{ color: "#1c7ed6" }}>
-            {listType || 'All Registration Types'} Student List Preview
-          </Title>
+          <Text size="lg" weight={700} style={{ color: "#1c7ed6" }}>
+            {programmeType !== 'All' ? `${programmeType} ` : ''}{listType || 'All Registration Types'} Student List Preview
+          </Text>
         }
         size="xl"
         padding="lg"
@@ -434,7 +458,7 @@ export default function GenerateStudentList() {
                 courseOptions.find(c => c.value === course)?.instructor || 'TBA'
               }</Text></Text>
               <Text size="sm" weight={500}>List Type: <Text span color={listType ? "blue" : "green"}>
-                {listType || "Complete Roll List (All Registration Types)"}
+                {programmeType !== 'All' ? `${programmeType} - ` : ""}{listType || "Complete Roll List (All Registration Types)"}
               </Text></Text>
             </Box>
 
@@ -445,7 +469,7 @@ export default function GenerateStudentList() {
               </Box>
             ) : previewData.length > 0 ? (
               <ScrollArea style={{ height: "400px" }}>
-                <Table striped highlightOnHover withBorder>
+                <Table striped highlightOnHover style={{ border: "1px solid #dee2e6" }}>
                   <thead style={{ backgroundColor: "#e7f5ff" }}>
                     <tr>
                       <th style={{ padding: "12px 8px", fontSize: "13px", fontWeight: "600" }}>S. No</th>
@@ -485,9 +509,11 @@ export default function GenerateStudentList() {
               </ScrollArea>
             ) : (
               <Alert color="blue">
-                {listType 
-                  ? `No students found with "${listType}" registration type in this course.`
-                  : 'No students enrolled in this course (checked all registration types: Regular, Backlog, Improvement, etc.).'
+                {programmeType !== 'All' 
+                  ? `No ${programmeType} students found${listType ? ` with "${listType}" registration type` : ''} in this course.`
+                  : listType 
+                    ? `No students found with "${listType}" registration type in this course.`
+                    : 'No students enrolled in this course (checked all registration types: Regular, Backlog, Improvement, etc.).'
                 }
               </Alert>
             )}
