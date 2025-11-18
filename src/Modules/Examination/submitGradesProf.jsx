@@ -22,13 +22,20 @@ export default function SubmitGradesProf() {
     { value: "Even Semester", label: "Even Semester" },
     { value: "Summer Semester", label: "Summer Semester" },
   ];
+  const programmeTypes = [
+    { value: "UG", label: "UG (Undergraduate)" },
+    { value: "PG", label: "PG (Postgraduate)" },
+    { value: "All", label: "All Programmes" },
+  ];
   const userRole = useSelector((s) => s.user.role);
 
   const [year, setYear] = useState("");
   const [academicYears, setAcademicYears] = useState([]); 
   const [semesterType, setSemesterType] = useState("");
+  const [programmeType, setProgrammeType] = useState("");
   const [course, setCourse] = useState("");
   const [courseOptions, setCourseOptions] = useState([]);
+  const [allCourseOptions, setAllCourseOptions] = useState([]);
   const [excelFile, setExcelFile] = useState(null);
   const [previewData, setPreviewData] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
@@ -75,12 +82,12 @@ export default function SubmitGradesProf() {
           { headers: { Authorization: `Token ${token}` } }
         );
         setCourse(null);
-        setCourseOptions(
-          data.courses_info.map((c) => ({
-            value: c.id.toString(),
-            label: `${c.code} - ${c.name}`,
-          }))
-        );
+        const courses = data.courses_info.map((c) => ({
+          value: c.id.toString(),
+          label: `${c.code} - ${c.name}`,
+        }));
+        setAllCourseOptions(courses);
+        setCourseOptions(courses);
       } catch (err) {
         setError(`Error fetching courses: ${err.response?.data?.error || err.message}`);
       } finally {
@@ -89,6 +96,62 @@ export default function SubmitGradesProf() {
     })();
   }, [year, semesterType, userRole]);
 
+  useEffect(() => {
+    if (!programmeType || programmeType === 'All') {
+      setCourseOptions(allCourseOptions);
+      setCourse(null);
+      return;
+    }
+
+    const filterCoursesWithStudents = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("authToken");
+        const filteredCourses = [];
+
+        for (const courseOption of allCourseOptions) {
+          try {
+            const payload = { 
+              Role: userRole, 
+              course: courseOption.value, 
+              year: year, 
+              semester_type: semesterType 
+            };
+            
+            if (programmeType && programmeType !== 'All') {
+              payload.programme_type = programmeType;
+            }
+            
+            const response = await axios.post(
+              download_template,
+              payload,
+              { headers: { Authorization: `Token ${token}` }, responseType: "text" }
+            );
+            
+            const csvText = response.data;
+            const lines = csvText.split('\n').filter(line => line.trim());
+
+            if (lines.length > 1) {
+              filteredCourses.push(courseOption);
+            }
+          } catch (err) {
+            // If error or no students, skip this course
+          }
+        }
+        
+        setCourseOptions(filteredCourses);
+        setCourse(null);
+      } catch (err) {
+        setError(`Error filtering courses: ${err.message}`);
+        setCourseOptions(allCourseOptions);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    filterCoursesWithStudents();
+  }, [programmeType, allCourseOptions, userRole, year, semesterType]);
+
   const handleFileChange = (file) => setExcelFile(file);
 
   const handleTemplateDownload = async () => {
@@ -96,13 +159,21 @@ export default function SubmitGradesProf() {
       setError("Please select academic year, semester type, and course.");
       return;
     }
+    
     setLoading(true);
     setError(""); setErrorList([]);
+    
     try {
       const token = localStorage.getItem("authToken");
+      const payload = { Role: userRole, course: course, year: year, semester_type: semesterType };
+
+      if (programmeType && programmeType !== '' && programmeType !== 'All') {
+        payload.programme_type = programmeType;
+      }
+      
       const resp = await axios.post(
         download_template,
-        { Role: userRole, course: course, year: year, semester_type: semesterType },
+        payload,
         { headers: { Authorization: `Token ${token}` }, responseType: "blob" }
       );
       const url = URL.createObjectURL(new Blob([resp.data]));
@@ -140,6 +211,10 @@ export default function SubmitGradesProf() {
       form.append("semester_type", semesterType);
       form.append("csv_file", excelFile);
       form.append("reSubmit", "false");  // always false
+
+      if (programmeType && programmeType !== '' && programmeType !== 'All') {
+        form.append("programme_type", programmeType);
+      }
 
       const { data } = await axios.post(preview_grades, form, {
         headers: {
@@ -242,6 +317,17 @@ export default function SubmitGradesProf() {
                 onChange={setSemesterType}
                 disabled={loading}
                 required
+              />
+            </Grid.Col>
+            <Grid.Col xs={12} sm={6}>
+              <Select
+                label="Programme Type"
+                placeholder="Select Programme Type"
+                data={programmeTypes}
+                value={programmeType}
+                onChange={setProgrammeType}
+                disabled={loading}
+                clearable
               />
             </Grid.Col>
             <Grid.Col xs={12} sm={6}>
