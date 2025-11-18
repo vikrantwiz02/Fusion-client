@@ -255,7 +255,9 @@ function StudentTranscript({ student, semester, onBack }) {
           maxWidth: '100vw',
           overflowX: 'auto',
           margin: '0',
-          boxSizing: 'border-box',
+          boxSizing: 'border-box'
+        }}
+        sx={{
           '@media (max-width: 768px)': {
             border: '2px solid #000000',
             fontSize: '10px'

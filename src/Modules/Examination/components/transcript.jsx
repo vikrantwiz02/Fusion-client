@@ -134,7 +134,7 @@ function Transcript({ data, semester }) {
       ) : (
         <>
           {students.length > 0 ? (
-            <Table striped highlightOnHover withBorder captionSide="top" mt="md" className="transcript-table">
+            <Table striped highlightOnHover captionSide="top" mt="md" className="transcript-table">
               <thead>
                 <tr>
                   <th>Roll Number</th>

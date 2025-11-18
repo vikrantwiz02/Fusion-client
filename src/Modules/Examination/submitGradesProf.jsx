@@ -22,11 +22,16 @@ export default function SubmitGradesProf() {
     { value: "Even Semester", label: "Even Semester" },
     { value: "Summer Semester", label: "Summer Semester" },
   ];
+  const programmeTypes = [
+    { value: "UG", label: "UG (Undergraduate)" },
+    { value: "PG", label: "PG (Postgraduate)" },
+  ];
   const userRole = useSelector((s) => s.user.role);
 
   const [year, setYear] = useState("");
   const [academicYears, setAcademicYears] = useState([]); 
   const [semesterType, setSemesterType] = useState("");
+  const [programmeType, setProgrammeType] = useState("UG");
   const [course, setCourse] = useState("");
   const [courseOptions, setCourseOptions] = useState([]);
   const [excelFile, setExcelFile] = useState(null);
@@ -61,9 +66,9 @@ export default function SubmitGradesProf() {
     fetchAcademicYears();
   }, []);
 
-  // Fetch available courses
+  // Fetch available courses with programme type filter
   useEffect(() => {
-    if (!year || !semesterType) return;
+    if (!year || !semesterType || !programmeType) return;
     setLoading(true);
     setError(""); setErrorList("");
     (async () => {
@@ -71,38 +76,60 @@ export default function SubmitGradesProf() {
         const token = localStorage.getItem("authToken");
         const { data } = await axios.post(
           submitGradesProf,
-          { Role: userRole, academic_year: year, semester_type: semesterType },
+          { 
+            Role: userRole, 
+            academic_year: year, 
+            semester_type: semesterType,
+            programme_type: programmeType
+          },
           { headers: { Authorization: `Token ${token}` } }
         );
         setCourse(null);
-        setCourseOptions(
-          data.courses_info.map((c) => ({
-            value: c.id.toString(),
-            label: `${c.code} - ${c.name}`,
-          }))
-        );
+        const courses = data.courses_info.map((c) => ({
+          value: c.id.toString(),
+          label: `${c.code} - ${c.name}`,
+          student_count: c.student_count || 0
+        }));
+        setCourseOptions(courses);
       } catch (err) {
         setError(`Error fetching courses: ${err.response?.data?.error || err.message}`);
       } finally {
         setLoading(false);
       }
     })();
-  }, [year, semesterType, userRole]);
+  }, [year, semesterType, userRole, programmeType]);
 
   const handleFileChange = (file) => setExcelFile(file);
+
+  const handleApiError = (error, operation) => {
+    if (error.response?.status === 400 && 
+        error.response?.data?.error?.includes('specify programme_type')) {
+      setError(`This course has both UG and PG students. The ${programmeType} filter is applied to show only relevant students.`);
+    } else {
+      setError(`Error ${operation}: ${error.response?.data?.error || error.message}`);
+    }
+  };
 
   const handleTemplateDownload = async () => {
     if (!year || !semesterType || !course) {
       setError("Please select academic year, semester type, and course.");
       return;
     }
+    
     setLoading(true);
     setError(""); setErrorList([]);
+    
     try {
       const token = localStorage.getItem("authToken");
+      const payload = { Role: userRole, course: course, year: year, semester_type: semesterType };
+
+      if (programmeType && programmeType !== '' && programmeType !== 'All') {
+        payload.programme_type = programmeType;
+      }
+      
       const resp = await axios.post(
         download_template,
-        { Role: userRole, course: course, year: year, semester_type: semesterType },
+        payload,
         { headers: { Authorization: `Token ${token}` }, responseType: "blob" }
       );
       const url = URL.createObjectURL(new Blob([resp.data]));
@@ -141,6 +168,10 @@ export default function SubmitGradesProf() {
       form.append("csv_file", excelFile);
       form.append("reSubmit", "false");  // always false
 
+      if (programmeType && programmeType !== '' && programmeType !== 'All') {
+        form.append("programme_type", programmeType);
+      }
+
       const { data } = await axios.post(preview_grades, form, {
         headers: {
           Authorization: `Token ${token}`,
@@ -171,6 +202,7 @@ export default function SubmitGradesProf() {
       form.append("semester_type", semesterType);
       form.append("csv_file", excelFile);
       form.append("reSubmit", "false");  // always false
+      form.append("programme_type", programmeType); // Always include programme_type
 
       await axios.post(upload_grades_prof, form, {
         headers: {
@@ -185,9 +217,15 @@ export default function SubmitGradesProf() {
       setExcelFile(null);
     } catch (err) {
       const msg = err.response?.data?.error || err.message;
-      const parts = msg.split("\n").map((s) => s.trim()).filter((s) => s);
-      if (parts.length > 1) setErrorList(parts);
-      else                   setError(msg);
+
+      if (msg.includes("ALREADY BEEN SUBMITTED")) {
+        const progTypeText = programmeType && programmeType !== 'All' ? ` for ${programmeType} students` : '';
+        setError(`This course has already been submitted${progTypeText}. If you need to submit grades for a different programme type (UG/PG), please contact the administrator or check if separate submissions are allowed.`);
+      } else {
+        const parts = msg.split("\n").map((s) => s.trim()).filter((s) => s);
+        if (parts.length > 1) setErrorList(parts);
+        else setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -246,12 +284,23 @@ export default function SubmitGradesProf() {
             </Grid.Col>
             <Grid.Col xs={12} sm={6}>
               <Select
+                label="Programme Type"
+                placeholder="Select Programme Type"
+                data={programmeTypes}
+                value={programmeType}
+                onChange={setProgrammeType}
+                disabled={loading}
+                required
+              />
+            </Grid.Col>
+            <Grid.Col xs={12} sm={6}>
+              <Select
                 label="Course"
                 placeholder={loading ? "Loading courses..." : "Select Course"}
                 data={courseOptions}
                 value={course}
                 onChange={setCourse}
-                disabled={!year || !semesterType || loading}
+                disabled={!year || !semesterType || !programmeType || loading}
                 required
                 searchable
               />
@@ -278,11 +327,21 @@ export default function SubmitGradesProf() {
               <List.Item>Optional: <b>semester</b> (auto‑filled if missing)</List.Item>
               <List.Item>Ensure valid roll numbers and grades</List.Item>
             </List>
+            
+            {programmeType === 'PG' && (
+              <Alert color="blue" mt="md" title="Important Note for PG Students for Grade Submission">
+                <List size="sm" spacing="xs">
+                  <List.Item>For <b>Postgraduate (PG)</b> courses, upload grades by <b>discipline-wise like CSE, not like AI & ML / Data Science, separately</b> (not specialization-wise)</List.Item>
+                  <List.Item>Submit grades for <b>all roll numbers</b> provided in the template</List.Item>
+                  <List.Item>Students from different specializations may appear in the same course list if they are registered in the same Course</List.Item>
+                </List>
+              </Alert>
+            )}
           </Box>
 
           <Group mt="xl" position="apart">
             <Button
-              leftIcon={<FileArrowDown />}
+              leftSection={<FileArrowDown />}
               color="green"
               onClick={handleTemplateDownload}
               loading={loading}
@@ -292,7 +351,7 @@ export default function SubmitGradesProf() {
             </Button>
 
             <Button
-              leftIcon={<Upload />}
+              leftSection={<Upload />}
               color="blue"
               onClick={handlePreview}
               loading={loading}
@@ -345,7 +404,7 @@ export default function SubmitGradesProf() {
         </Box>
       )}
 
-      <LoadingOverlay visible={loading} overlayBlur={2} />
+      <LoadingOverlay visible={loading} />
     </Card>
   );
 }

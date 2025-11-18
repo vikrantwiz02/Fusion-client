@@ -29,9 +29,14 @@ function SubmitGrades() {
     { value: "Even Semester", label: "Even Semester" },
     { value: "Summer Semester", label: "Summer Semester" },
   ];
+  const programmeTypes = [
+    { value: "UG", label: "UG (Undergraduate)" },
+    { value: "PG", label: "PG (Postgraduate)" },
+  ];
 
   const [year, setYear] = useState("");
   const [semesterType, setSemesterType] = useState("");
+  const [programmeType, setProgrammeType] = useState("UG");
   const [academicYears, setAcademicYears] = useState([]); 
   const [course, setCourse] = useState("");
   const [courseId, setCourseId] = useState("");
@@ -65,7 +70,7 @@ function SubmitGrades() {
   }, []);
 
   useEffect(() => {
-    if (!year || !semesterType) return;
+    if (!year || !semesterType || !programmeType) return;
     const fetchCourses = async () => {
       setLoading(true);
       setError(null);
@@ -80,6 +85,7 @@ function SubmitGrades() {
           Role: userRole,
           academic_year: year,
           semester_type: semesterType,
+          programme_type: programmeType
         };
         const { data } = await axios.post(get_courses, requestData, {
           headers: { Authorization: `Token ${token}` },
@@ -90,6 +96,7 @@ function SubmitGrades() {
         const courseList = uniqueCourses.map((c) => ({
           value: c.id.toString(),
           label: `${c.name} (${c.code})`,
+          student_count: c.student_count || 0
         }));
         setCourseId(null);
         setCourse(null);
@@ -101,14 +108,23 @@ function SubmitGrades() {
       }
     };
     fetchCourses();
-  }, [year, semesterType, userRole]);
+  }, [year, semesterType, userRole, programmeType]);
 
   const handleFileChange = (event) => {
     setExcelFile(event.target.files[0]);
   };
 
+  const handleApiError = (error, operation) => {
+    if (error.response?.status === 400 && 
+        error.response?.data?.error?.includes('specify programme_type')) {
+      setError(`This course has both UG and PG students. The ${programmeType} filter is applied to show only relevant students.`);
+    } else {
+      setError(`Error ${operation}: ${error.response?.data?.error || error.message}`);
+    }
+  };
+
   const isFormComplete = () => {
-    return course && year && semesterType && excelFile;
+    return course && year && semesterType && excelFile && programmeType;
   };
 
   const handleCourseChange = (selectedId) => {
@@ -126,14 +142,20 @@ function SubmitGrades() {
       setError("Please select a course, academic year and semester type before downloading.");
       return;
     }
+    
+    setLoading(true);
+    
     try {
-      setLoading(true);
       const requestData = {
         Role: userRole,
         course: courseId,
         year: year,
         semester_type: semesterType,
       };
+      if (programmeType && programmeType !== '' && programmeType !== 'All') {
+        requestData.programme_type = programmeType;
+      }
+      
       const response = await axios.post(download_template, requestData, {
         headers: { Authorization: `Token ${token}` },
         responseType: "blob",
@@ -163,14 +185,21 @@ function SubmitGrades() {
       setError("No authentication token found!");
       return;
     }
+    
+    setLoading(true);
+    
     try {
-      setLoading(true);
       const formData = new FormData();
       formData.append("Role", userRole);
       formData.append("course_id", courseId);
       formData.append("academic_year", year);
       formData.append("semester_type", semesterType);
       formData.append("csv_file", excelFile);
+
+      if (programmeType && programmeType !== '' && programmeType !== 'All') {
+        formData.append("programme_type", programmeType);
+      }
+      
       const response = await axios.post(preview_grades, formData, {
         headers: {
           Authorization: `Token ${token}`,
@@ -193,8 +222,8 @@ function SubmitGrades() {
       setError("No authentication token found!");
       return;
     }
-    if (!courseId || !year || !semesterType || !excelFile) {
-      setError("Please fill out all fields and upload a CSV file.");
+    if (!courseId || !year || !semesterType || !excelFile || !programmeType) {
+      setError("Please fill out all fields including programme type and upload a CSV file.");
       return;
     }
     try {
@@ -205,6 +234,12 @@ function SubmitGrades() {
       formData.append("academic_year", year);
       formData.append("semester_type", semesterType);
       formData.append("csv_file", excelFile);
+      formData.append("programme_type", programmeType);
+
+      if (programmeType && programmeType !== '' && programmeType !== 'All') {
+        formData.append("programme_type", programmeType);
+      }
+      
       const response = await axios.post(upload_grades, formData, {
         headers: {
           Authorization: `Token ${token}`,
@@ -221,7 +256,14 @@ function SubmitGrades() {
       }
       setError(null);
     } catch (error) {
-      setError(`Error submitting grades: ${error.response?.data?.error || error.message}`);
+      const msg = error.response?.data?.error || error.message;
+
+      if (msg.includes("ALREADY BEEN SUBMITTED")) {
+        const progTypeText = programmeType && programmeType !== 'All' ? ` for ${programmeType} students` : '';
+        setError(`This course has already been submitted${progTypeText}. If you need to submit grades for a different programme type (UG/PG), please contact the administrator or check if separate submissions are allowed.`);
+      } else {
+        setError(`Error submitting grades: ${msg}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -264,6 +306,17 @@ function SubmitGrades() {
               </Grid.Col>
               <Grid.Col xs={12} sm={4}>
                 <Select
+                  label="Programme Type"
+                  placeholder="Select Programme Type"
+                  data={programmeTypes}
+                  value={programmeType}
+                  onChange={setProgrammeType}
+                  disabled={loading}
+                  required
+                />
+              </Grid.Col>
+              <Grid.Col xs={12} sm={6}>
+                <Select
                   label="Course"
                   placeholder={loading ? "Loading courses..." : "Select Course"}
                   data={courseOptions}
@@ -271,19 +324,30 @@ function SubmitGrades() {
                   onChange={handleCourseChange}
                   required
                   searchable
-                  disabled={!year || !semesterType || loading}
+                  disabled={!year || !semesterType || !programmeType || loading}
+                />
+              </Grid.Col>
+              <Grid.Col xs={12} sm={6}>
+                <TextInput
+                  type="file"
+                  label="Upload CSV File"
+                  onChange={handleFileChange}
+                  accept=".csv"
+                  required
                 />
               </Grid.Col>
             </Grid>
-            <Box mt="md">
-              <TextInput
-                type="file"
-                label="Upload CSV File"
-                onChange={handleFileChange}
-                accept=".csv"
-                required
-              />
-            </Box>
+            
+            {programmeType === 'PG' && (
+              <Alert color="blue" mt="md" title="Important Note for PG Students for Grade Submission">
+                <List size="sm" spacing="xs">
+                  <List.Item>For <b>Postgraduate (PG)</b> courses, upload grades by <b>discipline-wise like CSE, not like AI & ML / Data Science, separately</b> (not specialization-wise)</List.Item>
+                  <List.Item>Submit grades for <b>all roll numbers</b> provided in the template</List.Item>
+                  <List.Item>Students from different specializations may appear in the same course list if they are registered in the same Course</List.Item>
+                </List>
+              </Alert>
+            )}
+            
             <Box mt="md" style={{ display: "flex", gap: "1rem" }}>
               <Button
                 size="md"
@@ -346,7 +410,7 @@ function SubmitGrades() {
             </Box>
           </Box>
         )}
-        <LoadingOverlay visible={loading} overlayBlur={2} />
+        <LoadingOverlay visible={loading} />
       </Paper>
     </Card>
   );

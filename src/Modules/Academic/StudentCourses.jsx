@@ -281,19 +281,11 @@ export default function StudentCourses() {
     Semester: c.sem,
     Type: c.registration_type,
     "Replaced By":
-      c.replaced_by && c.replaced_by.length > 0 ? (
-        <Stack spacing={2}>
-          {c.replaced_by.map((r, idx) => (
-            <Text key={idx} size="sm">
-              {`${r.course_id.code} - ${r.course_id.name} (Sem ${r.semester_id.semester_no})`}
-            </Text>
-          ))}
-        </Stack>
-      ) : (
-        <Text size="sm" color="dimmed">
-          NA
-        </Text>
-      ),
+      c.replaced_by && c.replaced_by.length > 0
+        ? c.replaced_by
+            .map((r) => `${r.course_id.code} - ${r.course_id.name} (Sem ${r.semester_id.semester_no})`)
+            .join(", ")
+        : "NA",
     Actions: (
       <Button
         size="xs"
