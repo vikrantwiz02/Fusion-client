@@ -389,7 +389,7 @@ function VerifyGrades() {
         {showContent && (
           <>
             {registrations.length > 0 ? (
-              <Table striped highlightOnHover withBorder captionSide="top" mt="md">
+              <Table striped highlightOnHover captionSide="top" mt="md">
                 <caption>
                   <Group position="apart">
                     <Text size="lg" weight={500}>

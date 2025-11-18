@@ -27,10 +27,16 @@ export default function GradesDownloadPage() {
     { value: "Odd Semester", label: "Odd" },
     { value: "Even Semester", label: "Even" },
   ];
+  
+  const programmeTypes = [
+    { value: "UG", label: "UG (Undergraduate)" },
+    { value: "PG", label: "PG (Postgraduate)" },
+  ];
 
   const [year, setYear] = useState("");
   const [academicYears, setAcademicYears] = useState([]); 
   const [semester, setSemester] = useState("");
+  const [programmeType, setProgrammeType] = useState("UG");
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(null);
@@ -58,8 +64,8 @@ export default function GradesDownloadPage() {
 
 
   const fetchCourses = async () => {
-    if (!year || !semester) {
-      showNotification({ title: "Error", message: "Select year & semester", color: "red" });
+    if (!year || !semester || !programmeType) {
+      showNotification({ title: "Error", message: "Select year, semester & programme type", color: "red" });
       return;
     }
     setLoading(true);
@@ -68,7 +74,12 @@ export default function GradesDownloadPage() {
       const token = localStorage.getItem("authToken");
       const { data } = await axios.post(
         get_courses_prof,
-        { Role: userRole, academic_year: year, semester_type: semester },
+        { 
+          Role: userRole, 
+          academic_year: year, 
+          semester_type: semester,
+          programme_type: programmeType
+        },
         { headers: { Authorization: `Token ${token}` } }
       );
       setCourses(data.courses || []);
@@ -88,7 +99,13 @@ export default function GradesDownloadPage() {
       const token = localStorage.getItem("authToken");
       const resp = await axios.post(
         download_grades_prof,
-        { Role: userRole, academic_year: year, course_id: courseId, semester_type: semester },
+        { 
+          Role: userRole, 
+          academic_year: year, 
+          course_id: courseId, 
+          semester_type: semester,
+          programme_type: programmeType
+        },
         { headers: { Authorization: `Token ${token}` }, responseType: "blob" }
       );
       const url = URL.createObjectURL(new Blob([resp.data]));
@@ -133,6 +150,14 @@ export default function GradesDownloadPage() {
             value={semester}
             onChange={setSemester}
             disabled={loading}
+          />
+          <Select
+            placeholder="Programme Type"
+            data={programmeTypes}
+            value={programmeType}
+            onChange={setProgrammeType}
+            disabled={loading}
+            required
           />
           <Button variant="outline" onClick={fetchCourses} loading={loading}>
             Fetch
