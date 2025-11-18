@@ -36,7 +36,7 @@ function SubmitGrades() {
 
   const [year, setYear] = useState("");
   const [semesterType, setSemesterType] = useState("");
-  const [programmeType, setProgrammeType] = useState("UG"); // Default to UG
+  const [programmeType, setProgrammeType] = useState("UG");
   const [academicYears, setAcademicYears] = useState([]); 
   const [course, setCourse] = useState("");
   const [courseId, setCourseId] = useState("");
@@ -85,7 +85,7 @@ function SubmitGrades() {
           Role: userRole,
           academic_year: year,
           semester_type: semesterType,
-          programme_type: programmeType // Always include programme_type
+          programme_type: programmeType
         };
         const { data } = await axios.post(get_courses, requestData, {
           headers: { Authorization: `Token ${token}` },
@@ -234,9 +234,8 @@ function SubmitGrades() {
       formData.append("academic_year", year);
       formData.append("semester_type", semesterType);
       formData.append("csv_file", excelFile);
-      formData.append("programme_type", programmeType); // Always include programme_type
-      
-      // Add programme_type if selected (like in preview)
+      formData.append("programme_type", programmeType);
+
       if (programmeType && programmeType !== '' && programmeType !== 'All') {
         formData.append("programme_type", programmeType);
       }
@@ -258,8 +257,7 @@ function SubmitGrades() {
       setError(null);
     } catch (error) {
       const msg = error.response?.data?.error || error.message;
-      
-      // Handle specific error cases
+
       if (msg.includes("ALREADY BEEN SUBMITTED")) {
         const progTypeText = programmeType && programmeType !== 'All' ? ` for ${programmeType} students` : '';
         setError(`This course has already been submitted${progTypeText}. If you need to submit grades for a different programme type (UG/PG), please contact the administrator or check if separate submissions are allowed.`);
@@ -339,6 +337,17 @@ function SubmitGrades() {
                 />
               </Grid.Col>
             </Grid>
+            
+            {programmeType === 'PG' && (
+              <Alert color="blue" mt="md" title="Important Note for PG Students for Grade Submission">
+                <List size="sm" spacing="xs">
+                  <List.Item>For <b>Postgraduate (PG)</b> courses, upload grades by <b>discipline-wise like CSE, not like AI & ML / Data Science, separately</b> (not specialization-wise)</List.Item>
+                  <List.Item>Submit grades for <b>all roll numbers</b> provided in the template</List.Item>
+                  <List.Item>Students from different specializations may appear in the same course list if they are registered in the same Course</List.Item>
+                </List>
+              </Alert>
+            )}
+            
             <Box mt="md" style={{ display: "flex", gap: "1rem" }}>
               <Button
                 size="md"

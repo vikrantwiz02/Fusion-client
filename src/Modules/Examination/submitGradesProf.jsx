@@ -31,7 +31,7 @@ export default function SubmitGradesProf() {
   const [year, setYear] = useState("");
   const [academicYears, setAcademicYears] = useState([]); 
   const [semesterType, setSemesterType] = useState("");
-  const [programmeType, setProgrammeType] = useState("UG"); // Default to UG
+  const [programmeType, setProgrammeType] = useState("UG");
   const [course, setCourse] = useState("");
   const [courseOptions, setCourseOptions] = useState([]);
   const [excelFile, setExcelFile] = useState(null);
@@ -80,7 +80,7 @@ export default function SubmitGradesProf() {
             Role: userRole, 
             academic_year: year, 
             semester_type: semesterType,
-            programme_type: programmeType // Always include programme_type
+            programme_type: programmeType
           },
           { headers: { Authorization: `Token ${token}` } }
         );
@@ -217,8 +217,7 @@ export default function SubmitGradesProf() {
       setExcelFile(null);
     } catch (err) {
       const msg = err.response?.data?.error || err.message;
-      
-      // Handle specific error cases
+
       if (msg.includes("ALREADY BEEN SUBMITTED")) {
         const progTypeText = programmeType && programmeType !== 'All' ? ` for ${programmeType} students` : '';
         setError(`This course has already been submitted${progTypeText}. If you need to submit grades for a different programme type (UG/PG), please contact the administrator or check if separate submissions are allowed.`);
@@ -328,6 +327,16 @@ export default function SubmitGradesProf() {
               <List.Item>Optional: <b>semester</b> (auto‑filled if missing)</List.Item>
               <List.Item>Ensure valid roll numbers and grades</List.Item>
             </List>
+            
+            {programmeType === 'PG' && (
+              <Alert color="blue" mt="md" title="Important Note for PG Students for Grade Submission">
+                <List size="sm" spacing="xs">
+                  <List.Item>For <b>Postgraduate (PG)</b> courses, upload grades by <b>discipline-wise like CSE, not like AI & ML / Data Science, separately</b> (not specialization-wise)</List.Item>
+                  <List.Item>Submit grades for <b>all roll numbers</b> provided in the template</List.Item>
+                  <List.Item>Students from different specializations may appear in the same course list if they are registered in the same Course</List.Item>
+                </List>
+              </Alert>
+            )}
           </Box>
 
           <Group mt="xl" position="apart">
