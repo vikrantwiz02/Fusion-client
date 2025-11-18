@@ -462,7 +462,7 @@ function VerifyGrades() {
             )}
           </>
         )}
-        <LoadingOverlay visible={loading} overlayBlur={2} />
+        <LoadingOverlay visible={loading} />
       </Paper>
     </Card>
   );
