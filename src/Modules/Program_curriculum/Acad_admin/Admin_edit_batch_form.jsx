@@ -84,7 +84,7 @@ function Admin_edit_batch_form() {
         }
         
         form.setValues({
-          batchName: batchName,
+          batchName: existingBatchData.batch.name || "",
           discipline: existingBatchData.batch.discipline.toString(),
           batchYear: existingBatchData.batch.year,
           disciplineBatch: curriculumIds.length > 0 ? curriculumIds[0] : "",
