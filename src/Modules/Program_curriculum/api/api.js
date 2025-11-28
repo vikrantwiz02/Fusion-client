@@ -606,6 +606,7 @@ export const addSingleStudent = async (studentData, programmeType) => {
       mother_name: studentData.mname || studentData.mother_name,
       jee_app_no: studentData.jeeAppNo || studentData.jee_app_no,
       branch: studentData.branch,
+      specialization: studentData.specialization,
       gender: studentData.gender,
       category: studentData.category,
       minority: studentData.minority,
