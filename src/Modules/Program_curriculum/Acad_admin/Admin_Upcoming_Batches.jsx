@@ -926,17 +926,41 @@ const AdminUpcomingBatch = () => {
 
   // Proactive validation check before attempting student operations
 
+  const BRANCH_MAPPINGS = {
+    'computer science and engineering': ['CSE', 'Computer Science and Engineering', 'Computer Science', 'CS'],
+    'cse': ['CSE', 'Computer Science and Engineering', 'Computer Science', 'CS'],
+    'electronics and communication engineering': ['ECE', 'Electronics and Communication Engineering', 'Electronics', 'EC'],
+    'ece': ['ECE', 'Electronics and Communication Engineering', 'Electronics', 'EC'],
+    'mechanical engineering': ['ME', 'Mechanical Engineering', 'Mechanical', 'Mech'],
+    'me': ['ME', 'Mechanical Engineering', 'Mechanical', 'Mech'],
+    'smart manufacturing': ['SM', 'Smart Manufacturing'],
+    'sm': ['SM', 'Smart Manufacturing'],
+    'design': ['Design', 'Des.', 'DES', 'Des'],
+    'des': ['Design', 'Des.', 'DES', 'Des'],
+  };
+
+  const normalizeBranchName = (branchName) => {
+    if (!branchName) return null;
+    const normalized = branchName.toLowerCase().trim();
+    return BRANCH_MAPPINGS[normalized] || [branchName];
+  };
 
   const getBatchForBranch = (targetBranch, batchesToSearch) => {
-    if (!targetBranch || !batchesToSearch) return null;
+    if (!targetBranch || !batchesToSearch || batchesToSearch.length === 0) return null;
     
-    const normalizedBranch = targetBranch.toLowerCase().trim();
+    const targetVariants = normalizeBranchName(targetBranch);
     
     return batchesToSearch.find(batch => {
-      const batchBranch = (batch.discipline || batch.branch || '').toLowerCase().trim();
-      return batchBranch === normalizedBranch || 
-             batchBranch.includes(normalizedBranch) ||
-             normalizedBranch.includes(batchBranch);
+      const batchBranch = (batch.discipline || batch.branch || '').trim();
+      if (!batchBranch) return false;
+      
+      const batchVariants = normalizeBranchName(batchBranch);
+
+      return targetVariants.some(target => 
+        batchVariants.some(batchVar => 
+          target.toLowerCase() === batchVar.toLowerCase()
+        )
+      );
     });
   };
 
@@ -946,32 +970,7 @@ const AdminUpcomingBatch = () => {
     const batchesToSearch = allBatches || getCurrentBatches();
     if (!batchesToSearch || batchesToSearch.length === 0) return null;
 
-    const normalizedBranch = targetBranch.toLowerCase().trim();
-
-    const branchMappings = {
-      'computer science': ['CSE', 'Computer Science and Engineering', 'Computer Science'],
-      'computer science and engineering': ['CSE', 'Computer Science and Engineering'],
-      'cse': ['CSE', 'Computer Science and Engineering'],
-      'cs': ['CSE', 'Computer Science and Engineering'],
-
-      'electronics': ['ECE', 'Electronics and Communication Engineering', 'Electronics'],
-      'electronics and communication': ['ECE', 'Electronics and Communication Engineering'],
-      'electronics and communication engineering': ['ECE', 'Electronics and Communication Engineering'],
-      'ece': ['ECE', 'Electronics and Communication Engineering'],
-      'ec': ['ECE', 'Electronics and Communication Engineering'],
-
-      'mechanical': ['ME', 'Mechanical Engineering', 'Mechanical'],
-      'mechanical engineering': ['ME', 'Mechanical Engineering'],
-      'me': ['ME', 'Mechanical Engineering'],
-      'mech': ['ME', 'Mechanical Engineering'],
-
-      'smart manufacturing': ['SM', 'Smart Manufacturing'],
-      'sm': ['SM', 'Smart Manufacturing'],
-
-      'design': ['Design', 'Des.', 'DES', 'Des'],
-    };
-
-    const targetCodes = branchMappings[normalizedBranch] || [targetBranch];
+    const targetVariants = normalizeBranchName(targetBranch);
 
     // Filter batches by programme type if specified
     let filteredBatches = batchesToSearch;
@@ -995,43 +994,18 @@ const AdminUpcomingBatch = () => {
       filteredBatches = filteredBatches.filter(batch => batch.year === parseInt(targetYear));
     }
     const exactMatch = filteredBatches.find(batch => {
-      return targetCodes.some(code => {
-        const batchDiscipline = (batch.discipline || '').toLowerCase();
-        const batchBranch = (batch.branch || '').toLowerCase();
-        const batchDisplayBranch = (batch.displayBranch || '').toLowerCase();
-        const batchName = (batch.name || '').toLowerCase();
-        
-        return batchDiscipline === code.toLowerCase() ||
-               batchBranch === code.toLowerCase() ||
-               batchDisplayBranch === code.toLowerCase() ||
-               batchName.includes(code.toLowerCase()) ||
-               batch.discipline === code ||
-               batch.branch === code ||
-               batch.displayBranch === code;
-      });
+      const batchBranch = (batch.discipline || batch.branch || '').trim();
+      if (!batchBranch) return false;
+      
+      const batchVariants = normalizeBranchName(batchBranch);
+      return targetVariants.some(target => 
+        batchVariants.some(batchVar => 
+          target.toLowerCase() === batchVar.toLowerCase()
+        )
+      );
     });
 
-    if (exactMatch) {
-      return exactMatch;
-    }
-
-    // Fuzzy match as fallback
-    const fuzzyMatch = filteredBatches.find(batch => {
-      const batchFields = [
-        batch.discipline,
-        batch.branch,
-        batch.displayBranch,
-        batch.name
-      ].filter(Boolean).map(field => field.toLowerCase());
-
-      return targetCodes.some(code => {
-        return batchFields.some(field => {
-          return field.includes(code.toLowerCase()) || code.toLowerCase().includes(field);
-        });
-      });
-    });
-
-    return fuzzyMatch || null;
+    return exactMatch || null;
   };
 
   const getAvailableTargetBatches = (currentBatch, transferType = 'batch_change') => {
@@ -1421,12 +1395,26 @@ const AdminUpcomingBatch = () => {
       if (isEditMode && dropdownFields.includes(fieldKey)) {
         return;
       }
+      
+      // Skip validation for fields that don't apply to current programme type
+      if (fieldConfig.showForProgrammes) {
+        const currentProgramType = activeSection.toUpperCase();
+        if (!fieldConfig.showForProgrammes.includes(currentProgramType)) {
+          return;
+        }
+      }
 
-      if (
-        fieldConfig.required &&
-        (!formData[fieldKey] || formData[fieldKey].trim() === "")
-      ) {
-        errors[fieldKey] = `${fieldConfig.label} is required`;
+      if (fieldConfig.required) {
+        const value = formData[fieldKey];
+        const isEmpty = value === undefined || 
+                       value === null || 
+                       value === "" ||
+                       (typeof value === 'string' && value.trim() === "");
+        
+        if (isEmpty) {
+          console.log(`Field ${fieldKey} (${fieldConfig.label}) is missing or empty. Value:`, value);
+          errors[fieldKey] = `${fieldConfig.label} is required`;
+        }
       }
     });
 
@@ -2980,11 +2968,6 @@ const AdminUpcomingBatch = () => {
       transformedStudent.id = student.id;
       transformedStudent._validation_error = student._validation_error;
 
-      // Ensure specialization field exists (even if empty)
-      if (!transformedStudent.hasOwnProperty('specialization')) {
-        transformedStudent.specialization = "";
-      }
-
       return transformedStudent;
     });
   };
@@ -3486,6 +3469,10 @@ const AdminUpcomingBatch = () => {
         );
         
         if (Object.keys(finalErrors).length > 0) {
+          console.log("Validation failed. Errors:", finalErrors);
+          console.log("Form data:", manualFormData);
+          console.log("Active section:", activeSection);
+          
           setErrors(finalErrors);
           const phoneErrors = Object.values(finalErrors).filter(error => 
             error.includes("mobile number cannot be the same") || 
@@ -3499,10 +3486,22 @@ const AdminUpcomingBatch = () => {
               color: "red",
             });
           } else {
+            const missingFields = Object.entries(finalErrors)
+              .map(([field, error]) => `• ${STUDENT_FIELDS_CONFIG[field]?.label || field}: ${error}`)
+              .join('\n');
+            
             notifications.show({
               title: "Validation Error",
-              message: "Please fill all required fields",
+              message: (
+                <div>
+                  <Text size="sm" mb={8}>Please fill the following required fields:</Text>
+                  <Text size="xs" style={{ whiteSpace: 'pre-line', color: '#721c24' }}>
+                    {missingFields}
+                  </Text>
+                </div>
+              ),
               color: "red",
+              autoClose: 8000,
             });
           }
           return;
@@ -3511,44 +3510,39 @@ const AdminUpcomingBatch = () => {
         const transformedData = transformDataForDatabase([manualFormData]);
 
         if (!editingStudent) {
-          const currentAcademicYear = getCurrentBatchYear();
-          const canUpload = await validateBatchPrerequisites(currentAcademicYear);
+          const studentYear = selectedBatchYear;
+          const canUpload = await validateBatchPrerequisites(studentYear);
           
           if (!canUpload) {
             return;
           }
 
-          const currentBatches = getCurrentBatches();
+          let allBatches;
+          if (activeSection === "ug") allBatches = ugBatches || [];
+          else if (activeSection === "pg") allBatches = pgBatches || [];
+          else allBatches = phdBatches || [];
+
+          const batchesForYear = allBatches.filter(batch => batch.year === studentYear);
           const studentBranch = manualFormData.branch;
-          const studentYear = getCurrentBatchYear();
 
-          let matchingBatch = getBatchForBranch(studentBranch, currentBatches);
-
-          if (!matchingBatch) {
-            matchingBatch = currentBatches.find(batch => {
-              const batchBranch = batch.discipline || batch.branch;
-              
-              return (
-                batchBranch === studentBranch &&
-                batch.year === studentYear
-              );
-            });
-          }
-
-          if (matchingBatch && matchingBatch.year !== studentYear) {
-            matchingBatch = null;
-          }
+          const matchingBatch = getBatchForBranch(studentBranch, batchesForYear);
           
           if (!matchingBatch) {
+            const academicYearStr = batchYearToAcademicYear(studentYear);
+            const availableBranches = batchesForYear.map(b => b.discipline || b.branch).filter(Boolean);
+            
             notifications.show({
               title: "Cannot Add Student",
               message: (
                 <div>
                   <Text size="sm" mb={8}>
-                    <strong>No existing batch found for this student.</strong>
+                    <strong>No matching batch found.</strong>
                   </Text>
                   <Text size="xs" style={{ color: '#721c24' }}>
-                    Please create a batch for {studentBranch} {studentYear} first.
+                    Looking for: {studentBranch} {studentYear} (Academic Year: {academicYearStr})
+                  </Text>
+                  <Text size="xs" style={{ color: '#856404', marginTop: '8px' }}>
+                    Available: {availableBranches.length > 0 ? availableBranches.join(', ') : 'None for this year'}
                   </Text>
                 </div>
               ),
@@ -3562,18 +3556,9 @@ const AdminUpcomingBatch = () => {
           if (totalStudentsForBatch > matchingBatch.totalSeats) {
             notifications.show({
               title: "Batch Full",
-              message: (
-                <div>
-                  <Text size="sm" mb={8}>
-                    <strong>Cannot add student - batch capacity exceeded.</strong>
-                  </Text>
-                  <Text size="xs" style={{ color: '#721c24' }}>
-                    Batch {studentBranch} {studentYear} is full ({matchingBatch.filledSeats}/{matchingBatch.totalSeats} seats)
-                  </Text>
-                </div>
-              ),
+              message: `Batch ${studentBranch} ${studentYear} is full (${matchingBatch.filledSeats}/${matchingBatch.totalSeats} seats)`,
               color: "red",
-              autoClose: false,
+              autoClose: 5000,
             });
             return;
           }
