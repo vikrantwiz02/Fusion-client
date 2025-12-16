@@ -17,6 +17,7 @@ import { useSelector } from "react-redux";
 import { useState, useEffect } from "react";
 import AnnounceResult from "./AnnounceResult.jsx";
 import GradeStatus from "./GradeStatus.jsx";
+import GradeSummary from "./GradeSummary.jsx";
 
 export default function Examination() {
   const userRole = useSelector((state) => state.user.role);
@@ -150,6 +151,14 @@ export default function Examination() {
             element={
               <ProtectedRoute roles={["acadadmin", "Dean Academic"]}>
                 <GradeStatus />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/grade-summary"
+            element={
+              <ProtectedRoute roles={["acadadmin", "Dean Academic"]}>
+                <GradeSummary />
               </ProtectedRoute>
             }
           />
