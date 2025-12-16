@@ -26,6 +26,7 @@ import {
   Wrench as IWDIcon,
   City as HostelIcon,
   Certificate as OtherAcademicIcon,
+  Database as DatabaseIcon,
   Question as HelpIcon,
   User as ProfileIcon,
   Gear as SettingsIcon,
@@ -138,6 +139,12 @@ function SidebarContent({ isCollapsed, toggleSidebar }) {
       id: "examinations",
       icon: <ExamIcon size={18} />,
       url: "/examination",
+    },
+        {
+      label: "Database",
+      id: "database",
+      icon: <DatabaseIcon size={18} />,
+      url: "/database",
     },
     {
       label: "Gymkhana",
