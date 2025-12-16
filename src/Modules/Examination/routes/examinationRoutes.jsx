@@ -32,3 +32,4 @@ export const get_student_grades_academic_years = `${host}/examination/api/unique
 
 export const get_result_semesters = `${host}/examination/api/student/result_semesters/`;
 export const grade_status = `${host}/examination/api/grade_status/`;
+export const grade_summary = `${host}/examination/api/grade_summary/`;

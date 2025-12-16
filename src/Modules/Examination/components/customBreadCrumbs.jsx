@@ -13,6 +13,9 @@ const breadcrumbMap = {
   "/examination/update": "Update",
   "/examination/validate": "Validate",
   "/examination/result": "Result",
+  "/examination/result-announcement": "Announce Result",
+  "/examination/grade-status": "Grade Status",
+  "/examination/grade-summary": "Grade Summary",
 };
 
 function CustomBreadExam() {
