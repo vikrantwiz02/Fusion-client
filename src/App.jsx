@@ -13,6 +13,7 @@ import ValidateAuth from "./helper/validateauth";
 import FacultyProfessionalProfile from "./Modules/facultyProfessionalProfile/facultyProfessionalProfile";
 import InactivityHandler from "./helper/inactivityhandler";
 import Examination from "./Modules/Examination/examination";
+import Database from "./Modules/Database/database";
 import ProgrammeCurriculumRoutes from "./Modules/Program_curriculum/programmCurriculum";
 import NotFoundPage from "./components/NotFoundPage";
 
@@ -80,6 +81,7 @@ export default function App() {
         <Route path="/accounts/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ForgotPassword />} />
         <Route path="/examination/*" element={<Examination />} />
+        <Route path="/database/*" element={<Database />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </MantineProvider>
