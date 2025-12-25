@@ -7,6 +7,7 @@ import {
   Alert,
   NumberInput,
   Loader,
+  Select,
 } from "@mantine/core";
 import axios from "axios";
 import {
@@ -18,6 +19,7 @@ function AllocateCourses() {
   const [batch, setBatch] = useState("");
   const [semester, setSemester] = useState("");
   const [year, setYear] = useState("");
+  const [programmeType, setProgrammeType] = useState("UG");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,7 +41,7 @@ function AllocateCourses() {
     try {
       const response = await axios.post(
         checkAllocationRoute,
-        { batch, sem: semester, year },
+        { batch, sem: semester, year, programme_type: programmeType },
         {
           headers: {
             Authorization: `Token ${token}`,
@@ -86,7 +88,7 @@ function AllocateCourses() {
     try {
       const response = await axios.post(
         startAllocationRoute,
-        { batch, semester, year },
+        { batch, semester, year, programme_type: programmeType },
         {
           headers: {
             Authorization: `Token ${token}`,
@@ -113,10 +115,22 @@ function AllocateCourses() {
         Allocate Courses
       </Text>
 
+      <Select
+        label="Programme Type"
+        placeholder="Select programme type"
+        value={programmeType}
+        onChange={setProgrammeType}
+        data={[
+          { value: "UG", label: "Undergraduate (UG)" },
+          { value: "PG", label: "Postgraduate (PG)" },
+        ]}
+        readOnly
+        mb="lg"
+      />
       <TextInput
         placeholder="Enter Batch"
         value={batch}
-        onChange={(e) => setBatch(e.target.value)}
+        onChange={(e) => setBatch(e.currentTarget.value)}
         mb="lg"
         label="Batch"
       />
