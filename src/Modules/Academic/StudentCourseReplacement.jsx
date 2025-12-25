@@ -35,12 +35,9 @@ export default function StudentCourseReplacement() {
     })
       .then(res => {
         setExistingReqs(res.data);
-        if (res.data.length === 0) {
-          return axios.get(studentRegisteredSlotsRoute, {
-            headers: { Authorization: `Token ${token}` }
-          });
-        }
-        return null;
+        return axios.get(studentRegisteredSlotsRoute, {
+          headers: { Authorization: `Token ${token}` }
+        });
       })
       .then(res2 => {
         if (res2) {
@@ -59,17 +56,6 @@ export default function StudentCourseReplacement() {
 
   if (loading) return <Loader />;
   if (error)   return <Alert color="red">{error}</Alert>;
-
-  // 2) If already submitted, show notice
-  if (existingReqs && existingReqs.length > 0) {
-    return (
-      <Card>
-        <Alert color="yellow">
-          You have already filled the replacement form. Please wait for processing.
-        </Alert>
-      </Card>
-    );
-  }
 
   // 3) Handle selection change
   const pickCourse = (idx, val) => {
@@ -104,8 +90,20 @@ export default function StudentCourseReplacement() {
         { headers: { Authorization: `Token ${token}` } }
       );
 
-      showNotification({ title: 'Submitted', message: 'Requests are pending', color: 'green' });
-      setExistingReqs(res.data.created || []);
+      const created = res.data.created || [];
+
+      showNotification({ 
+        title: 'Success', 
+        message: 'Your replacement request has been submitted successfully', 
+        color: 'green' 
+      });
+
+      const reqsRes = await axios.get(studentListRequestsRoute, {
+        headers: { Authorization: `Token ${token}` }
+      });
+      setExistingReqs(reqsRes.data);
+      
+      setPreview(false);
     } catch (err) {
       showNotification({
         title: 'Submit failed',
@@ -114,51 +112,68 @@ export default function StudentCourseReplacement() {
       });
     } finally {
       setSubmitting(false);
-      setPreview(false);
     }
   };
 
+  const availableSlots = slots.filter(s => 
+    !existingReqs.some(req => req.slot === s.name)
+  );
+
   return (
     <Card>
+      {availableSlots.length > 0 ? (
+        <>
+          <Table highlightOnHover withBorder>
+            <thead>
+              <tr>
+                <th>Slot</th>
+                <th>Current Course</th>
+                <th>New Course</th>
+              </tr>
+            </thead>
+            <tbody>
+              {availableSlots.map((s, i) => {
+                const originalIdx = slots.findIndex(slot => slot.id === s.id);
+                return (
+                  <tr key={s.id}>
+                    <td>{s.name}</td>
+                    <td>{s.old_course.code} - {s.old_course.name}</td>
+                    <td style={{ minWidth: 200 }}>
+                      <Select
+                        placeholder="Select new course…"
+                        data={s.new_courses.map(c => ({
+                          value: String(c.id),
+                          label: `( ${c.code} - ${c.name} ) - (seats available - ${c.seats_available})`,
+                        }))}
+                        value={s.newCourse}
+                        onChange={val => pickCourse(originalIdx, val)}
+                        clearable
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
 
-      <Table highlightOnHover withBorder>
-        <thead>
-          <tr>
-            <th>Slot</th>
-            <th>Current Course</th>
-            <th>New Course</th>
-          </tr>
-        </thead>
-        <tbody>
-          {slots.map((s, i) => (
-            <tr key={s.id}>
-              <td>{s.name}</td>
-              <td>{s.old_course.code} - {s.old_course.name}</td>
-              <td style={{ minWidth: 200 }}>
-                <Select
-                  placeholder="Select new course…"
-                  data={s.new_courses.map(c => ({
-                    value: String(c.id),
-                    label: `( ${c.code} - ${c.name} ) - (seats available - ${c.seats_available})`,
-                  }))}
-                  value={s.newCourse}
-                  onChange={val => pickCourse(i, val)}
-                  clearable
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-
-      <Group position="right" mt="xl">
-        <Button
-          disabled={toSubmit.length === 0}
-          onClick={() => setPreview(true)}
-        >
-          Review &amp; Submit
-        </Button>
-      </Group>
+          <Group position="right" mt="xl">
+            <Button
+              disabled={toSubmit.length === 0}
+              onClick={() => setPreview(true)}
+            >
+              Review &amp; Submit
+            </Button>
+          </Group>
+        </>
+      ) : existingReqs.length > 0 ? (
+        <Alert color="gray">
+          You have already submitted replacement requests for all available slots. Check the "Your Requests" tab to view them.
+        </Alert>
+      ) : (
+        <Alert color="gray">
+          No slots available for course replacement.
+        </Alert>
+      )}
 
       <Modal
         opened={preview}
