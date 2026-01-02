@@ -3,6 +3,7 @@ import { Tabs, Card, Title } from '@mantine/core';
 import ReplacementRequestStudent from './ReplacementRequestStudent';
 import StudentCourseReplacement from './StudentCourseReplacement';
 import StudentDropCourse from './StudentDropCourse';
+import StudentAddCourse from './StudentAddCourse';
 
 export default function StudentAddDropReplace() {
   const [activeTab, setActiveTab] = useState('form');
@@ -19,6 +20,7 @@ export default function StudentAddDropReplace() {
         <Tabs.List grow>
           <Tabs.Tab value="form">Replacement Form</Tabs.Tab>
           <Tabs.Tab value="requests">Your Requests</Tabs.Tab>
+          <Tabs.Tab value="add">Add Course</Tabs.Tab>
           <Tabs.Tab value="drop">Drop Course</Tabs.Tab>
         </Tabs.List>
 
@@ -28,6 +30,10 @@ export default function StudentAddDropReplace() {
 
         <Tabs.Panel value="requests" pt="md" key={`panel-requests-${activeTab}`}>
           {activeTab === 'requests' && <ReplacementRequestStudent />}
+        </Tabs.Panel>
+
+        <Tabs.Panel value="add" pt="md" key={`panel-add-${activeTab}`}>
+          {activeTab === 'add' && <StudentAddCourse />}
         </Tabs.Panel>
 
         <Tabs.Panel value="drop" pt="md" key={`panel-drop-${activeTab}`}>

@@ -141,7 +141,7 @@ export default function AdminBatchChange() {
 
         {students.length > 0 && !loadingStudents && (
           <>
-            <Table striped highlightOnHover withBorder>
+            <Table striped highlightOnHover withTableBorder>
               <thead>
                 <tr>
                   <th>Username</th>

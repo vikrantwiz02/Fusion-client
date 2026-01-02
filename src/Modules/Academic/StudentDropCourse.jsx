@@ -61,7 +61,7 @@ export default function StudentDropCourse() {
   return (
     <Card withBorder p="md">
       <Title order={3} mb="md">Drop Registered Course</Title>
-      <Table highlightOnHover withBorder>
+      <Table highlightOnHover withTableBorder>
         <thead>
           <tr>
             <th>Slot</th><th>Course</th><th>Year</th><th>Semester</th><th>Action</th>

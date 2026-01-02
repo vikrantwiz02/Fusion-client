@@ -123,7 +123,7 @@ export default function StudentCourseReplacement() {
     <Card>
       {availableSlots.length > 0 ? (
         <>
-          <Table highlightOnHover withBorder>
+          <Table highlightOnHover withTableBorder>
             <thead>
               <tr>
                 <th>Slot</th>
