@@ -72,9 +72,11 @@ export default function StudentAddCourse() {
     }
     setSubmitting(true);
 
+    const selectedSlots = slots.filter(s => s.selectedCourse && s.selectedCourse !== '');
+
     try {
       await Promise.all(
-        toSubmit.map(s =>
+        selectedSlots.map(s =>
           axios.post(studentAddCourseRoute,
             { 
               slot_id: s.id,
@@ -87,11 +89,11 @@ export default function StudentAddCourse() {
 
       showNotification({ 
         title: 'Success', 
-        message: 'Courses added successfully', 
+        message: 'Course addition requests submitted successfully. Awaiting Academic approval.', 
         color: 'green' 
       });
 
-      setSlots(slots.filter(s => !toSubmit.find(t => t.id === s.id)));
+      setSlots(prevSlots => prevSlots.filter(s => !selectedSlots.find(t => t.id === s.id)));
       setPreview(false);
     } catch (err) {
       showNotification({
@@ -129,7 +131,7 @@ export default function StudentAddCourse() {
                     .filter(c => c.id && c.code)
                     .map(c => ({
                       value: String(c.id),
-                      label: `${c.code} - ${c.name} (seats: ${c.seats_available})`,
+                      label: `${c.code} - ${c.name}`,
                     }))}
                   value={s.selectedCourse}
                   onChange={val => pickCourse(i, val)}

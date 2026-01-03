@@ -19,9 +19,9 @@ export default function StudentAddDropReplace() {
       >
         <Tabs.List grow>
           <Tabs.Tab value="form">Replacement Form</Tabs.Tab>
-          <Tabs.Tab value="requests">Your Requests</Tabs.Tab>
           <Tabs.Tab value="add">Add Course</Tabs.Tab>
           <Tabs.Tab value="drop">Drop Course</Tabs.Tab>
+          <Tabs.Tab value="requests">Your Requests</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="form" pt="md" key={`panel-form-${activeTab}`}>
