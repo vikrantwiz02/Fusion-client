@@ -68,10 +68,19 @@ export const studentListRequestsRoute    = `${host}/academic-procedures/api/stu/
 
 export const adminListRequestsRoute       = `${host}/academic-procedures/api/acad/replacement-requests/`;
 export const allotReplacementCoursesRoute = `${host}/academic-procedures/api/acad/change-requests/allocate_all/`;
+export const adminListDropRequestsRoute   = `${host}/academic-procedures/api/acad/drop-requests/`;
+export const approveDropRequestsRoute     = `${host}/academic-procedures/api/acad/drop-requests/approve/`;
 
+export const adminListAddRequestsRoute   = `${host}/academic-procedures/api/acad/add-requests/`;
+export const approveAddRequestsRoute     = `${host}/academic-procedures/api/acad/add-requests/approve/`;
 
 export const studentDropRegistrationsRoute = `${host}/academic-procedures/api/stu/registrations_drop/`;
 export const studentDropCourseRoute     = `${host}/academic-procedures/api/stu/drop-course/`;
+export const studentDropRequestsRoute   = `${host}/academic-procedures/api/stu/drop-requests/`;
+export const studentAvailableAddCourseSlotsRoute = `${host}/academic-procedures/api/stu/add_course_slots/`;
+export const studentAvailableAddCoursesRoute = `${host}/academic-procedures/api/stu/add_course_courses/`;
+export const studentAddCourseRoute = `${host}/academic-procedures/api/stu/add_course/`;
+export const studentAddRequestsRoute   = `${host}/academic-procedures/api/stu/add-requests/`;
 
 export const StudentSearchRoute     = `${host}/academic-procedures/api/acad/student-search/`;
 

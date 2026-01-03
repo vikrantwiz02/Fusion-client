@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Card, Title, Table, Button, Group,
   Modal, Text, Loader, Alert
@@ -12,59 +12,105 @@ import {
 } from '../../routes/academicRoutes';
 
 export default function StudentDropCourse() {
-  const [regs, setRegs]         = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
+  const [regs, setRegs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
   const [dropping, setDropping] = useState(false);
 
-  // fetch current registrations
-  useEffect(() => {
+  // Fetch current registrations
+  const fetchRegistrations = useCallback(async () => {
     const token = localStorage.getItem('authToken');
-    axios.get(studentDropRegistrationsRoute, {
-      headers: { Authorization: `Token ${token}` }
-    })
-    .then(({ data }) => setRegs(data))
-    .catch(err => setError(err.response?.data?.error || err.message))
-    .finally(() => setLoading(false));
+    if (!token) {
+      setError('Authentication required');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data } = await axios.get(studentDropRegistrationsRoute, {
+        headers: { Authorization: `Token ${token}` }
+      });
+      setRegs(Array.isArray(data) ? data : []);
+      setError(null);
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
+      setError(errorMsg || 'Failed to load courses');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  if (loading) return <Loader />;
-  if (error)   return <Alert color="red">{error}</Alert>;
-  if (!regs.length) return <Text>No courses to drop.</Text>;
+  useEffect(() => {
+    fetchRegistrations();
+  }, [fetchRegistrations]);
 
-  const openModal = reg => setSelected(reg);
-  const closeModal = () => setSelected(null);
+  const openModal = useCallback((reg) => setSelected(reg), []);
+  const closeModal = useCallback(() => setSelected(null), []);
 
-  const handleDrop = async () => {
+  const handleDrop = useCallback(async () => {
+    if (!selected) return;
+
     const token = localStorage.getItem('authToken');
+    if (!token) {
+      showNotification({
+        title: 'Authentication Error',
+        message: 'Please login again',
+        color: 'red'
+      });
+      return;
+    }
+
     setDropping(true);
     try {
-      await axios.post(studentDropCourseRoute,
+      const response = await axios.post(
+        studentDropCourseRoute,
         { registration_id: selected.id },
         { headers: { Authorization: `Token ${token}` } }
       );
-      showNotification({ title: 'Dropped', message: `${selected.course} dropped.`, color: 'green' });
-      setRegs(regs.filter(r => r.id !== selected.id));
+
+      showNotification({
+        title: 'Drop Request Submitted',
+        message: response.data.message || 'Your drop request is pending Academic approval.',
+        color: 'blue'
+      });
+
+      // Remove from list optimistically
+      setRegs(prev => prev.filter(r => r.id !== selected.id));
       closeModal();
     } catch (err) {
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message;
       showNotification({
-        title: 'Drop failed',
-        message: err.response?.data?.error || err.message,
+        title: 'Drop Request Failed',
+        message: errorMsg || 'Failed to submit drop request',
         color: 'red'
       });
     } finally {
       setDropping(false);
     }
-  };
+  }, [selected, closeModal]);
+
+  if (loading) return <Loader size="lg" />;
+  if (error) return <Alert color="red" title="Error">{error}</Alert>;
+  if (!regs.length) {
+    return (
+      <Card withBorder p="md">
+        <Alert color="gray">No courses available to drop.</Alert>
+      </Card>
+    );
+  }
 
   return (
     <Card withBorder p="md">
       <Title order={3} mb="md">Drop Registered Course</Title>
-      <Table highlightOnHover withBorder>
+      <Table highlightOnHover withTableBorder>
         <thead>
           <tr>
-            <th>Slot</th><th>Course</th><th>Year</th><th>Semester</th><th>Action</th>
+            <th>Slot</th>
+            <th>Course</th>
+            <th>Academic Year</th>
+            <th>Semester</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -75,8 +121,13 @@ export default function StudentDropCourse() {
               <td>{r.academic_year}</td>
               <td>{r.semester_type}</td>
               <td>
-                <Button color="red" size="xs" onClick={() => openModal(r)}>
-                  Drop
+                <Button
+                  color="red"
+                  size="xs"
+                  onClick={() => openModal(r)}
+                  disabled={dropping}
+                >
+                  Request Drop
                 </Button>
               </td>
             </tr>
@@ -87,12 +138,20 @@ export default function StudentDropCourse() {
       <Modal
         opened={!!selected}
         onClose={closeModal}
-        title="Confirm Drop"
+        title="Confirm Drop Request"
+        closeOnClickOutside={!dropping}
+        closeOnEscape={!dropping}
       >
-        <Text>Are you sure you want to drop <b>{selected?.course}</b>?</Text>
-        <Group position="right" mt="md">
-          <Button variant="outline" onClick={closeModal}>Cancel</Button>
-          <Button color="red" onClick={handleDrop} loading={dropping}>Yes, Drop</Button>
+        <Text mb="md">
+          Submit a drop request for <strong>{selected?.course}</strong>?
+        </Text>
+        <Group position="right" spacing="sm">
+          <Button variant="outline" onClick={closeModal} disabled={dropping}>
+            Cancel
+          </Button>
+          <Button color="red" onClick={handleDrop} loading={dropping}>
+            Submit Request
+          </Button>
         </Group>
       </Modal>
     </Card>

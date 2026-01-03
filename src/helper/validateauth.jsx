@@ -46,7 +46,7 @@ function ValidateAuth() {
         roll_no,
       } = data;
 
-      console.log("User Data:", data);
+      // console.log("User Data:", data);
 
       dispatch(setUserName(name));
       dispatch(setRollNo(roll_no));

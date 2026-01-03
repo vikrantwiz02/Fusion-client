@@ -21,6 +21,8 @@ import { setActiveTab_ } from "../../redux/moduleslice";
 import { Faculty_TA_Dashboard } from "./Faculty_TA_Dashboard";
 import StudentAddDropReplace from "./StudentAddDropReplace";
 import AdminReplacementDashboard from "./AdminReplacementDashboard";
+import AdminDropDashboard from "./AdminDropDashboard";
+import AdminAddDashboard from "./AdminAddDashboard";
 import StudentCalendar from "./StudentCalendar";
 import AdminStudentDashboard from "./AdminStudentDashboard";
 import StudentCourseFeedbackForm from "./FeedbackForm/StudentCourseFeedbackForm";
@@ -51,6 +53,8 @@ function AcademicPage() {
       { title: "Verify Student Registration" },
       { title: "Allot Courses" },
       { title: "Replacement Allocation" },
+      { title: "Approve Courses" },
+      { title: "Drop Courses" },
       { title: "Student Dashboard"},
       { title: "Feedback Responses"},
       { title: "Batch/Branch Change"},
@@ -65,6 +69,8 @@ function AcademicPage() {
       VerifyStudentRegistration,
       AllotCourses,
       AdminReplacementDashboard,
+      AdminAddDashboard,
+      AdminDropDashboard,
       AdminStudentDashboard,
       AdminFeedbackView,
       AdminBatchChange,
