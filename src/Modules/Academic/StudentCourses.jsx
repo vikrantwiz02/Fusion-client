@@ -99,6 +99,13 @@ export default function StudentCourses() {
         { headers: { Authorization: `Token ${token}` } }
       );
       setStudentData(data);
+
+      if (data.current_semester) {
+        setSelectedSemester({
+          no: data.current_semester.semester_no,
+          type: data.current_semester.semester_type
+        });
+      }
     } catch (err) {
       setError(err.response?.data?.error || err.message || "Fetch failed");
     } finally {

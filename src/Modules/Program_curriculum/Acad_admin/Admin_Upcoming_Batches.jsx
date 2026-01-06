@@ -724,7 +724,14 @@ const INITIAL_FORM_DATA = {
 
 const AdminUpcomingBatch = () => {
   const getCurrentBatchYear = () => {
-    return new Date().getFullYear();
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    if (currentMonth >= 7) {
+      return currentYear;
+    } else {
+      return currentYear - 1;
+    }
   };
 
   // Automatically adds new years in July, separate for UG/PG/PHD
@@ -847,7 +854,7 @@ const AdminUpcomingBatch = () => {
         
       case 'batches_required':
         notifications.show({
-          title: "🎯 Setup Required: Step 2 of 3", 
+          title: "Setup Required: Step 2 of 3", 
           message: (
             <div>
               <Text size="sm" mb={8}>
