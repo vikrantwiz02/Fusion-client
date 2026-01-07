@@ -145,7 +145,9 @@ function LoginPage() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [inputFocus, setInputFocus] = useState(null);
   const [shake, setShake] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: false }));
+  const [currentDate, setCurrentDate] = useState(
+    new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()
+  );
   const [isMobile, setIsMobile] = useState(initialIsMobile);
 
   const isLogin = useMemo(() => view === "login", [view]);
@@ -203,7 +205,7 @@ function LoginPage() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
+      setCurrentDate(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase());
     }, CONFIG.CLOCK_UPDATE_INTERVAL);
     return () => clearInterval(timer);
   }, []);
@@ -460,7 +462,7 @@ function LoginPage() {
             </Group>
             <Group gap="sm" className="status-section">
               <Text size="xs" c="dimmed" fw={800} style={{ fontFamily: 'monospace' }}>
-                {currentTime}
+                {currentDate}
               </Text>
             </Group>
           </Group>
@@ -552,7 +554,7 @@ function LoginPage() {
                   </Title>
                 </Box>
                 {!isLogin && (
-                   <Text c="dimmed" fw={600} size="xs" mt="xl" lts={5}>CENTRALIZED AUTHENTICATION SYSTEM</Text>
+                   <Text c="dimmed" fw={600} size="xs" mt="xl" lts={5}></Text>
                 )}
              </Box>
 
@@ -583,17 +585,8 @@ function LoginPage() {
                       e.currentTarget.style.boxShadow = '0 10px 40px rgba(21,171,255,0.3)';
                     }}
                   >
-                    <Text fw={900} lts={4} size="sm">ACCESS SYSTEM →</Text>
+                    <Text fw={900} lts={4} size="sm">Login →</Text>
                   </UnstyledButton>
-                  <Text size="xs" c="dimmed" mt="md" style={{ fontFamily: 'monospace', letterSpacing: 1 }}>
-                    Press <kbd style={{ 
-                      padding: '2px 6px', 
-                      background: '#F1F3F5', 
-                      border: '1px solid #DEE2E6',
-                      borderRadius: 4,
-                      fontWeight: 800
-                    }}>ENTER</kbd> or click to Access System
-                  </Text>
                 </Box>
              )}
           </Stack>
@@ -628,7 +621,7 @@ function LoginPage() {
                        <Text size="xs" fw={900} c="blue" lts={1}>← BACK</Text>
                     </UnstyledButton>
                   <Box style={{ position: 'relative' }}>
-                    <Title order={2} fw={900} size={isMobile ? "28px" : "36px"} lts={-1}>Authorize</Title>
+                    <Title order={2} fw={900} size={isMobile ? "28px" : "36px"} lts={-1}>Login</Title>
                     <Box 
                       style={{ 
                         position: 'absolute',
@@ -646,14 +639,7 @@ function LoginPage() {
                       <Box style={{ position: 'relative' }}>
                         <TextInput
                           label={
-                            <Group gap="xs" mb={5}>
-                              <Text size="xs" fw={800} c="gray.6">USERNAME</Text>
-                              {username && (
-                                <Badge size="xs" variant="light" color="blue">
-                                  {username.length} chars
-                                </Badge>
-                              )}
-                            </Group>
+                            <Text size="xs" fw={800} c="gray.6" mb={5}>USERNAME</Text>
                           }
                           placeholder="Roll No / Username"
                           variant="unstyled" 
@@ -677,35 +663,11 @@ function LoginPage() {
                             paddingRight: 10
                           }}
                         />
-                        {username && inputFocus === 'username' && (
-                          <Box 
-                            style={{ 
-                              position: 'absolute',
-                              bottom: 0,
-                              left: 0,
-                              height: 2,
-                              width: '100%',
-                              background: 'linear-gradient(90deg, #15ABFF 0%, #111 100%)',
-                              animation: 'slideIn 0.3s ease-out'
-                            }} 
-                          />
-                        )}
                       </Box>
                       <Box style={{ position: 'relative' }}>
                         <PasswordInput
                           label={
-                            <Group gap="xs" mb={5}>
-                              <Text size="xs" fw={800} c="gray.6">PASSWORD</Text>
-                              {password && (
-                                <Badge 
-                                  size="xs" 
-                                  variant="light" 
-                                  color={passwordStrength.color}
-                                >
-                                  {passwordStrength.label}
-                                </Badge>
-                              )}
-                            </Group>
+                            <Text size="xs" fw={800} c="gray.6" mb={5}>PASSWORD</Text>
                           }
                           placeholder="Password"
                           variant="unstyled" 
@@ -729,20 +691,6 @@ function LoginPage() {
                             paddingRight: 10
                           }}
                         />
-                        {password && inputFocus === 'password' && (
-                          <Box 
-                            style={{ 
-                              position: 'absolute',
-                              bottom: 0,
-                              left: 0,
-                              height: 2,
-                              width: `${Math.min((password.length / 12) * 100, 100)}%`,
-                              background: getPasswordGradient(password.length),
-                              transition: 'all 0.3s ease',
-                              animation: 'slideIn 0.3s ease-out'
-                            }} 
-                          />
-                        )}
                         <UnstyledButton 
                           mt={15} 
                           onClick={handlePasswordReset} 
@@ -762,7 +710,7 @@ function LoginPage() {
                             e.currentTarget.style.background = 'transparent';
                           }}
                         >
-                            <Text size="xs" fw={800} c="blue">RECOVER ACCESS?</Text>
+                            <Text size="xs" fw={800} c="blue">Reset Password</Text>
                         </UnstyledButton>
                       </Box>
                       <Box>
@@ -809,27 +757,9 @@ function LoginPage() {
                              lts={2}
                              c={!isFormValid ? 'gray.5' : 'white'}
                            >
-                             {loading ? 'AUTHENTICATING...' : 'Verify Credentials'}
+                             {loading ? 'AUTHENTICATING...' : 'Login'}
                            </Text>
                         </Button>
-                        {!isMobile && (
-                          <Group justify="center" mt="md" gap="xs">
-                            <Text size="xs" c="dimmed" style={{ fontFamily: 'monospace' }}>
-                              Or press
-                            </Text>
-                            <kbd style={{ 
-                              padding: '2px 6px', 
-                              background: '#F1F3F5', 
-                              border: '1px solid #DEE2E6',
-                              borderRadius: 4,
-                              fontWeight: 800,
-                              fontSize: 10,
-                              fontFamily: 'monospace'
-                            }}>
-                              ENTER ↵
-                            </kbd>
-                          </Group>
-                        )}
                       </Box>
                     </Stack>
                   </form>
