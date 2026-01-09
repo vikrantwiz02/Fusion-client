@@ -132,13 +132,33 @@ export default function SubmitGradesProf() {
         payload,
         { headers: { Authorization: `Token ${token}` }, responseType: "blob" }
       );
+      
+      // Filename from course code and course name
+      const selectedCourse = courseOptions.find(c => c.value === course);
+      let courseCode = 'Course';
+      let courseName = 'Template';
+      
+      if (selectedCourse) {
+        const match = selectedCourse.label.match(/^(.+?)\s*\((.+?)\)/);
+        if (match) {
+          courseName = match[1].trim();
+          courseCode = match[2].trim();
+        } else {
+          courseName = selectedCourse.label;
+        }
+      }
+      
+      const courseNameClean = courseName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+      const filename = `${courseCode}_${courseNameClean}_${year}.csv`;
+      
       const url = URL.createObjectURL(new Blob([resp.data]));
       const a = document.createElement("a");
       a.href = url;
-      a.download = `template_${course}_${year}.csv`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
+      URL.revokeObjectURL(url);
       showNotification({
         title: "Downloaded",
         message: "Template downloaded successfully.",
@@ -324,9 +344,39 @@ export default function SubmitGradesProf() {
             </Text>
             <List size="sm" spacing="xs" withPadding>
               <List.Item>Required: <b>roll_no</b>, <b>grade</b>, <b>remarks</b></List.Item>
-              <List.Item>Optional: <b>semester</b> (auto‑filled if missing)</List.Item>
+              <List.Item>Required: <b>semester</b> - included in template</List.Item>
               <List.Item>Ensure valid roll numbers and grades</List.Item>
             </List>
+            <Alert 
+              color="red" 
+              mt="md" 
+              style={{ 
+                backgroundColor: '#ebf8f6ff', 
+                borderColor: '#DC143C',
+                padding: '20px',
+                border: '4px solid #8B0000',
+                width: 'fit-content',
+                maxWidth: '100%'
+              }}
+            >
+              <Text 
+                size="xl" 
+                weight={900} 
+                style={{ 
+                  color: '#8B0000',
+                  fontSize: '22px',
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                  textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+                  fontFamily: 'Arial Black, sans-serif',
+                  wordWrap: 'break-word',
+                  whiteSpace: 'normal',
+                  display: 'block'
+                }}
+              >
+                ⚠️ WARNING: DO NOT MODIFY THE SEMESTER COLUMN ⚠️
+              </Text>
+            </Alert>
             
             {programmeType === 'PG' && (
               <Alert color="blue" mt="md" title="Important Note for PG Students for Grade Submission">
@@ -370,6 +420,7 @@ export default function SubmitGradesProf() {
                 <th>S.no.</th>
                 <th>Roll No</th>
                 <th>Name</th>
+                <th>Branch</th>
                 <th>Grade</th>
                 <th>Remarks</th>
                 <th>Semester</th>
@@ -382,6 +433,7 @@ export default function SubmitGradesProf() {
                   <td>{i+1}</td>
                   <td>{r.roll_no}</td>
                   <td>{r.name}</td>
+                  <td>{r.branch || '-'}</td>
                   <td>{r.grades}</td>
                   <td>{r.remarks}</td>
                   <td>{r.semester}</td>

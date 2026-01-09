@@ -11,6 +11,7 @@ import {
   Alert,
   Table,
   List,
+  Text,
 } from "@mantine/core";
 import axios from "axios";
 import {
@@ -161,13 +162,33 @@ function SubmitGrades() {
         headers: { Authorization: `Token ${token}` },
         responseType: "blob",
       });
+      
+      // Filename from course code and course name
+      const selectedCourse = courseOptions.find(c => c.value === courseId);
+      let courseCode = 'Course';
+      let courseName = 'Template';
+      
+      if (selectedCourse) {
+        const match = selectedCourse.label.match(/^(.+?)\s*\((.+?)\)/);
+        if (match) {
+          courseName = match[1].trim();
+          courseCode = match[2].trim();
+        } else {
+          courseName = selectedCourse.label;
+        }
+      }
+
+      const courseNameClean = courseName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+      const filename = `${courseCode}_${courseNameClean}_${year}.csv`;
+      
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `template_${courseId}_${year}.csv`);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
       setError(null);
     } catch (error) {
       setError(`Error downloading CSV template: ${error.message}`);
@@ -339,6 +360,37 @@ function SubmitGrades() {
               </Grid.Col>
             </Grid>
             
+            <Alert 
+              color="red" 
+              mt="md" 
+              style={{ 
+                backgroundColor: '#ebf8f6ff', 
+                borderColor: '#DC143C',
+                padding: '20px',
+                border: '4px solid #8B0000',
+                width: 'fit-content',
+                maxWidth: '100%'
+              }}
+            >
+              <Text 
+                size="xl" 
+                weight={900} 
+                style={{ 
+                  color: '#8B0000',
+                  fontSize: '22px',
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                  textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+                  fontFamily: 'Arial Black, sans-serif',
+                  wordWrap: 'break-word',
+                  whiteSpace: 'normal',
+                  display: 'block'
+                }}
+              >
+                ⚠️ WARNING: DO NOT MODIFY THE SEMESTER COLUMN ⚠️
+              </Text>
+            </Alert>
+            
             {programmeType === 'PG' && (
               <Alert color="blue" mt="md" title="Important Note for PG Students for Grade Submission">
                 <List size="sm" spacing="xs">
@@ -380,6 +432,7 @@ function SubmitGrades() {
                 <tr>
                   <th>Roll No</th>
                   <th>Name</th>
+                  <th>Branch</th>
                   <th>Grades</th>
                   <th>Remarks</th>
                   <th>Semester</th>
@@ -391,6 +444,7 @@ function SubmitGrades() {
                   <tr key={index} style={{ backgroundColor: row.is_registered ? "inherit" : "#ffe6e6" }}>
                     <td>{row.roll_no}</td>
                     <td>{row.name}</td>
+                    <td>{row.branch || '-'}</td>
                     <td>{row.grades}</td>
                     <td>{row.remarks}</td>
                     <td>{row.semester}</td>

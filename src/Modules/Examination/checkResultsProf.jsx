@@ -108,10 +108,24 @@ export default function GradesDownloadPage() {
         },
         { headers: { Authorization: `Token ${token}` }, responseType: "blob" }
       );
+      
+      // Filename: CourseCode_CourseName_grades_AcademicYear.pdf
+      const selectedCourse = courses.find(c => c.id === courseId);
+      let courseCode = 'Course';
+      let courseName = 'Grades';
+      
+      if (selectedCourse) {
+        courseCode = selectedCourse.code || 'Course';
+        courseName = selectedCourse.name || 'Grades';
+      }
+      
+      const courseNameClean = courseName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+      const filename = `${courseCode}_${courseNameClean}_Grades_${year}.pdf`;
+      
       const url = URL.createObjectURL(new Blob([resp.data]));
       const a = document.createElement("a");
       a.href = url;
-      a.download = `grades_${courseId}_${year}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
