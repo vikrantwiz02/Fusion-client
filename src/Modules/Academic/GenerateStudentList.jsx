@@ -214,18 +214,22 @@ export default function GenerateStudentList() {
         responseType: "blob",
       });
 
-      const contentDisposition = res.headers['content-disposition'];
-      let filename = 'StudentList.xlsx';
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-        if (filenameMatch) {
-          filename = filenameMatch[1];
+      // Filename from course code and course name
+      const selectedCourse = courseOptions.find(c => c.value === course);
+      let courseCode = 'Course';
+      let courseName = 'List';
+      
+      if (selectedCourse) {
+        const parts = selectedCourse.label.split(' - ');
+        if (parts.length >= 2) {
+          courseCode = parts[0].trim();
+          courseName = parts[1].trim();
+        } else {
+          courseName = selectedCourse.label;
         }
-      } else {
-        const listTypeName = listType || "All";
-        const progTypeName = programmeType && programmeType !== 'All' ? `_${programmeType}` : '';
-        filename = `${listTypeName}StudentList_${course}${progTypeName}.xlsx`;
       }
+      const courseNameClean = courseName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+      const filename = `${courseCode}_${courseNameClean}.xlsx`;
 
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");

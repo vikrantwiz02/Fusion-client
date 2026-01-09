@@ -70,8 +70,18 @@ export default function ReplacementRequestStudent() {
               <tbody>
                 {replacementRequests.map(r => (
                   <tr key={r.id}>
-                    <td>{r.old_course}</td>
-                    <td>{r.new_course}</td>
+                    <td>
+                      <Text size="sm">{r.old_course}</Text>
+                      {r.old_course_name && (
+                        <Text size="xs" color="dimmed">{r.old_course_name}</Text>
+                      )}
+                    </td>
+                    <td>
+                      <Text size="sm">{r.new_course}</Text>
+                      {r.new_course_name && (
+                        <Text size="xs" color="dimmed">{r.new_course_name}</Text>
+                      )}
+                    </td>
                     <td>
                       <Badge color={
                         r.status === 'Approved' ? 'green' :
@@ -152,7 +162,12 @@ export default function ReplacementRequestStudent() {
                 {dropRequests.map(r => (
                   <tr key={r.id}>
                     <td>{r.slot}</td>
-                    <td>{r.course}</td>
+                    <td>
+                      <Text size="sm">{r.course}</Text>
+                      {r.course_name && (
+                        <Text size="xs" color="dimmed">{r.course_name}</Text>
+                      )}
+                    </td>
                     <td>
                       <Badge color={
                         r.status === 'Approved' ? 'green' :

@@ -105,7 +105,7 @@ function StudentTranscript({ student, semester, onBack }) {
             name: data.student_name || data.name || student.name || userData.name || userData.username || '',
             rollNumber: data.roll_number || student.id_id || userData.roll_no || '',
             programme: data.programme || student.programme || userData.programme || 'B.Tech',
-            branch: data.department || data.branch || student.branch || student.department || userData.department || 'ECE',
+            branch: data.branch || student.branch || userData.department || 'N/A',
             academicYear: data.academic_year || student.academic_year || userData.academic_year || '2023-24'
           });
           

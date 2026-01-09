@@ -5,7 +5,9 @@ import {
   Card, Box, Stack
 } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
+import { IconFileDownload } from '@tabler/icons-react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 import {
   adminListRequestsRoute,
@@ -18,6 +20,22 @@ const SEMESTER_CHOICES = [
   { value: 'Summer Semester', label: 'Summer Semester' },
 ];
 
+const generateAcademicYears = () => {
+  const currentYear = new Date().getFullYear();
+  const years = [];
+
+  years.push(`${currentYear}-${String(currentYear + 1).slice(-2)}`);
+  years.push(`${currentYear - 1}-${String(currentYear).slice(-2)}`);
+
+  for (let i = 2; i <= 6; i++) {
+    const startYear = currentYear - i;
+    const endYear = startYear + 1;
+    years.push(`${startYear}-${String(endYear).slice(-2)}`);
+  }
+  
+  return years;
+};
+
 export default function AdminReplacementDashboard() {
   const [year, setYear] = useState('');
   const [semester, setSemester] = useState('');
@@ -25,6 +43,7 @@ export default function AdminReplacementDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [allocating, setAllocating] = useState(false);
+  const academicYears = generateAcademicYears();
 
   const fetchRequests = useCallback(() => {
     if (!year || !semester) return;
@@ -90,6 +109,40 @@ export default function AdminReplacementDashboard() {
     .finally(() => setAllocating(false));
   };
 
+  const handleExportToExcel = () => {
+    if (requests.length === 0) {
+      showNotification({
+        title: 'No Data',
+        message: 'No data to export',
+        color: 'yellow',
+      });
+      return;
+    }
+
+    const exportData = requests.map((r, index) => ({
+      'S. No.': index + 1,
+      'Student': r.student,
+      'Slot': r.slot,
+      'Old': r.old_course,
+      'New': r.new_course,
+      'Status': r.status,
+      'Requested At': new Date(r.created_at).toLocaleString()
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Replacements');
+    
+    const fileName = `Replacement_Allocation_${year}_${semester.replace(/\s+/g, '_')}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+
+    showNotification({
+      title: 'Export Successful',
+      message: `Data exported to ${fileName}`,
+      color: 'green',
+    });
+  };
+
   return (
     <>
       <Card>
@@ -97,8 +150,8 @@ export default function AdminReplacementDashboard() {
           <Group grow align="flex-start">
             <Select
               label="Academic Year"
-              placeholder="e.g. 2024-25"
-              data={['2021-22', '2022-23', '2023-24', '2024-25','2025-26','2026-27'].map(y => ({ value: y, label: y }))}
+              placeholder="e.g. 2025-26"
+              data={academicYears.map(y => ({ value: y, label: y }))}
               value={year}
               onChange={setYear}
             />
@@ -118,6 +171,15 @@ export default function AdminReplacementDashboard() {
             <Button size="sm" color="green" onClick={handleAllocate} loading={allocating}>
               Start Allotment
             </Button>
+            <Button 
+              size="sm" 
+              color="blue" 
+              onClick={handleExportToExcel}
+              leftIcon={<IconFileDownload size={16} />}
+              disabled={requests.length === 0}
+            >
+              Export Data
+            </Button>
           </Group>
         </Stack>
       </Card>
@@ -132,6 +194,7 @@ export default function AdminReplacementDashboard() {
         <Table highlightOnHover withBorder>
           <thead>
             <tr>
+              <th>S. No.</th>
               <th>Student</th>
               <th>Slot</th>
               <th>Old</th>
@@ -141,8 +204,9 @@ export default function AdminReplacementDashboard() {
             </tr>
           </thead>
           <tbody>
-            {requests.map(r => (
+            {requests.map((r, index) => (
               <tr key={r.id}>
+                <td>{index + 1}</td>
                 <td>{r.student}</td>
                 <td>{r.slot}</td>
                 <td>{r.old_course}</td>

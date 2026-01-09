@@ -117,7 +117,12 @@ export default function StudentDropCourse() {
           {regs.map(r => (
             <tr key={r.id}>
               <td>{r.slot}</td>
-              <td>{r.course}</td>
+              <td>
+                <Text size="sm">{r.course}</Text>
+                {r.course_name && (
+                  <Text size="xs" color="dimmed">{r.course_name}</Text>
+                )}
+              </td>
               <td>{r.academic_year}</td>
               <td>{r.semester_type}</td>
               <td>
@@ -143,7 +148,10 @@ export default function StudentDropCourse() {
         closeOnEscape={!dropping}
       >
         <Text mb="md">
-          Submit a drop request for <strong>{selected?.course}</strong>?
+          Submit a drop request for <strong>{selected?.course}</strong>
+          {selected?.course_name && (
+            <Text size="sm" color="dimmed">({selected.course_name})</Text>
+          )}?
         </Text>
         <Group position="right" spacing="sm">
           <Button variant="outline" onClick={closeModal} disabled={dropping}>
