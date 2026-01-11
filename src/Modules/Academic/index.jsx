@@ -53,7 +53,7 @@ function AcademicPage() {
       { title: "Verify Student Registration" },
       { title: "Allot Courses" },
       { title: "Replacement Allocation" },
-      { title: "Approve Courses" },
+      { title: "Add BL Courses" },
       { title: "Drop Courses" },
       { title: "Student Dashboard"},
       { title: "Feedback Responses"},

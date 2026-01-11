@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Title, Select, Group, Button,
   Table, Text, Loader, Alert,
-  Card, Box, Stack
+  Card, Box, Stack, Tabs, Badge
 } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
 import { IconFileDownload } from '@tabler/icons-react';
@@ -45,6 +45,16 @@ export default function AdminReplacementDashboard() {
   const [allocating, setAllocating] = useState(false);
   const academicYears = generateAcademicYears();
 
+  const pendingRequests = useMemo(
+    () => requests.filter(r => r.status === 'Pending'),
+    [requests]
+  );
+
+  const processedRequests = useMemo(
+    () => requests.filter(r => r.status !== 'Pending'),
+    [requests]
+  );
+
   const fetchRequests = useCallback(() => {
     if (!year || !semester) return;
 
@@ -61,7 +71,7 @@ export default function AdminReplacementDashboard() {
       params: { academic_year: year, semester_type: semester },
       headers: { Authorization: `Token ${token}` },
     })
-    .then(({ data }) => setRequests(data))
+    .then(({ data }) => setRequests(Array.isArray(data) ? data : []))
     .catch(err => setError(err.response?.data?.detail || err.message))
     .finally(() => setLoading(false));
   }, [year, semester]);
@@ -75,6 +85,15 @@ export default function AdminReplacementDashboard() {
       showNotification({
         title: 'Missing filters',
         message: 'Please select both year and semester.',
+        color: 'yellow',
+      });
+      return;
+    }
+
+    if (pendingRequests.length === 0) {
+      showNotification({
+        title: 'No Pending Requests',
+        message: 'There are no pending requests to allocate.',
         color: 'yellow',
       });
       return;
@@ -109,8 +128,8 @@ export default function AdminReplacementDashboard() {
     .finally(() => setAllocating(false));
   };
 
-  const handleExportToExcel = () => {
-    if (requests.length === 0) {
+  const handleExportToExcel = useCallback((data, type) => {
+    if (data.length === 0) {
       showNotification({
         title: 'No Data',
         message: 'No data to export',
@@ -119,21 +138,25 @@ export default function AdminReplacementDashboard() {
       return;
     }
 
-    const exportData = requests.map((r, index) => ({
+    const exportData = data.map((r, index) => ({
       'S. No.': index + 1,
       'Student': r.student,
+      'Student Name': r.student_name || '',
       'Slot': r.slot,
-      'Old': r.old_course,
-      'New': r.new_course,
+      'Old Course': r.old_course,
+      'Old Course Name': r.old_course_name || '',
+      'New Course': r.new_course,
+      'New Course Name': r.new_course_name || '',
       'Status': r.status,
-      'Requested At': new Date(r.created_at).toLocaleString()
+      'Requested At': new Date(r.created_at).toLocaleString(),
+      'Processed At': r.processed_at ? new Date(r.processed_at).toLocaleString() : ''
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Replacements');
     
-    const fileName = `Replacement_Allocation_${year}_${semester.replace(/\s+/g, '_')}.xlsx`;
+    const fileName = `Replacement_${type}_${year}_${semester.replace(/\s+/g, '_')}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 
     showNotification({
@@ -141,7 +164,56 @@ export default function AdminReplacementDashboard() {
       message: `Data exported to ${fileName}`,
       color: 'green',
     });
-  };
+  }, [year, semester]);
+
+  const renderTable = (data) => (
+    <Table highlightOnHover withTableBorder>
+      <thead>
+        <tr>
+          <th>S. No.</th>
+          <th>Student</th>
+          <th>Slot</th>
+          <th>Old</th>
+          <th>New</th>
+          <th>Status</th>
+          <th>Requested At</th>
+          {data.some(r => r.processed_at) && <th>Processed At</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {data.map((r, index) => (
+          <tr key={r.id}>
+            <td>{index + 1}</td>
+            <td>
+              <Text size="sm" weight={500}>{r.student}</Text>
+              <Text size="xs" color="dimmed">{r.student_name}</Text>
+            </td>
+            <td>{r.slot}</td>
+            <td>
+              <Text size="sm" weight={500}>{r.old_course}</Text>
+              <Text size="xs" color="dimmed">{r.old_course_name}</Text>
+            </td>
+            <td>
+              <Text size="sm" weight={500}>{r.new_course}</Text>
+              <Text size="xs" color="dimmed">{r.new_course_name}</Text>
+            </td>
+            <td>
+              <Badge
+                color={r.status === 'Approved' ? 'green' : r.status === 'Rejected' ? 'red' : 'yellow'}
+                variant="filled"
+              >
+                {r.status}
+              </Badge>
+            </td>
+            <td>{new Date(r.created_at).toLocaleString()}</td>
+            {data.some(req => req.processed_at) && (
+              <td>{r.processed_at ? new Date(r.processed_at).toLocaleString() : '-'}</td>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  );
 
   return (
     <>
@@ -165,58 +237,90 @@ export default function AdminReplacementDashboard() {
           </Group>
 
           <Group position="left" spacing="xs">
-            <Button size="sm" onClick={fetchRequests} loading={loading}>
+            <Button 
+              size="sm" 
+              onClick={fetchRequests} 
+              loading={loading}
+              disabled={!year || !semester}
+            >
               Refresh
-            </Button>
-            <Button size="sm" color="green" onClick={handleAllocate} loading={allocating}>
-              Start Allotment
             </Button>
             <Button 
               size="sm" 
-              color="blue" 
-              onClick={handleExportToExcel}
-              leftIcon={<IconFileDownload size={16} />}
-              disabled={requests.length === 0}
+              color="green" 
+              onClick={handleAllocate} 
+              loading={allocating}
+              disabled={!year || !semester || pendingRequests.length === 0}
             >
-              Export Data
+              Start Allotment
             </Button>
           </Group>
         </Stack>
       </Card>
 
       {loading ? (
-        <Loader />
+        <Card mt="md">
+          <Loader size="lg" />
+        </Card>
       ) : error ? (
-        <Alert title="Error" color="red">{error}</Alert>
+        <Alert title="Error" color="red" mt="md">{error}</Alert>
       ) : (!year || !semester) ? (
-        <Text color="dimmed">Select year & semester to view requests.</Text>
+        <Alert color="gray" mt="md">
+          Select academic year and semester to view replacement requests.
+        </Alert>
       ) : (
-        <Table highlightOnHover withBorder>
-          <thead>
-            <tr>
-              <th>S. No.</th>
-              <th>Student</th>
-              <th>Slot</th>
-              <th>Old</th>
-              <th>New</th>
-              <th>Status</th>
-              <th>Requested At</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((r, index) => (
-              <tr key={r.id}>
-                <td>{index + 1}</td>
-                <td>{r.student}</td>
-                <td>{r.slot}</td>
-                <td>{r.old_course}</td>
-                <td>{r.new_course}</td>
-                <td>{r.status}</td>
-                <td>{new Date(r.created_at).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <Tabs defaultValue="pending" mt="md">
+          <Tabs.List>
+            <Tabs.Tab value="pending">
+              Pending Requests ({pendingRequests.length})
+            </Tabs.Tab>
+            <Tabs.Tab value="processed">
+              Processed Requests ({processedRequests.length})
+            </Tabs.Tab>
+          </Tabs.List>
+
+          <Tabs.Panel value="pending" pt="md">
+            {pendingRequests.length > 0 ? (
+              <Card>
+                <Group position="apart" mb="md">
+                  <Title order={4}>Pending Requests</Title>
+                  <Button
+                    size="sm"
+                    color="blue"
+                    onClick={() => handleExportToExcel(pendingRequests, 'Pending')}
+                    leftSection={<IconFileDownload size={16} />}
+                  >
+                    Export to Excel
+                  </Button>
+                </Group>
+                {renderTable(pendingRequests)}
+              </Card>
+            ) : (
+              <Alert color="blue">No pending replacement requests.</Alert>
+            )}
+          </Tabs.Panel>
+
+          <Tabs.Panel value="processed" pt="md">
+            {processedRequests.length > 0 ? (
+              <Card>
+                <Group position="apart" mb="md">
+                  <Title order={4}>Processed Requests</Title>
+                  <Button
+                    size="sm"
+                    color="blue"
+                    onClick={() => handleExportToExcel(processedRequests, 'Processed')}
+                    leftSection={<IconFileDownload size={16} />}
+                  >
+                    Export to Excel
+                  </Button>
+                </Group>
+                {renderTable(processedRequests)}
+              </Card>
+            ) : (
+              <Alert color="blue">No processed replacement requests.</Alert>
+            )}
+          </Tabs.Panel>
+        </Tabs>
       )}
     </>
   );
