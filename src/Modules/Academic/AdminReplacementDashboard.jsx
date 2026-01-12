@@ -43,6 +43,7 @@ export default function AdminReplacementDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [allocating, setAllocating] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('');
   const academicYears = generateAcademicYears();
 
   const pendingRequests = useMemo(
@@ -53,6 +54,11 @@ export default function AdminReplacementDashboard() {
   const processedRequests = useMemo(
     () => requests.filter(r => r.status !== 'Pending'),
     [requests]
+  );
+
+  const filteredProcessedRequests = useMemo(
+    () => statusFilter ? processedRequests.filter(r => r.status === statusFilter) : processedRequests,
+    [processedRequests, statusFilter]
   );
 
   const fetchRequests = useCallback(() => {
@@ -166,7 +172,7 @@ export default function AdminReplacementDashboard() {
     });
   }, [year, semester]);
 
-  const renderTable = (data) => (
+  const renderTable = (data, showFilter = false) => (
     <Table highlightOnHover withTableBorder>
       <thead>
         <tr>
@@ -175,7 +181,26 @@ export default function AdminReplacementDashboard() {
           <th>Slot</th>
           <th>Old</th>
           <th>New</th>
-          <th>Status</th>
+          <th>
+            <Group spacing="xs" position="apart">
+              <span>Status</span>
+              {showFilter && (
+                <Select
+                  placeholder="All"
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  data={[
+                    { value: '', label: 'All' },
+                    { value: 'Approved', label: 'Approved' },
+                    { value: 'Rejected', label: 'Rejected' },
+                  ]}
+                  size="xs"
+                  style={{ width: 100 }}
+                  clearable
+                />
+              )}
+            </Group>
+          </th>
           <th>Requested At</th>
           {data.some(r => r.processed_at) && <th>Processed At</th>}
         </tr>
@@ -308,13 +333,13 @@ export default function AdminReplacementDashboard() {
                   <Button
                     size="sm"
                     color="blue"
-                    onClick={() => handleExportToExcel(processedRequests, 'Processed')}
+                    onClick={() => handleExportToExcel(filteredProcessedRequests, 'Processed')}
                     leftSection={<IconFileDownload size={16} />}
                   >
                     Export to Excel
                   </Button>
                 </Group>
-                {renderTable(processedRequests)}
+                {renderTable(filteredProcessedRequests, true)}
               </Card>
             ) : (
               <Alert color="blue">No processed replacement requests.</Alert>
