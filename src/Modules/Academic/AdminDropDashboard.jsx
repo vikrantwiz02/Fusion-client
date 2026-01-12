@@ -36,6 +36,7 @@ export default function AdminDropDashboard() {
   const [error, setError] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [processing, setProcessing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('');
 
   const academicYears = useMemo(() => generateAcademicYears(), []);
 
@@ -86,6 +87,11 @@ export default function AdminDropDashboard() {
   const processedRequests = useMemo(
     () => requests.filter(r => r.status !== 'Pending'),
     [requests]
+  );
+
+  const filteredProcessedRequests = useMemo(
+    () => statusFilter ? processedRequests.filter(r => r.status === statusFilter) : processedRequests,
+    [processedRequests, statusFilter]
   );
 
   const toggleSelectAll = useCallback(() => {
@@ -349,7 +355,7 @@ export default function AdminDropDashboard() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => exportToExcel(processedRequests, 'processed_requests')}
+                    onClick={() => exportToExcel(filteredProcessedRequests, 'processed_requests')}
                   >
                     Export to Excel
                   </Button>
@@ -360,13 +366,30 @@ export default function AdminDropDashboard() {
                       <th>Student</th>
                       <th>Slot</th>
                       <th>Course</th>
-                      <th>Status</th>
+                      <th>
+                        <Group spacing="xs" position="apart">
+                          <span>Status</span>
+                          <Select
+                            placeholder="All"
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                            data={[
+                              { value: '', label: 'All' },
+                              { value: 'Approved', label: 'Approved' },
+                              { value: 'Rejected', label: 'Rejected' },
+                            ]}
+                            size="xs"
+                            style={{ width: 100 }}
+                            clearable
+                          />
+                        </Group>
+                      </th>
                       <th>Requested At</th>
                       <th>Processed At</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {processedRequests.map(r => (
+                    {filteredProcessedRequests.map(r => (
                       <tr key={r.id}>
                         <td>
                           <Text size="sm">{r.student}</Text>
