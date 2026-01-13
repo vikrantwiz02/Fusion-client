@@ -212,7 +212,7 @@ function ViewRollList() {
         color="blue"
         size="xs"
         disabled={loading && downloadingCourseId === course.course_id}
-        rightIcon={
+        rightSection={
           loading && downloadingCourseId === course.course_id ? (
             <Loader size="xs" color="blue" />
           ) : null

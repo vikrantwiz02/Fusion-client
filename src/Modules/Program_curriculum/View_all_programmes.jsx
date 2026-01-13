@@ -76,7 +76,7 @@ function ViewAllProgrammes() {
     const filteredData = applyFilters(data);
     return filteredData.map((element, index) => (
       <tr
-        key={element.programme}
+        key={`${element.id}-${element.programme}-${index}`}
         style={{ backgroundColor: index % 2 !== 0 ? "#E6F7FF" : "#ffffff" }}
       >
         <td

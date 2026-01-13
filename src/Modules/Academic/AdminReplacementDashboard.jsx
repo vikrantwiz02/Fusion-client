@@ -2,16 +2,18 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Title, Select, Group, Button,
   Table, Text, Loader, Alert,
-  Card, Box, Stack, Tabs, Badge
+  Card, Box, Stack, Tabs, Badge, Modal, Checkbox, ActionIcon
 } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
-import { IconFileDownload } from '@tabler/icons-react';
+import { IconFileDownload, IconTrash, IconArrowBackUp } from '@tabler/icons-react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 
 import {
   adminListRequestsRoute,
   allotReplacementCoursesRoute,
+  revertReplacementRequestsRoute,
+  deleteReplacementRequestsRoute,
 } from '../../routes/academicRoutes';
 
 const SEMESTER_CHOICES = [
@@ -44,6 +46,13 @@ export default function AdminReplacementDashboard() {
   const [error, setError] = useState(null);
   const [allocating, setAllocating] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
+  const [selectedPendingIds, setSelectedPendingIds] = useState(new Set());
+  const [selectedProcessedIds, setSelectedProcessedIds] = useState(new Set());
+  const [deleteModal, setDeleteModal] = useState({ open: false, ids: [] });
+  const [deleting, setDeleting] = useState(false);
+  const [revertModal, setRevertModal] = useState({ open: false, ids: [] });
+  const [reverting, setReverting] = useState(false);
+  const [activeTab, setActiveTab] = useState('pending');
   const academicYears = generateAcademicYears();
 
   const pendingRequests = useMemo(
@@ -61,6 +70,11 @@ export default function AdminReplacementDashboard() {
     [processedRequests, statusFilter]
   );
 
+  const rejectedRequests = useMemo(
+    () => filteredProcessedRequests.filter(r => r.status === 'Rejected'),
+    [filteredProcessedRequests]
+  );
+
   const fetchRequests = useCallback(() => {
     if (!year || !semester) return;
 
@@ -72,6 +86,8 @@ export default function AdminReplacementDashboard() {
 
     setLoading(true);
     setError(null);
+    setSelectedPendingIds(new Set());
+    setSelectedProcessedIds(new Set());
 
     axios.get(adminListRequestsRoute, {
       params: { academic_year: year, semester_type: semester },
@@ -134,6 +150,170 @@ export default function AdminReplacementDashboard() {
     .finally(() => setAllocating(false));
   };
 
+  const togglePendingSelection = useCallback((id) => {
+    setSelectedPendingIds(prev => {
+      const newSet = new Set(prev);
+      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+      return newSet;
+    });
+  }, []);
+
+  const toggleProcessedSelection = useCallback((id) => {
+    setSelectedProcessedIds(prev => {
+      const newSet = new Set(prev);
+      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+      return newSet;
+    });
+  }, []);
+
+  const toggleSelectAllPending = useCallback(() => {
+    if (selectedPendingIds.size === pendingRequests.length && pendingRequests.length > 0) {
+      setSelectedPendingIds(new Set());
+    } else {
+      setSelectedPendingIds(new Set(pendingRequests.map(r => r.id)));
+    }
+  }, [selectedPendingIds.size, pendingRequests]);
+
+  const toggleSelectAllRejected = useCallback(() => {
+    if (selectedProcessedIds.size === rejectedRequests.length && rejectedRequests.length > 0) {
+      setSelectedProcessedIds(new Set());
+    } else {
+      setSelectedProcessedIds(new Set(rejectedRequests.map(r => r.id)));
+    }
+  }, [selectedProcessedIds.size, rejectedRequests]);
+
+  const openDeleteModal = useCallback((ids) => {
+    setDeleteModal({ open: true, ids: Array.isArray(ids) ? ids : [ids] });
+  }, []);
+
+  const closeDeleteModal = useCallback(() => {
+    setDeleteModal({ open: false, ids: [] });
+  }, []);
+
+  const openRevertModal = useCallback((ids) => {
+    setRevertModal({ open: true, ids: Array.isArray(ids) ? ids : [ids] });
+  }, []);
+
+  const closeRevertModal = useCallback(() => {
+    setRevertModal({ open: false, ids: [] });
+  }, []);
+
+  const handleDelete = useCallback(async () => {
+    const { ids } = deleteModal;
+    if (ids.length === 0) return;
+
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      showNotification({
+        title: 'Authentication Error',
+        message: 'Please login again',
+        color: 'red'
+      });
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const response = await axios.post(
+        deleteReplacementRequestsRoute,
+        { request_ids: ids },
+        { headers: { Authorization: `Token ${token}` } }
+      );
+
+      showNotification({
+        title: 'Success',
+        message: `Deleted ${response.data.deleted} request(s)`,
+        color: 'green'
+      });
+
+      setSelectedPendingIds(prev => {
+        const newSet = new Set(prev);
+        ids.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+      
+      closeDeleteModal();
+      await fetchRequests();
+    } catch (err) {
+      showNotification({
+        title: 'Delete Failed',
+        message: err.response?.data?.error || err.message,
+        color: 'red',
+      });
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteModal, fetchRequests, closeDeleteModal]);
+
+  const handleBulkDelete = useCallback(() => {
+    if (selectedPendingIds.size === 0) {
+      showNotification({
+        title: 'No Selection',
+        message: 'Please select at least one request to delete',
+        color: 'yellow',
+      });
+      return;
+    }
+    openDeleteModal(Array.from(selectedPendingIds));
+  }, [selectedPendingIds, openDeleteModal]);
+
+  const handleRevertToPending = useCallback(async () => {
+    const idArray = revertModal.ids;
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      showNotification({
+        title: 'Authentication Error',
+        message: 'Please login again',
+        color: 'red'
+      });
+      return;
+    }
+
+    setReverting(true);
+    try {
+      const response = await axios.post(
+        revertReplacementRequestsRoute,
+        { request_ids: idArray },
+        { headers: { Authorization: `Token ${token}` } }
+      );
+
+      showNotification({
+        title: 'Success',
+        message: `Reverted ${response.data.reverted} request(s) to Pending`,
+        color: 'green'
+      });
+
+      setSelectedProcessedIds(prev => {
+        const newSet = new Set(prev);
+        idArray.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+      
+      closeRevertModal();
+      await fetchRequests();
+    } catch (err) {
+      showNotification({
+        title: 'Revert Failed',
+        message: err.response?.data?.error || err.message,
+        color: 'red',
+      });
+    } finally {
+      setReverting(false);
+    }
+  }, [revertModal.ids, fetchRequests, closeRevertModal]);
+
+  const handleBulkRevert = useCallback(() => {
+    if (selectedProcessedIds.size === 0) {
+      showNotification({
+        title: 'No Selection',
+        message: 'Please select at least one rejected request to revert',
+        color: 'yellow',
+      });
+      return;
+    }
+    openRevertModal(Array.from(selectedProcessedIds));
+  }, [selectedProcessedIds, openRevertModal]);
+
   const handleExportToExcel = useCallback((data, type) => {
     if (data.length === 0) {
       showNotification({
@@ -172,10 +352,83 @@ export default function AdminReplacementDashboard() {
     });
   }, [year, semester]);
 
-  const renderTable = (data, showFilter = false) => (
+  const renderPendingTable = (data) => (
     <Table highlightOnHover withTableBorder>
       <thead>
         <tr>
+          <th style={{ width: 50 }}>
+            <Checkbox
+              checked={selectedPendingIds.size === data.length && data.length > 0}
+              onChange={toggleSelectAllPending}
+              indeterminate={selectedPendingIds.size > 0 && selectedPendingIds.size < data.length}
+            />
+          </th>
+          <th>S. No.</th>
+          <th>Student</th>
+          <th>Slot</th>
+          <th>Old</th>
+          <th>New</th>
+          <th>Status</th>
+          <th>Requested At</th>
+          <th style={{ width: 80 }}>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {data.map((r, index) => (
+          <tr key={r.id}>
+            <td>
+              <Checkbox
+                checked={selectedPendingIds.has(r.id)}
+                onChange={() => togglePendingSelection(r.id)}
+              />
+            </td>
+            <td>{index + 1}</td>
+            <td>
+              <Text size="sm" weight={500}>{r.student}</Text>
+              <Text size="xs" color="dimmed">{r.student_name}</Text>
+            </td>
+            <td>{r.slot}</td>
+            <td>
+              <Text size="sm" weight={500}>{r.old_course}</Text>
+              <Text size="xs" color="dimmed">{r.old_course_name}</Text>
+            </td>
+            <td>
+              <Text size="sm" weight={500}>{r.new_course}</Text>
+              <Text size="xs" color="dimmed">{r.new_course_name}</Text>
+            </td>
+            <td>
+              <Badge color="yellow" variant="filled">{r.status}</Badge>
+            </td>
+            <td>{new Date(r.created_at).toLocaleString()}</td>
+            <td>
+              <ActionIcon
+                color="red"
+                variant="subtle"
+                onClick={() => openDeleteModal(r.id)}
+                title="Delete request"
+              >
+                <IconTrash size={18} />
+              </ActionIcon>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  );
+
+  const renderProcessedTable = (data, showFilter = false) => (
+    <Table highlightOnHover withTableBorder>
+      <thead>
+        <tr>
+          {statusFilter === 'Rejected' && (
+            <th style={{ width: 50 }}>
+              <Checkbox
+                checked={selectedProcessedIds.size === rejectedRequests.length && rejectedRequests.length > 0}
+                onChange={toggleSelectAllRejected}
+                indeterminate={selectedProcessedIds.size > 0 && selectedProcessedIds.size < rejectedRequests.length}
+              />
+            </th>
+          )}
           <th>S. No.</th>
           <th>Student</th>
           <th>Slot</th>
@@ -203,11 +456,20 @@ export default function AdminReplacementDashboard() {
           </th>
           <th>Requested At</th>
           {data.some(r => r.processed_at) && <th>Processed At</th>}
+          {statusFilter === 'Rejected' && <th style={{ width: 80 }}>Actions</th>}
         </tr>
       </thead>
       <tbody>
         {data.map((r, index) => (
           <tr key={r.id}>
+            {statusFilter === 'Rejected' && (
+              <td>
+                <Checkbox
+                  checked={selectedProcessedIds.has(r.id)}
+                  onChange={() => toggleProcessedSelection(r.id)}
+                />
+              </td>
+            )}
             <td>{index + 1}</td>
             <td>
               <Text size="sm" weight={500}>{r.student}</Text>
@@ -233,6 +495,19 @@ export default function AdminReplacementDashboard() {
             <td>{new Date(r.created_at).toLocaleString()}</td>
             {data.some(req => req.processed_at) && (
               <td>{r.processed_at ? new Date(r.processed_at).toLocaleString() : '-'}</td>
+            )}
+            {statusFilter === 'Rejected' && (
+              <td>
+                <ActionIcon
+                  color="blue"
+                  variant="subtle"
+                  onClick={() => openRevertModal(r.id)}
+                  title="Revert to Pending"
+                  loading={reverting}
+                >
+                  <IconArrowBackUp size={18} />
+                </ActionIcon>
+              </td>
             )}
           </tr>
         ))}
@@ -294,7 +569,7 @@ export default function AdminReplacementDashboard() {
           Select academic year and semester to view replacement requests.
         </Alert>
       ) : (
-        <Tabs defaultValue="pending" mt="md">
+        <Tabs value={activeTab} onChange={setActiveTab} mt="md">
           <Tabs.List>
             <Tabs.Tab value="pending">
               Pending Requests ({pendingRequests.length})
@@ -309,16 +584,27 @@ export default function AdminReplacementDashboard() {
               <Card>
                 <Group position="apart" mb="md">
                   <Title order={4}>Pending Requests</Title>
-                  <Button
-                    size="sm"
-                    color="blue"
-                    onClick={() => handleExportToExcel(pendingRequests, 'Pending')}
-                    leftSection={<IconFileDownload size={16} />}
-                  >
-                    Export to Excel
-                  </Button>
+                  <Group spacing="xs">
+                    <Button
+                      size="sm"
+                      color="red"
+                      variant="outline"
+                      onClick={handleBulkDelete}
+                      disabled={selectedPendingIds.size === 0}
+                    >
+                      Delete ({selectedPendingIds.size})
+                    </Button>
+                    <Button
+                      size="sm"
+                      color="blue"
+                      onClick={() => handleExportToExcel(pendingRequests, 'Pending')}
+                      leftSection={<IconFileDownload size={16} />}
+                    >
+                      Export to Excel
+                    </Button>
+                  </Group>
                 </Group>
-                {renderTable(pendingRequests)}
+                {renderPendingTable(pendingRequests)}
               </Card>
             ) : (
               <Alert color="blue">No pending replacement requests.</Alert>
@@ -330,16 +616,31 @@ export default function AdminReplacementDashboard() {
               <Card>
                 <Group position="apart" mb="md">
                   <Title order={4}>Processed Requests</Title>
-                  <Button
-                    size="sm"
-                    color="blue"
-                    onClick={() => handleExportToExcel(filteredProcessedRequests, 'Processed')}
-                    leftSection={<IconFileDownload size={16} />}
-                  >
-                    Export to Excel
-                  </Button>
+                  <Group spacing="xs">
+                    {statusFilter === 'Rejected' && (
+                      <Button
+                        size="sm"
+                        color="blue"
+                        variant="outline"
+                        onClick={handleBulkRevert}
+                        disabled={selectedProcessedIds.size === 0}
+                        leftSection={<IconArrowBackUp size={16} />}
+                        loading={reverting}
+                      >
+                        Revert to Pending ({selectedProcessedIds.size})
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      color="blue"
+                      onClick={() => handleExportToExcel(filteredProcessedRequests, 'Processed')}
+                      leftSection={<IconFileDownload size={16} />}
+                    >
+                      Export to Excel
+                    </Button>
+                  </Group>
                 </Group>
-                {renderTable(filteredProcessedRequests, true)}
+                {renderProcessedTable(filteredProcessedRequests, true)}
               </Card>
             ) : (
               <Alert color="blue">No processed replacement requests.</Alert>
@@ -347,6 +648,54 @@ export default function AdminReplacementDashboard() {
           </Tabs.Panel>
         </Tabs>
       )}
+
+      <Modal
+        opened={deleteModal.open}
+        onClose={closeDeleteModal}
+        title="Confirm Deletion"
+        centered
+        closeOnClickOutside={!deleting}
+        closeOnEscape={!deleting}
+      >
+        <Text size="sm" mb="md" weight={500}>
+          Are you sure you want to permanently delete {deleteModal.ids.length} replacement request{deleteModal.ids.length > 1 ? 's' : ''}?
+        </Text>
+        <Text size="sm" color="dimmed" mb="md">
+          This action cannot be undone.
+        </Text>
+        <Group position="right" spacing="sm">
+          <Button variant="outline" onClick={closeDeleteModal} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button color="red" onClick={handleDelete} loading={deleting}>
+            Delete
+          </Button>
+        </Group>
+      </Modal>
+
+      <Modal
+        opened={revertModal.open}
+        onClose={closeRevertModal}
+        title="Confirm Revert to Pending"
+        centered
+        closeOnClickOutside={!reverting}
+        closeOnEscape={!reverting}
+      >
+        <Text size="sm" mb="md" weight={500}>
+          Are you sure you want to revert {revertModal.ids.length} rejected request{revertModal.ids.length > 1 ? 's' : ''} back to Pending status?
+        </Text>
+        <Text size="sm" color="dimmed" mb="md">
+          The request{revertModal.ids.length > 1 ? 's' : ''} will be moved back to the Pending Requests tab.
+        </Text>
+        <Group position="right" spacing="sm">
+          <Button variant="outline" onClick={closeRevertModal} disabled={reverting}>
+            Cancel
+          </Button>
+          <Button color="blue" onClick={handleRevertToPending} loading={reverting}>
+            Revert to Pending
+          </Button>
+        </Group>
+      </Modal>
     </>
   );
 }

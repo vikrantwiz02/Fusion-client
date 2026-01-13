@@ -374,7 +374,7 @@ export default function SubmitGradesProf() {
                   display: 'block'
                 }}
               >
-                ⚠️ WARNING: DO NOT MODIFY THE SEMESTER COLUMN ⚠️
+                ⚠️ NOTE: DO NOT MODIFY THE SEMESTER COLUMN ⚠️
               </Text>
             </Alert>
             
