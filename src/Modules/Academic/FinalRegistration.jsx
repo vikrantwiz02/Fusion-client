@@ -221,7 +221,6 @@ function FinalRegistration() {
               placeholder="Choose File"
               accept="application/pdf"
               onChange={(file) => handleInputChange("fee_receipt", file)}
-              buttonLabel="Browse"
               style={inputStyle}
             />
           </Grid.Col>

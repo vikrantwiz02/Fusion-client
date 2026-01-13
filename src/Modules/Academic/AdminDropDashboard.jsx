@@ -2,14 +2,16 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Title, Select, Group, Button,
   Table, Text, Loader, Alert,
-  Card, Stack, Checkbox, Badge, Tabs
+  Card, Stack, Checkbox, Badge, Tabs, Modal, ActionIcon
 } from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
+import { IconTrash } from '@tabler/icons-react';
 import axios from 'axios';
 
 import {
   adminListDropRequestsRoute,
   approveDropRequestsRoute,
+  deleteDropRequestsRoute,
 } from '../../routes/academicRoutes';
 
 const SEMESTER_CHOICES = [
@@ -37,6 +39,8 @@ export default function AdminDropDashboard() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [processing, setProcessing] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
+  const [deleteModal, setDeleteModal] = useState({ open: false, ids: [] });
+  const [deleting, setDeleting] = useState(false);
 
   const academicYears = useMemo(() => generateAcademicYears(), []);
 
@@ -158,6 +162,73 @@ export default function AdminDropDashboard() {
 
   const handleApprove = useCallback(() => handleAction('approve'), [handleAction]);
   const handleReject = useCallback(() => handleAction('reject'), [handleAction]);
+
+  const openDeleteModal = useCallback((ids) => {
+    setDeleteModal({ open: true, ids: Array.isArray(ids) ? ids : [ids] });
+  }, []);
+
+  const closeDeleteModal = useCallback(() => {
+    setDeleteModal({ open: false, ids: [] });
+  }, []);
+
+  const handleDelete = useCallback(async () => {
+    const { ids } = deleteModal;
+    if (ids.length === 0) return;
+
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      showNotification({
+        title: 'Authentication Error',
+        message: 'Please login again',
+        color: 'red'
+      });
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const response = await axios.post(
+        deleteDropRequestsRoute,
+        { request_ids: ids },
+        { headers: { Authorization: `Token ${token}` } }
+      );
+
+      showNotification({
+        title: 'Success',
+        message: `Deleted ${response.data.deleted} request(s)`,
+        color: 'green'
+      });
+
+      setSelectedIds(prev => {
+        const newSet = new Set(prev);
+        ids.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+      
+      closeDeleteModal();
+      await fetchRequests();
+    } catch (err) {
+      showNotification({
+        title: 'Delete Failed',
+        message: err.response?.data?.error || err.message,
+        color: 'red',
+      });
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteModal, fetchRequests, closeDeleteModal]);
+
+  const handleBulkDelete = useCallback(() => {
+    if (selectedIds.size === 0) {
+      showNotification({
+        title: 'No Selection',
+        message: 'Please select at least one request to delete',
+        color: 'yellow',
+      });
+      return;
+    }
+    openDeleteModal(Array.from(selectedIds));
+  }, [selectedIds, openDeleteModal]);
 
   const exportToExcel = useCallback((data, filename) => {
     if (data.length === 0) {
@@ -284,13 +355,24 @@ export default function AdminDropDashboard() {
               <Card>
                 <Group position="apart" mb="md">
                   <Title order={4}>Pending Requests</Title>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => exportToExcel(pendingRequests, 'pending_requests')}
-                  >
-                    Export to Excel
-                  </Button>
+                  <Group spacing="xs">
+                    <Button
+                      size="sm"
+                      color="red"
+                      variant="outline"
+                      onClick={handleBulkDelete}
+                      disabled={selectedIds.size === 0}
+                    >
+                      Delete ({selectedIds.size})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => exportToExcel(pendingRequests, 'pending_requests')}
+                    >
+                      Export to Excel
+                    </Button>
+                  </Group>
                 </Group>
                 <Table highlightOnHover withTableBorder>
                   <thead>
@@ -307,6 +389,7 @@ export default function AdminDropDashboard() {
                       <th>Course</th>
                       <th>Status</th>
                       <th>Requested At</th>
+                      <th style={{ width: 80 }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -335,6 +418,16 @@ export default function AdminDropDashboard() {
                           <Badge color="yellow">{r.status}</Badge>
                         </td>
                         <td>{new Date(r.created_at).toLocaleString()}</td>
+                        <td>
+                          <ActionIcon
+                            color="red"
+                            variant="subtle"
+                            onClick={() => openDeleteModal(r.id)}
+                            title="Delete request"
+                          >
+                            <IconTrash size={18} />
+                          </ActionIcon>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -428,6 +521,30 @@ export default function AdminDropDashboard() {
           </Tabs.Panel>
         </Tabs>
       )}
+
+      <Modal
+        opened={deleteModal.open}
+        onClose={closeDeleteModal}
+        title="Confirm Deletion"
+        centered
+        closeOnClickOutside={!deleting}
+        closeOnEscape={!deleting}
+      >
+        <Text size="sm" mb="md" weight={500}>
+          Are you sure you want to permanently delete {deleteModal.ids.length} course drop request{deleteModal.ids.length > 1 ? 's' : ''}?
+        </Text>
+        <Text size="sm" color="dimmed" mb="md">
+          This action cannot be undone.
+        </Text>
+        <Group position="right" spacing="sm">
+          <Button variant="outline" onClick={closeDeleteModal} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button color="red" onClick={handleDelete} loading={deleting}>
+            Delete
+          </Button>
+        </Group>
+      </Modal>
     </>
   );
 }

@@ -129,7 +129,7 @@ export default function AdminPromoteSemester() {
 
   return (
     <Card style={{ position: 'relative' }}>
-      <LoadingOverlay visible={loadingBatches || loadingStudents || loadingApply} overlayBlur={2} />
+      <LoadingOverlay visible={loadingBatches || loadingStudents || loadingApply} />
 
       <Select
         label="Select Batch"
@@ -138,7 +138,7 @@ export default function AdminPromoteSemester() {
         value={sourceBatch}
         onChange={setSourceBatch}
         searchable
-        nothingFound="No batches"
+        nothingFoundMessage="No batches"
         mb="md"
         disabled={loadingBatches}
       />

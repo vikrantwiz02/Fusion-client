@@ -15,6 +15,7 @@ import {
   Alert,
   Card,
   ThemeIcon,
+  Loader,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { showApiErrorNotification, showDeleteSuccessNotification } from "../../../utils/notifications";
@@ -34,12 +35,14 @@ function AdminViewAllBatches() {
   });
   const [batches, setBatches] = useState([]);
   const [finishedBatches, setFinishedBatches] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingBatchId, setDeletingBatchId] = useState(null);
 
   const fetchBatches = async (forceRefresh = false) => {
     try {
+      setLoading(true);
       const cachedData = localStorage.getItem("AdminBatchesCache");
       const timestamp = localStorage.getItem("AdminBatchesTimestamp");
       const isCacheValid =
@@ -96,12 +99,17 @@ function AdminViewAllBatches() {
         localStorage.setItem("AdminBatchesTimestamp", Date.now().toString());
       }
     } catch (error) {
+      console.error("Error fetching batches:", error);
       notifications.show({
         title: "Error",
         message: "Failed to load batch data. Please refresh the page.",
         color: "red",
         autoClose: 4000,
       });
+      setBatches([]);
+      setFinishedBatches([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -506,9 +514,17 @@ function AdminViewAllBatches() {
                           </td>
                         </tr>
                       ))
+                    ) : loading ? (
+                      <tr>
+                        <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>
+                          <Loader size="sm" />
+                        </td>
+                      </tr>
                     ) : (
                       <tr>
-                        <td colSpan="8">Loading</td>
+                        <td colSpan="8" style={{ textAlign: "center", padding: "20px" }}>
+                          No batches found
+                        </td>
                       </tr>
                     )}
                   </tbody>
