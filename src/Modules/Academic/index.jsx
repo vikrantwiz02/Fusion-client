@@ -15,7 +15,7 @@ import GenerateStudentList from "./GenerateStudentList";
 import ViewRollList from "./ViewRollList";
 import AllocateCourses from "./AllocateCourses";
 import VerifyStudentRegistration from "./VerifyStudentRegistration";
-import SwayamRegistration from "./SwayamRegistration";
+import SwayamRegistration from "./SwayamRegistrationWrapper";
 import AllotCourses from "./AllotCourses";
 import { setActiveTab_ } from "../../redux/moduleslice";
 import { Faculty_TA_Dashboard } from "./Faculty_TA_Dashboard";
@@ -30,6 +30,7 @@ import AdminFeedbackView from "./FeedbackForm/AdminFeedbackView";
 import AdminBatchChange from "./AdminBatchChange";
 import AdminPromoteSemester from "./AdminPromoteSemester";
 import InstructorDashboard from "./FeedbackForm/InstructorDashboard";
+import AdminSwayamDashboard from "./AdminSwayamDashboard";
 
 function AcademicPage() {
   const [activeTab, setActiveTab] = useState("0");
@@ -55,6 +56,7 @@ function AcademicPage() {
       { title: "Replacement Allocation" },
       { title: "Add BL Courses" },
       { title: "Drop Courses" },
+      { title: "Swayam" },
       { title: "Student Dashboard"},
       { title: "Feedback Responses"},
       { title: "Batch/Branch Change"},
@@ -71,6 +73,7 @@ function AcademicPage() {
       AdminReplacementDashboard,
       AdminAddDashboard,
       AdminDropDashboard,
+      AdminSwayamDashboard,
       AdminStudentDashboard,
       AdminFeedbackView,
       AdminBatchChange,
@@ -83,7 +86,7 @@ function AcademicPage() {
       { title: "Academic Calender" },
       { title: "Pre-Registration" },
       { title: "Final-Registration" },
-      { title: "Swayam Registration" },
+      { title: "Swayam" },
       { title: "Add / Drop" },
       // { title: "Feedback Form" },
     ];
