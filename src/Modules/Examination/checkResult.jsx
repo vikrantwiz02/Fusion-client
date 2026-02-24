@@ -548,7 +548,7 @@ export default function CheckResult() {
                     {/* Left side - Credits */}
                     <Box style={{ flex: 1 }}>
                       <Text style={{ fontSize: isMobile ? '10px' : '12px', fontWeight: 'bold', margin: '0 0 8px 0', color: '#000000' }}>
-                        Total Credits Registered: {tu}
+                        Total Credits Earned: {tu}
                       </Text>
                       <Text style={{ fontSize: isMobile ? '10px' : '12px', fontWeight: 'bold', margin: '0', color: '#000000' }}>
                         Semester Credits Earned: {su}

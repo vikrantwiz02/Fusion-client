@@ -532,7 +532,7 @@ function StudentTranscript({ student, semester, onBack }) {
         >
           <Box style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
             <Text style={{ fontSize: isMobile ? '10px' : '12px', color: '#000000', fontWeight: 'bold' }}>
-              Total Credits Registered: {tu}
+              Total Credits Earned: {tu}
             </Text>
             <Text style={{ fontSize: isMobile ? '10px' : '12px', color: '#000000', fontWeight: 'bold' }}>
               Semester Credits Earned: {su}
