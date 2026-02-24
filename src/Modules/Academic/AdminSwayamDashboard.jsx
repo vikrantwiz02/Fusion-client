@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Tabs, Table, Button, Group, Badge, Checkbox, Select, ActionIcon, Tooltip, Alert, Loader, Title, Box } from '@mantine/core';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Tabs, Table, Button, Group, Badge, Checkbox, Select, ActionIcon, Tooltip, Alert, Loader, Title, Box, Card, Stack } from '@mantine/core';
 import { IconDownload, IconCheck, IconX, IconArrowBackUp, IconTrash } from '@tabler/icons-react';
 import { showNotification } from '@mantine/notifications';
 import * as XLSX from 'xlsx';
@@ -19,15 +19,12 @@ const SEMESTER_CHOICES = [
 
 const generateAcademicYears = () => {
   const currentYear = new Date().getFullYear();
-  const years = [];
-  years.push(`${currentYear}-${String(currentYear + 1).slice(-2)}`);
-  years.push(`${currentYear - 1}-${String(currentYear).slice(-2)}`);
-  for (let i = 2; i <= 6; i++) {
-    const startYear = currentYear - i;
-    const endYear = startYear + 1;
-    years.push(`${startYear}-${String(endYear).slice(-2)}`);
-  }
-  return years;
+  const yearsToShow = 5;
+  return Array.from({ length: yearsToShow }, (_, i) => {
+    const year = currentYear - i;
+    const value = `${year}-${(year + 1).toString().slice(-2)}`;
+    return { value, label: value };
+  });
 };
 
 const AdminSwayamDashboard = () => {
@@ -39,7 +36,7 @@ const AdminSwayamDashboard = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [academicYear, setAcademicYear] = useState('');
   const [semesterType, setSemesterType] = useState('');
-  const academicYears = generateAcademicYears();
+  const academicYears = useMemo(() => generateAcademicYears(), []);
 
   useEffect(() => {
     fetchRequests();
@@ -375,47 +372,38 @@ const AdminSwayamDashboard = () => {
   };
 
   return (
-    <Box
-      style={{
-        border: "1px solid #dde3ea",
-        borderRadius: 10,
-        overflow: "hidden",
-        background: "#ffffff",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-      }}
-    >
-      {/* ── Filter bar ───────────────────────────────────────── */}
-      <Box
-        style={{
-          background: "#f8f9fa",
-          borderBottom: "1px solid #dde3ea",
-          padding: "16px 24px",
-        }}
-      >
-        <Group spacing="md" align="flex-end">
-          <Select
-            label="Academic Year"
-            placeholder="Select year"
-            data={academicYears.map(y => ({ value: y, label: y }))}
-            value={academicYear}
-            onChange={setAcademicYear}
-            style={{ width: 200 }}
-            clearable
-          />
-          <Select
-            label="Semester Type"
-            placeholder="Select semester"
-            data={SEMESTER_CHOICES}
-            value={semesterType}
-            onChange={setSemesterType}
-            style={{ width: 200 }}
-            clearable
-          />
-          <Button onClick={fetchRequests} disabled={!academicYear || !semesterType}>
-            Refresh
-          </Button>
-        </Group>
-      </Box>
+    <>
+      <Card>
+        <Stack spacing="md">
+          <Group grow align="flex-start">
+            <Select
+              label="Academic Year"
+              placeholder="e.g. 2025-26"
+              data={academicYears}
+              value={academicYear}
+              onChange={setAcademicYear}
+              searchable
+            />
+            <Select
+              label="Semester Type"
+              placeholder="Select semester"
+              data={SEMESTER_CHOICES}
+              value={semesterType}
+              onChange={setSemesterType}
+            />
+          </Group>
+          <Group position="left">
+            <Button
+              size="sm"
+              onClick={fetchRequests}
+              loading={loading}
+              disabled={!academicYear || !semesterType}
+            >
+              Refresh
+            </Button>
+          </Group>
+        </Stack>
+      </Card>
 
       {/* Main tabs */}
       <Tabs
@@ -601,7 +589,7 @@ const AdminSwayamDashboard = () => {
           </Tabs.Panel>
         ))}
       </Tabs>
-    </Box>
+    </>
   );
 };
 
