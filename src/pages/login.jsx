@@ -11,7 +11,6 @@ import {
   Transition,
   rem,
   UnstyledButton,
-  Badge,
   Alert,
   Progress,
   PinInput,
@@ -25,14 +24,35 @@ import iiitdmjLogo from "../assets/iiitdmj_logo.png";
 import iiitdmjLogoMobile from "../assets/IIITJ_logo.webp";
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react";
 
-const OTP_TTL_SECONDS = 10 * 60;
-
 const CONFIG = {
   MOBILE_BREAKPOINT: 768,
   CLOCK_UPDATE_INTERVAL: 1000,
   RESIZE_DEBOUNCE_DELAY: 150,
   MOUSE_TRACKING_THROTTLE: 50,
   AUTH_SUCCESS_DELAY: 500,
+  SHAKE_DURATION: 500,
+  RESET_REDIRECT_DELAY: 2000,
+  API_TIMEOUT: 10_000,
+  OTP_TTL_SECONDS: 10 * 60,
+  OTP_RESEND_COOLDOWN: 60,
+  PASSWORD_MIN_LENGTH: 8,
+  PASSWORD_MAX_LENGTH: 72,
+};
+
+const validatePassword = (pw) => {
+  if (pw.length < CONFIG.PASSWORD_MIN_LENGTH)
+    return { valid: false, message: `Password must be at least ${CONFIG.PASSWORD_MIN_LENGTH} characters.` };
+  if (pw.length > CONFIG.PASSWORD_MAX_LENGTH)
+    return { valid: false, message: `Password exceeds maximum length (${CONFIG.PASSWORD_MAX_LENGTH} characters).` };
+  if (!/[a-z]/.test(pw))
+    return { valid: false, message: "Password must contain at least one lowercase letter (a-z)." };
+  if (!/[A-Z]/.test(pw))
+    return { valid: false, message: "Password must contain at least one uppercase letter (A-Z)." };
+  if (!/[0-9]/.test(pw))
+    return { valid: false, message: "Password must contain at least one number (0-9)." };
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw))
+    return { valid: false, message: "Password must contain at least one special character (!@#$%^&* etc)." };
+  return { valid: true, message: "" };
 };
 
 const NOTIFICATION_STYLES = {
@@ -126,16 +146,18 @@ const throttle = (func, limit) => {
   };
 };
 
-const getPasswordStrength = (password) => {
-  if (password.length < 6) return { label: 'weak', color: 'red' };
-  if (password.length < 10) return { label: 'medium', color: 'yellow' };
-  return { label: 'strong', color: 'green' };
-};
+const fmtTime = (s) =>
+  `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
-const getPasswordGradient = (length) => {
-  if (length < 6) return 'linear-gradient(90deg, #EF4444 0%, #DC2626 100%)';
-  if (length < 10) return 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)';
-  return 'linear-gradient(90deg, #10B981 0%, #059669 100%)';
+const getResetPasswordStrength = (pw) => {
+  let score = 0;
+  if (pw.length >= 8) score += 20;
+  if (pw.length >= 12) score += 10;
+  if (/[a-z]/.test(pw)) score += 20;
+  if (/[A-Z]/.test(pw)) score += 20;
+  if (/[0-9]/.test(pw)) score += 15;
+  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw)) score += 15;
+  return score;
 };
 
 function LoginPage() {
@@ -160,19 +182,17 @@ function LoginPage() {
   const [resetError, setResetError] = useState("");
   const [resetSuccess, setResetSuccess] = useState("");
   const [otp, setOtp] = useState("");
-  const [otpCountdown, setOtpCountdown] = useState(OTP_TTL_SECONDS);
-  const [resendCooldown, setResendCooldown] = useState(60);
+  const [otpCountdown, setOtpCountdown] = useState(CONFIG.OTP_TTL_SECONDS);
+  const [resendCooldown, setResendCooldown] = useState(CONFIG.OTP_RESEND_COOLDOWN);
   const [otpTimerRunning, setOtpTimerRunning] = useState(false);
   const [resendTimerRunning, setResendTimerRunning] = useState(false);
-  const countdownRef = useRef(null);
-  const resendRef = useRef(null);
   const resetTokenRef = useRef("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
 
   const isLogin = useMemo(() => view === "login" || view === "forgot-password", [view]);
   const isForgotPassword = useMemo(() => view === "forgot-password", [view]);
-  const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
   const isFormValid = useMemo(() => username.trim() && password.trim(), [username, password]);
 
   const handleMouseMove = useCallback(
@@ -209,6 +229,7 @@ function LoginPage() {
     setConfirmPassword("");
     setOtpTimerRunning(false);
     setResendTimerRunning(false);
+    setShowPasswordRequirements(false);
   }, []);
 
   const handleDismissSession = useCallback(() => {
@@ -221,6 +242,7 @@ function LoginPage() {
     setConfirmPassword("");
     setOtpTimerRunning(false);
     setResendTimerRunning(false);
+    setShowPasswordRequirements(false);
   }, []);
 
   useEffect(() => {
@@ -287,53 +309,46 @@ function LoginPage() {
   }, [resendTimerRunning, resendCooldown]);
 
   const startOtpCountdown = useCallback(() => {
-    setOtpCountdown(OTP_TTL_SECONDS);
+    setOtpCountdown(CONFIG.OTP_TTL_SECONDS);
     setOtpTimerRunning(true);
   }, []);
 
   const startResendCooldown = useCallback(() => {
-    setResendCooldown(60);
+    setResendCooldown(CONFIG.OTP_RESEND_COOLDOWN);
     setResendTimerRunning(true);
   }, []);
 
-  useEffect(
-    () => () => {
+  // Cleanup timers on unmount to prevent state updates on dead component
+  useEffect(() => {
+    return () => {
       setOtpTimerRunning(false);
       setResendTimerRunning(false);
-    },
-    []
-  );
+    };
+  }, []);
 
-  const fmtTime = (s) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-
-  const getResetPasswordStrength = (pw) => {
-    let score = 0;
-    if (pw.length >= 8) score += 20;
-    if (pw.length >= 12) score += 10;
-    if (/[a-z]/.test(pw)) score += 20;
-    if (/[A-Z]/.test(pw)) score += 20;
-    if (/[0-9]/.test(pw)) score += 15;
-    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw)) score += 15;
-    return score;
-  };
-  const pwScore = getResetPasswordStrength(newPassword);
-  const pwColor = pwScore < 60 ? "red" : pwScore < 90 ? "yellow" : "green";
-  const pwLabel = pwScore < 60 ? "Weak" : pwScore < 90 ? "Fair" : "Strong";
-
-  const isPasswordValid = useMemo(() => {
-    return (
-      newPassword.length >= 8 &&
-      /[a-z]/.test(newPassword) &&
-      /[A-Z]/.test(newPassword) &&
-      /[0-9]/.test(newPassword) &&
-      /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)
-    );
+  const { pwScore, pwColor, pwLabel } = useMemo(() => {
+    const score = getResetPasswordStrength(newPassword);
+    return {
+      pwScore: score,
+      pwColor: score < 60 ? "red" : score < 90 ? "yellow" : "green",
+      pwLabel: score < 60 ? "Weak" : score < 90 ? "Fair" : "Strong",
+    };
   }, [newPassword]);
+
+  const isPasswordValid = useMemo(
+    () => validatePassword(newPassword).valid,
+    [newPassword]
+  );
 
   const isResetFormValid = useMemo(() => {
     return isPasswordValid && newPassword === confirmPassword;
   }, [isPasswordValid, newPassword, confirmPassword]);
+
+  useEffect(() => {
+    if (isPasswordValid && showPasswordRequirements) {
+      setShowPasswordRequirements(false);
+    }
+  }, [isPasswordValid, showPasswordRequirements]);
 
   const handleSendOtp = useCallback(async () => {
     setResetError("");
@@ -341,12 +356,13 @@ function LoginPage() {
       setResetError("Please enter your username / roll no.");
       return;
     }
+    if (loading) return;
     setLoading(true);
     try {
       const { data } = await axios.post(passwordResetSendOtp, {
         username: username.trim(),
       }, {
-        timeout: 10000,
+        timeout: CONFIG.API_TIMEOUT,
         headers: { 'Content-Type': 'application/json' }
       });
       if (data.success) {
@@ -358,7 +374,7 @@ function LoginPage() {
       }
     } catch (err) {
       setShake(true);
-      setTimeout(() => setShake(false), 500);
+      setTimeout(() => setShake(false), CONFIG.SHAKE_DURATION);
       setResetError(
         err.code === 'ECONNABORTED'
           ? "Request timeout. Please check your internet connection and try again."
@@ -369,9 +385,10 @@ function LoginPage() {
     } finally {
       setLoading(false);
     }
-  }, [username, startOtpCountdown, startResendCooldown]);
+  }, [username, loading, startOtpCountdown, startResendCooldown]);
 
   const handleResendOtp = useCallback(async () => {
+    if (resendCooldown > 0 || loading) return;
     setResetError("");
     setOtp("");
     setLoading(true);
@@ -379,7 +396,7 @@ function LoginPage() {
       const { data } = await axios.post(passwordResetSendOtp, {
         username: username.trim(),
       }, {
-        timeout: 10000,
+        timeout: CONFIG.API_TIMEOUT,
         headers: { 'Content-Type': 'application/json' }
       });
       if (data.success) {
@@ -399,10 +416,11 @@ function LoginPage() {
     } finally {
       setLoading(false);
     }
-  }, [username, startOtpCountdown, startResendCooldown]);
+  }, [username, loading, resendCooldown, startOtpCountdown, startResendCooldown]);
 
   const handleVerifyOtp = useCallback(async () => {
     setResetError("");
+    if (loading) return;
     if (otp.length !== 6) {
       setResetError("Please enter the complete 6-digit OTP.");
       return;
@@ -417,7 +435,7 @@ function LoginPage() {
         username: username.trim(),
         otp: otp.trim(),
       }, {
-        timeout: 10000,
+        timeout: CONFIG.API_TIMEOUT,
         headers: { 'Content-Type': 'application/json' }
       });
       if (data.success) {
@@ -427,12 +445,12 @@ function LoginPage() {
         setResetStep(3);
       } else {
         setShake(true);
-        setTimeout(() => setShake(false), 500);
+        setTimeout(() => setShake(false), CONFIG.SHAKE_DURATION);
         setResetError(data.message || "Invalid OTP.");
       }
     } catch (err) {
       setShake(true);
-      setTimeout(() => setShake(false), 500);
+      setTimeout(() => setShake(false), CONFIG.SHAKE_DURATION);
       setResetError(
         err.code === 'ECONNABORTED'
           ? "Request timeout. Please check your internet connection and try again."
@@ -443,46 +461,24 @@ function LoginPage() {
     } finally {
       setLoading(false);
     }
-  }, [otp, otpCountdown, username]);
+  }, [loading, otp, otpCountdown, username]);
 
   const handleResetPasswordSubmit = useCallback(async () => {
     setResetError("");
-    
-    // Password length validation
-    if (newPassword.length < 8) {
-      setResetError("Password must be at least 8 characters.");
+    if (loading) return;
+
+    const { valid, message } = validatePassword(newPassword);
+    if (!valid) {
+      setResetError(message);
+      setShowPasswordRequirements(true);
       return;
     }
-    
-    // Password complexity validation
-    const hasLowercase = /[a-z]/.test(newPassword);
-    const hasUppercase = /[A-Z]/.test(newPassword);
-    const hasNumber = /[0-9]/.test(newPassword);
-    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword);
-    
-    if (!hasLowercase) {
-      setResetError("Password must contain at least one lowercase letter (a-z).");
-      return;
-    }
-    if (!hasUppercase) {
-      setResetError("Password must contain at least one uppercase letter (A-Z).");
-      return;
-    }
-    if (!hasNumber) {
-      setResetError("Password must contain at least one number (0-9).");
-      return;
-    }
-    if (!hasSpecialChar) {
-      setResetError("Password must contain at least one special character (!@#$%^&* etc).");
-      return;
-    }
-    
-    // Password match validation
+
     if (newPassword !== confirmPassword) {
       setResetError("Passwords do not match.");
       return;
     }
-    
+
     setLoading(true);
     try {
       const { data } = await axios.post(passwordResetReset, {
@@ -490,7 +486,7 @@ function LoginPage() {
         reset_token: resetTokenRef.current,
         new_password: newPassword,
       }, {
-        timeout: 10000,
+        timeout: CONFIG.API_TIMEOUT,
         headers: { 'Content-Type': 'application/json' }
       });
       if (data.success) {
@@ -503,15 +499,18 @@ function LoginPage() {
           setNewPassword("");
           setConfirmPassword("");
           setPassword("");
-        }, 2000);
+          setUsername("");  // clear username from memory
+          setOtp("");        // clear any residual OTP
+          setShowPasswordRequirements(false);
+        }, CONFIG.RESET_REDIRECT_DELAY);
       } else {
         setShake(true);
-        setTimeout(() => setShake(false), 500);
+        setTimeout(() => setShake(false), CONFIG.SHAKE_DURATION);
         setResetError(data.message || "Reset failed. Please start over.");
       }
     } catch (err) {
       setShake(true);
-      setTimeout(() => setShake(false), 500);
+      setTimeout(() => setShake(false), CONFIG.SHAKE_DURATION);
       setResetError(
         err.code === 'ECONNABORTED'
           ? "Request timeout. Please check your internet connection and try again."
@@ -520,7 +519,7 @@ function LoginPage() {
     } finally {
       setLoading(false);
     }
-  }, [newPassword, confirmPassword, username]);
+  }, [loading, newPassword, confirmPassword, username]);
 
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
@@ -532,12 +531,10 @@ function LoginPage() {
     try {
       const response = await axios.post(loginRoute, { 
         username: username.trim(), 
-        password: password.trim() 
+        password: password
       }, {
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json',
-        }
+        timeout: CONFIG.API_TIMEOUT,
+        headers: { 'Content-Type': 'application/json' }
       });
       
       if (response.status === 200 && response.data?.token) {
@@ -554,7 +551,7 @@ function LoginPage() {
       }
     } catch (err) {
       setShake(true);
-      const shakeTimer = setTimeout(() => setShake(false), 500);
+      setTimeout(() => setShake(false), CONFIG.SHAKE_DURATION);
 
       let errorMessage = "Invalid username or password. Please check your credentials.";
       
@@ -591,8 +588,6 @@ function LoginPage() {
         withCloseButton: true,
         styles: () => NOTIFICATION_STYLES.error
       });
-      
-      return () => clearTimeout(shakeTimer);
     } finally {
       setLoading(false);
     }
@@ -689,6 +684,18 @@ function LoginPage() {
           0%, 100% { opacity: 1; }
           50% { opacity: 0; }
         }
+        @keyframes slideDown {
+          from { 
+            opacity: 0; 
+            transform: translateY(-10px); 
+            max-height: 0;
+          }
+          to { 
+            opacity: 1; 
+            transform: translateY(0); 
+            max-height: 200px;
+          }
+        }
         
         /* Force cursor visibility on mobile */
         input[type="number"]:focus,
@@ -730,6 +737,51 @@ function LoginPage() {
           margin: 0 !important;
         }
         
+        /* Custom Scrollbar Styling */
+        .login-slab {
+          scroll-behavior: smooth;
+        }
+        
+        .login-slab::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .login-slab::-webkit-scrollbar-track {
+          background: #F8F9FA;
+          border-left: 1px solid #E9ECEF;
+        }
+        
+        .login-slab::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, #15ABFF 0%, #1976d2 100%);
+          border-radius: 4px;
+          transition: background 0.3s ease;
+        }
+        
+        .login-slab::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, #1976d2 0%, #15ABFF 100%);
+        }
+        
+        .login-container {
+          scroll-behavior: smooth;
+        }
+        
+        .login-container::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .login-container::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        
+        .login-container::-webkit-scrollbar-thumb {
+          background: rgba(21, 171, 255, 0.3);
+          border-radius: 3px;
+        }
+        
+        .login-container::-webkit-scrollbar-thumb:hover {
+          background: rgba(21, 171, 255, 0.6);
+        }
+        
         @media (max-width: 768px) {
           .header-container { padding: 8px 12px !important; }
           .header-group { flex-direction: column !important; gap: 8px !important; justify-content: center !important; align-items: center !important; }
@@ -741,7 +793,14 @@ function LoginPage() {
           .kinetic-assembly { flex-direction: column !important; }
           .welcome-slab { width: 100% !important; padding: 40px 20px !important; display: flex !important; }
           .welcome-slab.minimized { display: none !important; }
-          .login-slab { width: 100% !important; min-height: calc(100vh - 140px) !important; display: none !important; padding: 10px !important; }
+          .login-slab { 
+            width: 100% !important; 
+            min-height: calc(100vh - 140px) !important; 
+            max-height: calc(100vh - 140px) !important;
+            display: none !important; 
+            padding: 10px !important; 
+            overflow-y: auto !important;
+          }
           .login-slab.active { display: flex !important; }
           .login-container { max-width: 100% !important; padding: 0 20px !important; }
           .access-button { padding: 16px 40px !important; width: 100% !important; max-width: 100% !important; }
@@ -948,14 +1007,27 @@ function LoginPage() {
             flex: isLogin ? 1 : 0,
             backgroundColor: "#FFFFFF",
             transition: 'all 1s cubic-bezier(0.8, 0, 0.1, 1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden'
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            overflow: 'auto',
+            overflowX: 'hidden'
           }}
         >
           <Transition mounted={isLogin} transition="slide-left" duration={1000}>
             {(styles) => (
-              <Container size={380} w="100%" className="login-container" style={{...styles, animation: shake ? 'shake 0.5s ease-in-out' : 'none'}}>
-                <Stack gap={isMobile ? 25 : 50}>
+              <Container 
+                size={380} 
+                w="100%" 
+                className="login-container" 
+                style={{
+                  ...styles, 
+                  animation: shake ? 'shake 0.5s ease-in-out' : 'none',
+                  maxHeight: '100%',
+                  overflowY: 'auto'
+                }}
+              >
+                <Stack gap={isMobile ? 25 : 50} style={{ paddingTop: 20, paddingBottom: 40 }}>
                   <Box>
                     <UnstyledButton 
                       onClick={handleDismissSession} 
@@ -986,6 +1058,7 @@ function LoginPage() {
                       }} 
                     />
                   </Box>
+                  </Box>
 
                   {/* Login Form */}
                   {!isForgotPassword && (
@@ -994,7 +1067,10 @@ function LoginPage() {
                       <Box style={{ position: 'relative' }}>
                         <TextInput
                           label={
-                            <Text size="xs" fw={800} c="gray.6" mb={5}>USERNAME</Text>
+                            <Group gap={4} wrap="nowrap">
+                              <Text size="xs" fw={800} c="gray.6">USERNAME</Text>
+                              <Text size="xs" c="red" fw={700} style={{ lineHeight: 1 }}>*</Text>
+                            </Group>
                           }
                           placeholder="Username / Roll No."
                           variant="unstyled" 
@@ -1004,7 +1080,6 @@ function LoginPage() {
                           onChange={(e) => setUsername(e.target.value)}
                           onFocus={() => setInputFocus('username')}
                           onBlur={() => setInputFocus(null)}
-                          required
                           autoComplete="username"
                           style={{ 
                             borderBottom: inputFocus === 'username' 
@@ -1022,7 +1097,10 @@ function LoginPage() {
                       <Box style={{ position: 'relative' }}>
                         <PasswordInput
                           label={
-                            <Text size="xs" fw={800} c="gray.6" mb={5}>PASSWORD</Text>
+                            <Group gap={4} wrap="nowrap">
+                              <Text size="xs" fw={800} c="gray.6">PASSWORD</Text>
+                              <Text size="xs" c="red" fw={700} style={{ lineHeight: 1 }}>*</Text>
+                            </Group>
                           }
                           placeholder="Password"
                           variant="unstyled" 
@@ -1032,7 +1110,6 @@ function LoginPage() {
                           onChange={(e) => setPassword(e.target.value)}
                           onFocus={() => setInputFocus('password')}
                           onBlur={() => setInputFocus(null)}
-                          required
                           autoComplete="current-password"
                           style={{ 
                             borderBottom: inputFocus === 'password' 
@@ -1175,7 +1252,12 @@ function LoginPage() {
                         <Stack gap={isMobile ? "lg" : "xl"}>
                           <Box style={{ position: "relative" }}>
                             <TextInput
-                              label={<Text size="xs" fw={800} c="gray.6" mb={5}>USERNAME</Text>}
+                              label={
+                                <Group gap={4} wrap="nowrap">
+                                  <Text size="xs" fw={800} c="gray.6">USERNAME</Text>
+                                  <Text size="xs" c="red" fw={700} style={{ lineHeight: 1 }}>*</Text>
+                                </Group>
+                              }
                               placeholder="Username / Roll No."
                               variant="unstyled"
                               size="lg"
@@ -1185,7 +1267,6 @@ function LoginPage() {
                               onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
                               onFocus={() => setInputFocus("username")}
                               onBlur={() => setInputFocus(null)}
-                              required
                               autoFocus
                               autoComplete="username"
                               style={{
@@ -1248,7 +1329,7 @@ function LoginPage() {
                               </Text>
                             </Group>
                             <Progress
-                              value={(otpCountdown / OTP_TTL_SECONDS) * 100}
+                              value={(otpCountdown / CONFIG.OTP_TTL_SECONDS) * 100}
                               color={otpCountdown < 60 ? "red" : "#15ABFF"}
                               size="sm"
                               radius={0}
@@ -1276,7 +1357,9 @@ function LoginPage() {
                               type="number"
                               inputMode="numeric"
                               value={otp}
-                              onChange={setOtp}
+                              onChange={(value) => {
+                                if (/^\d*$/.test(value)) setOtp(value);
+                              }}
                               size={isMobile ? "sm" : "xl"}
                               autoFocus
                               placeholder=""
@@ -1361,7 +1444,12 @@ function LoginPage() {
                         <Stack gap={isMobile ? "lg" : "xl"}>
                           <Box style={{ position: "relative" }}>
                             <PasswordInput
-                              label={<Text size="xs" fw={800} c="gray.6" mb={5}>NEW PASSWORD</Text>}
+                              label={
+                                <Group gap={4} wrap="nowrap">
+                                  <Text size="xs" fw={800} c="gray.6">NEW PASSWORD</Text>
+                                  <Text size="xs" c="red" fw={700} style={{ lineHeight: 1 }}>*</Text>
+                                </Group>
+                              }
                               placeholder="Must include: a-z, A-Z, 0-9, special chars"
                               variant="unstyled"
                               size="lg"
@@ -1370,7 +1458,6 @@ function LoginPage() {
                               onChange={(e) => setNewPassword(e.currentTarget.value)}
                               onFocus={() => setInputFocus("newpassword")}
                               onBlur={() => setInputFocus(null)}
-                              required
                               autoFocus
                               autoComplete="new-password"
                               styles={{
@@ -1394,7 +1481,7 @@ function LoginPage() {
                             />
                           </Box>
 
-                          {newPassword.length > 0 && (
+                          {newPassword.length > 0 && !showPasswordRequirements && (
                             <Stack gap={4}>
                               <Group justify="space-between">
                                 <Text size="xs" fw={700} c="dimmed">PASSWORD STRENGTH</Text>
@@ -1404,9 +1491,73 @@ function LoginPage() {
                             </Stack>
                           )}
 
+                          {/* Compact Password Hint - Single Line */}
+                          {newPassword.length > 0 && !showPasswordRequirements && (
+                            <UnstyledButton 
+                              onClick={() => setShowPasswordRequirements(true)}
+                              style={{ width: '100%' }}
+                            >
+                              <Text size="xs" c="dimmed" ta="center" style={{ fontStyle: 'italic' }}>
+                                Requires: a-z, A-Z, 0-9, special chars, 8+ length{' '}
+                                <span style={{ color: '#15ABFF', fontWeight: 600 }}>(View details)</span>
+                              </Text>
+                            </UnstyledButton>
+                          )}
+
+                          {/* Detailed Password Requirements Checklist - Shows on Submit Error */}
+                          {showPasswordRequirements && newPassword.length > 0 && (
+                            <Box 
+                              p="sm" 
+                              style={{ 
+                                background: "linear-gradient(90deg, rgba(21,171,255,0.05) 0%, transparent 100%)",
+                                border: "1px solid #E9ECEF",
+                                borderLeft: "3px solid #15ABFF"
+                              }}
+                            >
+                              <Group justify="space-between" mb={8}>
+                                <Text size="xs" fw={700} c="dimmed">PASSWORD REQUIREMENTS:</Text>
+                                <UnstyledButton onClick={() => setShowPasswordRequirements(false)}>
+                                  <Text size="xs" c="blue" fw={600}>✕</Text>
+                                </UnstyledButton>
+                              </Group>
+                              <Stack gap={4}>
+                                <Group gap={6}>
+                                  <Text size="xs" c={/[a-z]/.test(newPassword) ? "green" : "red"} fw={600}>
+                                    {/[a-z]/.test(newPassword) ? "✓" : "✗"} Lowercase letter (a-z)
+                                  </Text>
+                                </Group>
+                                <Group gap={6}>
+                                  <Text size="xs" c={/[A-Z]/.test(newPassword) ? "green" : "red"} fw={600}>
+                                    {/[A-Z]/.test(newPassword) ? "✓" : "✗"} Uppercase letter (A-Z)
+                                  </Text>
+                                </Group>
+                                <Group gap={6}>
+                                  <Text size="xs" c={/[0-9]/.test(newPassword) ? "green" : "red"} fw={600}>
+                                    {/[0-9]/.test(newPassword) ? "✓" : "✗"} Number (0-9)
+                                  </Text>
+                                </Group>
+                                <Group gap={6}>
+                                  <Text size="xs" c={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword) ? "green" : "red"} fw={600}>
+                                    {/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword) ? "✓" : "✗"} Special character (!@#$%^&*)
+                                  </Text>
+                                </Group>
+                                <Group gap={6}>
+                                  <Text size="xs" c={newPassword.length >= 8 ? "green" : "red"} fw={600}>
+                                    {newPassword.length >= 8 ? "✓" : "✗"} At least 8 characters
+                                  </Text>
+                                </Group>
+                              </Stack>
+                            </Box>
+                          )}
+
                           <Box style={{ position: "relative" }}>
                             <PasswordInput
-                              label={<Text size="xs" fw={800} c="gray.6" mb={5}>CONFIRM PASSWORD</Text>}
+                              label={
+                                <Group gap={4} wrap="nowrap">
+                                  <Text size="xs" fw={800} c="gray.6">CONFIRM PASSWORD</Text>
+                                  <Text size="xs" c="red" fw={700} style={{ lineHeight: 1 }}>*</Text>
+                                </Group>
+                              }
                               placeholder="Re-enter new password"
                               variant="unstyled"
                               size="lg"
@@ -1416,13 +1567,7 @@ function LoginPage() {
                               onKeyDown={(e) => e.key === "Enter" && handleResetPasswordSubmit()}
                               onFocus={() => setInputFocus("confirm")}
                               onBlur={() => setInputFocus(null)}
-                              required
                               autoComplete="new-password"
-                              error={
-                                confirmPassword && confirmPassword !== newPassword
-                                  ? "Passwords do not match"
-                                  : undefined
-                              }
                               styles={{
                                 input: {
                                   fontSize: isMobile ? '12px' : '12px',
@@ -1430,7 +1575,9 @@ function LoginPage() {
                               }}
                               style={{
                                 borderBottom:
-                                  inputFocus === "confirm"
+                                  confirmPassword && confirmPassword !== newPassword
+                                    ? "2px solid #FA5252"
+                                    : inputFocus === "confirm"
                                     ? "2px solid #15ABFF"
                                     : "2px solid #E9ECEF",
                                 transition: "all 0.3s ease",
@@ -1442,6 +1589,36 @@ function LoginPage() {
                                 paddingRight: 10,
                               }}
                             />
+
+                            {confirmPassword && confirmPassword !== newPassword && (
+                              <Box
+                                mt="sm"
+                                p="sm"
+                                style={{
+                                  background: "linear-gradient(135deg, rgba(250,82,82,0.1) 0%, rgba(250,82,82,0.05) 100%)",
+                                  border: "1px solid rgba(250,82,82,0.3)",
+                                  borderRadius: 8,
+                                  animation: "slideDown 0.3s ease-out",
+                                  boxShadow: "0 2px 8px rgba(250,82,82,0.15)",
+                                }}
+                              >
+                                <Group gap="xs" wrap="nowrap">
+                                  <IconAlertCircle 
+                                    size={20} 
+                                    style={{ 
+                                      color: "#FA5252",
+                                      flexShrink: 0,
+                                      marginTop: 2
+                                    }} 
+                                  />
+                                  <Stack gap={4}>
+                                    <Text size="sm" fw={700} c="#FA5252" lts={0.3}>
+                                      Passwords do not match
+                                    </Text>
+                                  </Stack>
+                                </Group>
+                              </Box>
+                            )}
                           </Box>
 
                           <Button
@@ -1471,7 +1648,6 @@ function LoginPage() {
                       )}
                     </Box>
                   )}
-                  </Box>
                 </Stack>
               </Container>
             )}
