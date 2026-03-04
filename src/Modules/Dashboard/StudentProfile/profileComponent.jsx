@@ -18,7 +18,10 @@ function ProfileComponent({ data }) {
 
   const handleEditClick = async () => {
     const token = localStorage.getItem("authToken");
-    if (!token) return console.error("No authentication token found!");
+    if (!token) {
+      notifications.show({ message: "Authentication required. Please log in again.", color: "red" });
+      return;
+    }
     if (isEditing) {
       if (submitting) return;
       setSubmitting(true);
