@@ -19,6 +19,7 @@ import { useState, useEffect } from "react";
 import AnnounceResult from "./AnnounceResult.jsx";
 import GradeStatus from "./GradeStatus.jsx";
 import GradeSummary from "./GradeSummary.jsx";
+import GradeValidation from "./GradeValidation.jsx";
 
 export default function Examination() {
   const userRole = useSelector((state) => state.user.role);
@@ -168,6 +169,14 @@ export default function Examination() {
             element={
               <ProtectedRoute roles={["acadadmin", "Dean Academic"]}>
                 <GradeSummary />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/grade-validation"
+            element={
+              <ProtectedRoute roles={["acadadmin"]}>
+                <GradeValidation />
               </ProtectedRoute>
             }
           />
