@@ -18,7 +18,6 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { grade_validation } from "./routes/examinationRoutes.jsx";
 
@@ -36,22 +35,35 @@ const fmt1 = (n) => (typeof n === "number" ? n.toFixed(1) : "0.0");
 function buildValidationHTML(studentInfo, semesters) {
   const semesterBlocks = semesters
     .map((sem) => {
+      const isReg = sem.is_registered_only === true;
+      const headingBg = isReg ? "#fff3cd" : "#dce7f3";
+
       const rows = sem.courses
         .map(
-          (c) => `
+          (c) => {
+            const remarkClass = `remark-${(c.remark || "Regular").toLowerCase()}`;
+            return `
         <tr>
           <td class="code">${esc(c.code)}</td>
           <td class="title">${esc(c.name)}</td>
           <td class="center">${esc(c.credits)}</td>
           <td class="center">${esc(c.grade)}</td>
-          <td class="center remark-${(c.remark || "Regular").toLowerCase()}">${esc(c.remark || "Regular")}</td>
-        </tr>`
+          <td class="center ${remarkClass}">${esc(c.remark || "Regular")}</td>
+        </tr>`;
+          }
         )
         .join("");
 
+      const summary = isReg
+        ? `<td class="sum-cell" colspan="4"><b>Total Registered Credits:</b> ${sem.semester_credits ?? 0}</td>`
+        : `<td class="sum-cell"><b>Total Credits Earned:</b> ${sem.total_credits ?? 0}</td>
+           <td class="sum-cell"><b>Semester Credits Earned:</b> ${sem.semester_credits ?? 0}</td>
+           <td class="sum-cell sum-center"><b>SPI:</b> ${sem.spi != null ? fmt1(sem.spi) : "—"}</td>
+           <td class="sum-cell sum-center"><b>CPI:</b> ${sem.cpi != null ? fmt1(sem.cpi) : "—"}</td>`;
+
       return `
       <div class="sem-block">
-        <div class="sem-heading">${esc(sem.label)}</div>
+        <div class="sem-heading" style="background:${headingBg}">${esc(sem.label)}</div>
         <table class="course-table">
           <thead>
             <tr>
@@ -64,12 +76,7 @@ function buildValidationHTML(studentInfo, semesters) {
           </thead>
           <tbody>${rows}</tbody>
         </table>
-        <div class="sem-summary">
-          <span><b>Total Credits Earned:</b> ${sem.total_credits ?? 0}</span>
-          <span><b>Semester Credits Earned:</b> ${sem.semester_credits ?? 0}</span>
-          <span><b>SPI:</b> ${fmt1(sem.spi)}</span>
-          <span><b>CPI:</b> ${fmt1(sem.cpi)}</span>
-        </div>
+        <table class="sum-table"><tr>${summary}</tr></table>
       </div>`;
     })
     .join("");
@@ -145,16 +152,23 @@ function buildValidationHTML(studentInfo, semesters) {
   .remark-improvement { color: #e67700; font-weight: 600; }
 
   /* ── SUMMARY ROW ── */
-  .sem-summary {
-    display: flex;
-    gap: 24pt;
-    padding: 4pt 6pt;
+  .sum-table {
+    width: 100%;
+    border-collapse: collapse;
     border: 1pt solid #000;
     border-top: none;
-    font-size: 8.5pt;
-    background: #f8f9fa;
+    background: #f0f4f8;
+    table-layout: fixed;
   }
-  .sem-summary span { white-space: nowrap; }
+  .sum-cell {
+    padding: 5pt 8pt;
+    font-size: 8.5pt;
+    white-space: nowrap;
+    border: none;
+    width: 25%;
+    vertical-align: middle;
+  }
+  .sum-center { text-align: center; }
 </style>
 </head><body>
 
@@ -358,43 +372,28 @@ export default function GradeValidation() {
   };
 
   // ── Export All as ZIP ────────────────────────────────────────────────────
+  // Export All: server-side ZIP via Django/ReportLab — fast, no client rendering
   const handleExportAll = async () => {
-    if (!students.length) return;
+    if (!students.length || !batchId) return;
     setExportingAll(true);
-
-    const zip  = new JSZip();
-    let failed = 0;
-
-    for (const s of students) {
-      try {
-        const data = await fetchAllGrades(s.roll_no);
-        if (!data.semesters?.length) continue;
-
-        const pdf = await buildPDF(data.student_info, data.semesters);
-        const safeName = `${s.roll_no}_GradeValidation`
-          .replace(/\s+/g, "_")
-          .replace(/[^a-zA-Z0-9_-]/g, "");
-        zip.file(`${safeName}.pdf`, pdf.output("arraybuffer"));
-      } catch {
-        failed++;
-      }
-    }
-
     try {
-      const blob = await zip.generateAsync({ type: "blob" });
+      const resp = await axios.post(
+        grade_validation,
+        { Role: userRole, action: "export_all_zip", batch_id: Number(batchId) },
+        {
+          headers: { Authorization: `Token ${token}` },
+          responseType: "blob",
+        }
+      );
       const batchLabel = batches.find((b) => b.value === batchId)?.label || `Batch${batchId}`;
       const zipName =
         `GradeValidation_${batchLabel}`
           .replace(/\s+/g, "_")
           .replace(/[^a-zA-Z0-9_-]/g, "") + ".zip";
-      saveAs(blob, zipName);
-      showNotification({
-        title: "Export complete",
-        message: `ZIP downloaded${failed ? ` (${failed} student(s) skipped)` : ""}`,
-        color: failed ? "yellow" : "green",
-      });
+      saveAs(new Blob([resp.data]), zipName);
+      showNotification({ title: "Export complete", message: zipName, color: "green" });
     } catch (e) {
-      showNotification({ title: "ZIP failed", message: e.message, color: "red" });
+      showNotification({ title: "Export failed", message: e.response?.data?.detail || e.message, color: "red" });
     } finally {
       setExportingAll(false);
     }
