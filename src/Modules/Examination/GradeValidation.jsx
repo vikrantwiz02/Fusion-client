@@ -32,6 +32,72 @@ const esc = (s) =>
 const fmt1 = (n) => (typeof n === "number" ? n.toFixed(1) : "0.0");
 
 // ── HTML builder ─────────────────────────────────────────────────────────────
+function buildCreditsDetailsHTML(semesters) {
+  // Only graded semesters contribute to earned-credit rows
+  const graded = semesters.filter((s) => !s.is_registered_only);
+
+  let totalEarned = 0, totalRegular = 0, totalBacklogImp = 0, totalSwayam = 0;
+
+  const rows = graded.map((sem) => {
+    let earned = 0, regular = 0, backlogImp = 0, swayam = 0;
+    for (const c of sem.courses) {
+      const cr    = Number(c.credits) || 0;
+      const rem   = (c.remark || "Regular");
+      const isSW  = (c.code || "").toUpperCase().startsWith("SW");
+      const isFail = !c.grade || ["F","I","X","AU","CD","S","—"].includes(c.grade);
+
+      if (isFail) continue;          // no earned credit for failing/missing grades
+
+      earned += cr;
+      if (isSW)                                        swayam    += cr;
+      else if (rem === "Backlog" || rem === "Improvement") backlogImp += cr;
+      else                                             regular   += cr;
+    }
+
+    totalEarned    += earned;
+    totalRegular   += regular;
+    totalBacklogImp += backlogImp;
+    totalSwayam    += swayam;
+
+    return `
+      <tr>
+        <td class="cd-sem">${esc(sem.label)}</td>
+        <td class="cd-num">${earned % 1 === 0 ? earned : earned.toFixed(1)}</td>
+        <td class="cd-num">${regular % 1 === 0 ? regular : regular.toFixed(1)}</td>
+        <td class="cd-num">${backlogImp % 1 === 0 ? backlogImp : backlogImp.toFixed(1)}</td>
+        <td class="cd-num">${swayam % 1 === 0 ? swayam : swayam.toFixed(1)}</td>
+      </tr>`;
+  }).join("");
+
+  const fmt = (n) => n % 1 === 0 ? n : n.toFixed(1);
+
+  return `
+  <div class="cd-block">
+    <div class="cd-heading">Credits Details</div>
+    <table class="cd-table">
+      <thead>
+        <tr>
+          <th class="cd-sem">Semester</th>
+          <th class="cd-num">Credits Earned</th>
+          <th class="cd-num">Regular Credits</th>
+          <th class="cd-num">Backlog / Improvement Credits</th>
+          <th class="cd-num">Swayam Credits</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+        <tr class="cd-total">
+          <td class="cd-sem">Total</td>
+          <td class="cd-num">${fmt(totalEarned)}</td>
+          <td class="cd-num">${fmt(totalRegular)}</td>
+          <td class="cd-num">${fmt(totalBacklogImp)}</td>
+          <td class="cd-num">${fmt(totalSwayam)}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>`;
+}
+
 function buildValidationHTML(studentInfo, semesters) {
   const semesterBlocks = semesters
     .map((sem) => {
@@ -169,6 +235,37 @@ function buildValidationHTML(studentInfo, semesters) {
     vertical-align: middle;
   }
   .sum-center { text-align: center; }
+
+  /* ── CREDITS DETAILS TABLE ── */
+  .cd-block { margin-top: 14pt; page-break-inside: avoid; }
+  .cd-heading {
+    font-size: 9.5pt;
+    font-weight: bold;
+    padding: 3pt 6pt;
+    background: #d3f9d8;
+    border: 1pt solid #000;
+    border-bottom: none;
+  }
+  .cd-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1pt solid #000;
+    table-layout: fixed;
+  }
+  .cd-table thead tr { background: #ebfbee; }
+  .cd-table th, .cd-table td {
+    border-bottom: 0.5pt solid #bbb;
+    border-right: 0.5pt solid #bbb;
+    padding: 3pt 6pt;
+    font-size: 8.5pt;
+    vertical-align: middle;
+  }
+  .cd-table th { font-weight: bold; text-align: center; }
+  .cd-table td:last-child, .cd-table th:last-child { border-right: none; }
+  .cd-table tbody tr:last-child td { border-bottom: none; }
+  .cd-sem { width: 28%; text-align: left; }
+  .cd-num { width: 18%; text-align: center; }
+  .cd-total { background: #ebfbee; font-weight: bold; }
 </style>
 </head><body>
 
@@ -189,6 +286,8 @@ function buildValidationHTML(studentInfo, semesters) {
 </table>
 
 ${semesterBlocks}
+
+${buildCreditsDetailsHTML(semesters)}
 
 </body></html>`;
 }

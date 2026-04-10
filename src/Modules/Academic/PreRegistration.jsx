@@ -258,6 +258,7 @@ function PreRegistration() {
 
   const isFormComplete = () => {
     const allCoursesValid = coursesData.every((slot) => {
+      if (slot.slot_type === "Optional") return true;
       const slotPriorities = priorities[slot.sno] || {};
       return slot.course_choices.every(
         (course) => slotPriorities[course.id] && slotPriorities[course.id] !== ""
@@ -285,10 +286,13 @@ function PreRegistration() {
     coursesData.forEach((slot) => {
       const slotPriorities = priorities[slot.sno] || {};
       slot.course_choices.forEach((course) => {
+        const priority = slotPriorities[course.id];
+        // Skip optional courses that were not selected
+        if (slot.slot_type === "Optional" && (!priority || priority === "")) return;
         registrations.push({
           slot_id: slot.sno,
           course_id: course.id,
-          priority: slotPriorities[course.id],
+          priority: priority,
         });
       });
     });
