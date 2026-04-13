@@ -318,23 +318,44 @@ async function buildPDF(studentInfo, semesters) {
     iframe.style.height = iDoc.body.scrollHeight + "px";
     await new Promise((r) => setTimeout(r, 150));
 
-    // ── Measure every .sem-block for smart page breaks ──────────────────────
+    // ── Measure blocks/rows for smart page breaks ───────────────────────────
     // Content height in DOM pixels (no scale yet)
     const CONTENT_H_PX = Math.round(CONTENT_H_MM * (CONTENT_W_PX / CONTENT_W_MM));
 
-    const semBlocks = Array.from(iDoc.querySelectorAll(".sem-block"));
-    const blockRects = semBlocks.map((el) => ({
-      top: el.offsetTop,
-      height: el.offsetHeight,
-    }));
+    // Absolute offsetTop from body (needed for elements nested inside blocks)
+    const getAbsTop = (el) => {
+      let top = 0;
+      let cur = el;
+      while (cur && cur !== iDoc.body) { top += cur.offsetTop; cur = cur.offsetParent; }
+      return top;
+    };
 
-    // Build page-start breakpoints (DOM px) so no block is split
+    // Build a list of "atoms" — units we never want split across pages.
+    // • Blocks that fit on one page  → keep whole (don't split mid-semester).
+    // • Blocks taller than one page  → fall back to individual row atoms so at
+    //   least no row is sliced in half.
+    const atoms = [];
+    const blocks = Array.from(iDoc.querySelectorAll(".sem-block, .cd-block"));
+    blocks.sort((a, b) => getAbsTop(a) - getAbsTop(b));
+
+    for (const block of blocks) {
+      const blockTop = getAbsTop(block);
+      if (block.offsetHeight <= CONTENT_H_PX) {
+        atoms.push({ top: blockTop, height: block.offsetHeight });
+      } else {
+        // Block is taller than a page — split at individual row boundaries
+        for (const row of block.querySelectorAll("tr")) {
+          atoms.push({ top: getAbsTop(row), height: row.offsetHeight });
+        }
+      }
+    }
+
+    // Build page-start breakpoints so no atom overflows its page
     const pageStarts = [0];
-    for (const block of blockRects) {
+    for (const atom of atoms) {
       const pageTop = pageStarts[pageStarts.length - 1];
-      // If the block's bottom overflows the current page, move it to a new page
-      if (block.top + block.height - pageTop > CONTENT_H_PX) {
-        pageStarts.push(block.top);
+      if (atom.top + atom.height - pageTop > CONTENT_H_PX) {
+        pageStarts.push(atom.top);
       }
     }
     pageStarts.push(iDoc.body.scrollHeight); // sentinel end
