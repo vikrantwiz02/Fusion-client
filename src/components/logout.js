@@ -18,6 +18,7 @@ const HandleLogout = async () => {
         },
       },
     );
+    sessionStorage.removeItem("authToken");
     localStorage.removeItem("authToken");
     navigate("/accounts/login");
     console.log("User logged out successfully");

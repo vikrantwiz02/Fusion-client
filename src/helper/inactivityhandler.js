@@ -24,6 +24,7 @@ function InactivityHandler() {
           },
         },
       );
+      sessionStorage.removeItem("authToken");
       localStorage.removeItem("authToken");
 
       // Show notification only once

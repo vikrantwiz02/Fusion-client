@@ -89,6 +89,7 @@ function Header({ opened, toggleSidebar }) {
       if (localStorage.getItem("pfNo") != null) {
         dispatch(setPfNo(null));
       }
+      sessionStorage.removeItem("authToken");
       localStorage.removeItem("authToken");
       navigate("/accounts/login");
       // queryclient.invalidateQueries();

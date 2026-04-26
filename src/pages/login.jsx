@@ -538,6 +538,7 @@ function LoginPage() {
       });
       
       if (response.status === 200 && response.data?.token) {
+        sessionStorage.setItem("authToken", response.data.token);
         localStorage.setItem("authToken", response.data.token);
         
         notifications.show({ 
