@@ -21,6 +21,7 @@ const useLogout = () => {
           },
         },
       );
+      sessionStorage.removeItem("authToken");
       localStorage.removeItem("authToken");
       navigate("/accounts/login");
 

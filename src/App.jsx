@@ -2,6 +2,7 @@ import { createTheme, MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import { Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { Notifications } from "@mantine/notifications";
 import { Layout } from "./components/layout";
 import Dashboard from "./Modules/Dashboard/dashboardNotifications";
@@ -29,6 +30,86 @@ const theme = createTheme({
 
 export default function App() {
   const location = useLocation();
+
+  useEffect(() => {
+    const tokenKey = "authToken";
+    const localToken = localStorage.getItem(tokenKey);
+    const sessionToken = sessionStorage.getItem(tokenKey);
+    const canUseBroadcastChannel = typeof BroadcastChannel !== "undefined";
+    const channel = canUseBroadcastChannel
+      ? new BroadcastChannel("fusion-auth-session")
+      : null;
+
+    let pendingRequestId = null;
+    let receivedSessionAck = false;
+    let checkTimer = null;
+
+    const onMessage = (event) => {
+      const message = event?.data;
+      if (!message) return;
+
+      if (
+        message.type === "SESSION_CHECK" &&
+        sessionStorage.getItem(tokenKey) &&
+        channel
+      ) {
+        channel.postMessage({
+          type: "SESSION_ACTIVE",
+          requestId: message.requestId,
+        });
+      }
+
+      if (
+        message.type === "SESSION_ACTIVE" &&
+        pendingRequestId &&
+        message.requestId === pendingRequestId
+      ) {
+        receivedSessionAck = true;
+        const currentLocalToken = localStorage.getItem(tokenKey);
+        if (currentLocalToken) {
+          sessionStorage.setItem(tokenKey, currentLocalToken);
+        }
+      }
+    };
+
+    if (channel) {
+      channel.addEventListener("message", onMessage);
+    }
+
+    // Keep token reads backward-compatible for existing API calls that still
+    // fetch authToken from localStorage.
+    if (!localToken && sessionToken) {
+      localStorage.setItem(tokenKey, sessionToken);
+    }
+
+    // If token exists only in localStorage, verify whether another active tab
+    // can confirm the same browser session; otherwise invalidate stale token.
+    if (localToken && !sessionToken) {
+      if (channel) {
+        pendingRequestId = `${Date.now()}-${Math.random()}`;
+        channel.postMessage({ type: "SESSION_CHECK", requestId: pendingRequestId });
+
+        checkTimer = setTimeout(() => {
+          if (!receivedSessionAck) {
+            localStorage.removeItem(tokenKey);
+            sessionStorage.removeItem(tokenKey);
+          }
+        }, 400);
+      } else {
+        localStorage.removeItem(tokenKey);
+        sessionStorage.removeItem(tokenKey);
+      }
+    }
+
+    return () => {
+      if (checkTimer) clearTimeout(checkTimer);
+      if (channel) {
+        channel.removeEventListener("message", onMessage);
+        channel.close();
+      }
+    };
+  }, []);
+
   return (
     <MantineProvider theme={theme}>
       <Notifications position="top-center" autoClose={2000} limit={1} />
