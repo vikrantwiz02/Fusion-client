@@ -42,6 +42,7 @@ export const getStudentCourseRoute = `${host}/academic-procedures/api/acad/verif
 export const dropStudentCourseRoute = `${host}/academic-procedures/api/acad/verify_course/drop/`;
 export const addStudentCourseRoute = `${host}/academic-procedures/api/acad/addCourse/`;
 export const generatexlsheet = `${host}/aims/api/generatexlsheet`;
+export const exportAllCoursesZipRoute = `${host}/aims/api/export-all-courses-zip/`;
 export const availableCoursesRoute = `${host}/aims/api/available-courses`;
 export const academicProceduresFaculty = `${host}/academic-procedures/api/fac/academic_procedures_faculty`;
 export const getAllCourses = `${host}/academic-procedures/api/acad/get_all_courses`;

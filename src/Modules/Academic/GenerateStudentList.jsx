@@ -22,10 +22,11 @@ import axios from "axios";
 import { showNotification } from "@mantine/notifications";
 
 import {
-  availableCoursesRoute,   // NEW endpoint: GET /aims/api/available-courses/
-  generatexlsheet,         // POST /aims/api/generate-xlsheet/
-  listBatchesRoute,        // Academic procedures API for prereg tab
-  generateprereport,       // unchanged: for prereg tab
+  availableCoursesRoute,
+  generatexlsheet,
+  exportAllCoursesZipRoute,
+  listBatchesRoute,
+  generateprereport,
 } from "../../routes/academicRoutes";
 
 const generateAcademicYears = () => {
@@ -88,6 +89,7 @@ export default function GenerateStudentList() {
 
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState(null);
+  const [exportAllLoading, setExportAllLoading] = useState(false);
 
   // 1) Fetch available courses once year+semester are set
   const fetchCourses = useCallback(async () => {
@@ -183,7 +185,39 @@ export default function GenerateStudentList() {
     }
   };
 
-  // 3) Generate Roll List Excel
+  // 3) Export ALL courses as ZIP
+  const handleExportAllZip = async () => {
+    setExportAllLoading(true);
+    const token = localStorage.getItem("authToken");
+    try {
+      const payload = { academic_year: academicYear, semester_type: semesterType };
+      if (listType && listType.trim()) payload.list_type = listType;
+      if (programmeType && programmeType !== "All") payload.programme_type = programmeType;
+
+      const res = await axios.post(exportAllCoursesZipRoute, payload, {
+        headers: { Authorization: `Token ${token}`, "Content-Type": "application/json" },
+        responseType: "blob",
+      });
+
+      const filename = `${academicYear.replace("-", "_")}_${semesterType.replace(/ /g, "_")}_All_Courses.zip`;
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.setAttribute("download", filename);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      showNotification({ title: "Downloaded", message: `${courseOptions.length} courses exported as ZIP`, color: "green" });
+    } catch (err) {
+      showNotification({ title: "Export failed", message: err.response?.data?.error || err.message, color: "red" });
+    } finally {
+      setExportAllLoading(false);
+    }
+  };
+
+  // 4) Generate Roll List Excel
   const handleGenerateList = async () => {
     if (!academicYear || !semesterType || !course) {
       showNotification({
@@ -197,7 +231,7 @@ export default function GenerateStudentList() {
     await handlePreview();
   };
 
-  // 4) Confirm and generate after preview
+  // 5) Confirm and generate after preview
   const handleConfirmGenerate = async () => {
     setLoading(true);
     const token = localStorage.getItem("authToken");
@@ -467,13 +501,27 @@ export default function GenerateStudentList() {
           ) : (
             <Select
               label="Course"
-              placeholder="Select course"
+              placeholder="Select course (leave empty to export all)"
               data={courseOptions}
               value={course}
               onChange={setCourse}
               searchable
+              clearable
               mb="md"
             />
+          )}
+
+          {/* Export All — shown only when courses are loaded and none is selected */}
+          {!course && courseOptions.length > 0 && academicYear && semesterType && (
+            <Button
+              fullWidth
+              color="teal"
+              mb="sm"
+              loading={exportAllLoading}
+              onClick={handleExportAllZip}
+            >
+              Export All ({courseOptions.length} courses) as ZIP
+            </Button>
           )}
 
           <Button
