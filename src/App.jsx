@@ -16,6 +16,7 @@ import Examination from "./Modules/Examination/examination";
 import Database from "./Modules/Database/database";
 import ProgrammeCurriculumRoutes from "./Modules/Program_curriculum/programmCurriculum";
 import NotFoundPage from "./components/NotFoundPage";
+import PlacementCell from "./Modules/PlacementCell/index";
 
 const theme = createTheme({
   breakpoints: {
@@ -156,6 +157,14 @@ export default function App() {
             <div>
               <ProgrammeCurriculumRoutes />
             </div>
+          }
+        />
+        <Route
+          path="/placement-cell"
+          element={
+            <Layout>
+              <PlacementCell />
+            </Layout>
           }
         />
         <Route path="/accounts/login" element={<LoginPage />} />
