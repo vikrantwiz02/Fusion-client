@@ -56,7 +56,7 @@ export default function SubmitGradesProf() {
           get_course_reg_academic_years,
           { headers: { Authorization: `Token ${token}` } }
         );
-        setAcademicYears(data.academic_years.map((y) => ({ value: y, label: y })));
+        setAcademicYears(data.academic_years.slice().sort((a, b) => b.toString().localeCompare(a.toString())).map((y) => ({ value: y, label: y })));
       } catch {
         setError("Failed to load academic years.");
       } finally {
