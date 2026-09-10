@@ -96,6 +96,12 @@ export default function GenerateStudentList({ view = "rolllist" }) {
 
   const selectedCourseOption = courseOptions.find((c) => c.value === course);
   const selectedCourseSections = selectedCourseOption?.sections || [];
+  // Several faculty can teach one course, one offering per section, so the
+  // chosen section decides whose name belongs on the list.
+  const previewInstructor =
+    (section && selectedCourseOption?.instructors_by_section?.[section]) ||
+    selectedCourseOption?.instructor ||
+    "TBA";
 
   // 1) Fetch available courses once year+semester are set
   const fetchCourses = useCallback(async () => {
@@ -115,7 +121,7 @@ export default function GenerateStudentList({ view = "rolllist" }) {
         params: { academic_year: academicYear, semester_type: semesterType },
         headers: { Authorization: `Token ${token}` },
       });
-      // Expect [{ id, code, name, instructor, sections }, ...]
+      // Expect [{ id, code, name, instructor, instructors_by_section, sections }, ...]
       setCourseOptions(
         res.data.map((c) => ({
           value: String(c.id),
@@ -123,6 +129,7 @@ export default function GenerateStudentList({ view = "rolllist" }) {
           code: c.code,
           name: c.name,
           instructor: c.instructor || "TBA",
+          instructors_by_section: c.instructors_by_section || {},
           sections: c.sections || [],
         })),
       );
@@ -1069,8 +1076,7 @@ export default function GenerateStudentList({ view = "rolllist" }) {
                 <Text span>{selectedCourseOption?.name || "N/A"}</Text>
               </Text>
               <Text size="sm" fw={500}>
-                Instructor:{" "}
-                <Text span>{selectedCourseOption?.instructor || "TBA"}</Text>
+                Instructor: <Text span>{previewInstructor}</Text>
               </Text>
               <Text size="sm" fw={500}>
                 List Type:{" "}

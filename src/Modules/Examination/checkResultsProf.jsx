@@ -93,8 +93,9 @@ export default function GradesDownloadPage() {
     }
   };
 
-  const handleDownload = async (courseId) => {
-    setDownloadLoading(courseId);
+  const handleDownload = async (course) => {
+    const rowKey = course.course_instructor_id ?? course.id;
+    setDownloadLoading(rowKey);
     setError(""); // Clear previous error before new download attempt
     try {
       const token = localStorage.getItem("authToken");
@@ -103,25 +104,20 @@ export default function GradesDownloadPage() {
         { 
           Role: userRole, 
           academic_year: year, 
-          course_id: courseId, 
+          course_id: course.id, 
+          course_instructor: course.course_instructor_id,
           semester_type: semester,
           programme_type: programmeType
         },
         { headers: { Authorization: `Token ${token}` }, responseType: "blob" }
       );
       
-      // Filename: CourseCode_CourseName_grades_AcademicYear.pdf
-      const selectedCourse = courses.find(c => c.id === courseId);
-      let courseCode = 'Course';
-      let courseName = 'Grades';
-      
-      if (selectedCourse) {
-        courseCode = selectedCourse.code || 'Course';
-        courseName = selectedCourse.name || 'Grades';
-      }
-      
+      // Filename: CourseCode_CourseName_Section_grades_AcademicYear.pdf
+      const courseCode = course.code || 'Course';
+      const courseName = course.name || 'Grades';
       const courseNameClean = courseName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
-      const filename = `${courseCode}_${courseNameClean}_Grades_${year}.pdf`;
+      const sectionPart = course.section_label ? `_Section_${course.section_label}` : '';
+      const filename = `${courseCode}_${courseNameClean}${sectionPart}_Grades_${year}.pdf`;
       
       const url = URL.createObjectURL(new Blob([resp.data]));
       const a = document.createElement("a");
@@ -193,7 +189,12 @@ export default function GradesDownloadPage() {
         <Stack gap="sm">
           {courses.length > 0 ? (
             courses.map((course) => (
-              <Card key={course.id} withBorder shadow="sm" p="sm">
+              <Card
+                key={course.course_instructor_id ?? course.id}
+                withBorder
+                shadow="sm"
+                p="sm"
+              >
                 <Group justify="space-between" align="flex-start">
                   <Stack gap={4}>
                     <Text fw={600}>{course.name}</Text>
@@ -202,14 +203,22 @@ export default function GradesDownloadPage() {
                     </Text>
                     <Group gap="xs" mt={4}>
                       <Badge color="blue">{course.credit} cr</Badge>
+                      {course.section_label && (
+                        <Badge color="grape">
+                          Section {course.section_label}
+                        </Badge>
+                      )}
                       {course.latest_version && <Badge color="green">Latest</Badge>}
                     </Group>
                   </Stack>
                   <Button
                     size="xs"
                     variant="light"
-                    onClick={() => handleDownload(course.id)}
-                    loading={downloadLoading === course.id}
+                    onClick={() => handleDownload(course)}
+                    loading={
+                      downloadLoading ===
+                      (course.course_instructor_id ?? course.id)
+                    }
                     style={{ alignSelf: "start" }}
                   >
                     Download
