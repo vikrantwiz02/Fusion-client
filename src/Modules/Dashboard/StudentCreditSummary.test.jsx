@@ -58,7 +58,9 @@ describe("StudentCreditSummary", () => {
   });
 
   it("totals the credits and states the degree requirement", async () => {
-    axios.get.mockResolvedValue({ data: { semesters: SEMESTERS } });
+    axios.get.mockResolvedValue({
+      data: { semesters: SEMESTERS, programme_category: "UG" },
+    });
     renderPanel();
 
     await waitFor(() =>
@@ -70,6 +72,25 @@ describe("StudentCreditSummary", () => {
     // fixture swayam is 2, within the cap, so the whole earned total counts
     expect(screen.getByText("112")).toBeInTheDocument();
     expect(screen.getByText("148 − 36")).toBeInTheDocument();
+  });
+
+  it("omits the degree requirement for a postgraduate student", async () => {
+    axios.get.mockResolvedValue({
+      data: { semesters: SEMESTERS, programme_category: "PG" },
+    });
+    renderPanel();
+
+    await waitFor(() =>
+      expect(screen.getByText("Credits Details")).toBeInTheDocument(),
+    );
+
+    // the credit table still renders
+    expect(screen.getAllByText("36").length).toBeGreaterThan(0);
+    // but the undergraduate degree rule does not
+    expect(screen.queryByText("148 − 36")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Remaining Credits requirement for degree"),
+    ).not.toBeInTheDocument();
   });
 
   it("shows the same semesters in the table and the narrow-screen list", async () => {

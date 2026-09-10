@@ -171,6 +171,8 @@ export default function StudentCreditSummary() {
 
   const { rows, totals } = computeCreditSummary(state.data?.semesters ?? []);
   const extraSwayam = swayamAboveCap(totals);
+  // The degree requirement and the swayam cap are undergraduate rules.
+  const isUg = state.data?.programme_category === "UG";
 
   if (!rows.length) {
     return (
@@ -272,41 +274,43 @@ export default function StudentCreditSummary() {
           <SemesterCard label="Total" row={totals} emphasis />
         </Stack>
 
-        <Group
-          justify="space-between"
-          align="center"
-          wrap="wrap"
-          gap="sm"
-          className={classes.formula}
-        >
-          <Stack gap={2} className={classes.formulaText}>
-            <Text className={classes.formulaLabel}>
-              Remaining Credits requirement for degree
+        {isUg && (
+          <Group
+            justify="space-between"
+            align="center"
+            wrap="wrap"
+            gap="sm"
+            className={classes.formula}
+          >
+            <Stack gap={2} className={classes.formulaText}>
+              <Text className={classes.formulaLabel}>
+                Remaining Credits requirement for degree
+              </Text>
+              <Text className={classes.formulaWorking}>
+                {extraSwayam > 0 ? (
+                  <>
+                    {DEGREE_CREDIT_REQUIREMENT} &minus; (
+                    {fmtCredits(totals.earned)} &minus; (
+                    {fmtCredits(totals.swayam)} &minus; {SWAYAM_CREDIT_CAP}))
+                  </>
+                ) : (
+                  <>
+                    {DEGREE_CREDIT_REQUIREMENT} &minus;{" "}
+                    {fmtCredits(totals.earned)}
+                  </>
+                )}
+              </Text>
+              <Text className={classes.formulaNote}>
+                {extraSwayam > 0
+                  ? `Credits earned minus the ${fmtCredits(extraSwayam)} swayam credits above the ${SWAYAM_CREDIT_CAP}-credit limit`
+                  : `Degree requirement minus credits earned; up to ${SWAYAM_CREDIT_CAP} swayam credits count`}
+              </Text>
+            </Stack>
+            <Text className={classes.formulaValue}>
+              {fmtCredits(remainingCreditRequirement(totals))}
             </Text>
-            <Text className={classes.formulaWorking}>
-              {extraSwayam > 0 ? (
-                <>
-                  {DEGREE_CREDIT_REQUIREMENT} &minus; (
-                  {fmtCredits(totals.earned)} &minus; (
-                  {fmtCredits(totals.swayam)} &minus; {SWAYAM_CREDIT_CAP}))
-                </>
-              ) : (
-                <>
-                  {DEGREE_CREDIT_REQUIREMENT} &minus;{" "}
-                  {fmtCredits(totals.earned)}
-                </>
-              )}
-            </Text>
-            <Text className={classes.formulaNote}>
-              {extraSwayam > 0
-                ? `Credits earned minus the ${fmtCredits(extraSwayam)} swayam credits above the ${SWAYAM_CREDIT_CAP}-credit limit`
-                : `Degree requirement minus credits earned; up to ${SWAYAM_CREDIT_CAP} swayam credits count`}
-            </Text>
-          </Stack>
-          <Text className={classes.formulaValue}>
-            {fmtCredits(remainingCreditRequirement(totals))}
-          </Text>
-        </Group>
+          </Group>
+        )}
       </Card>
     </Stack>
   );

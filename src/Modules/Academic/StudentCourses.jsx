@@ -14,6 +14,7 @@ import { showNotification } from "@mantine/notifications";
 import axios from "axios";
 import FusionTable from "../../components/FusionTable";
 import { courseLabel } from "../../lib/course";
+import downloadCourseRegistrationReceipt from "./courseRegistrationReceipt";
 import {
   addStudentCourseRoute,
   addStudentThesisRoute,
@@ -777,6 +778,31 @@ export default function StudentCourses() {
     ) || [];
   const totalCredits = filteredDetails.reduce((sum, c) => sum + c.credits, 0);
 
+  // Same receipt the student downloads, for the semester on screen.
+  const handleDownloadReceipt = () =>
+    downloadCourseRegistrationReceipt({
+      studentInfo: {
+        batch: studentData?.dict2?.batch || "",
+        name: `${studentData?.dict2?.firstname || ""} ${
+          studentData?.dict2?.lastname || ""
+        }`.trim(),
+        rollNo: studentData?.dict2?.roll_no || "",
+        department: studentData?.dict2?.branch || "",
+        semester: selectedSemester?.no || "",
+        prevSemCpi:
+          studentData?.prev_sem_cpi?.[String(selectedSemester?.no)] || "",
+      },
+      courses: filteredDetails.map((c) => ({
+        course_id: {
+          code: c.course_id,
+          name: c.course_name,
+          credit: c.credits,
+        },
+        registration_type: c.registration_type,
+      })),
+      totalCredits,
+    });
+
   const columns = [
     "Reg ID",
     "Course Code",
@@ -911,7 +937,16 @@ export default function StudentCourses() {
                 Add Teaching Credit
               </Button>
             </Group>
-            <Text fw={700}>Total Credits: {totalCredits}</Text>
+            <Group gap="sm">
+              <Button
+                variant="light"
+                onClick={handleDownloadReceipt}
+                disabled={loading || filteredDetails.length === 0}
+              >
+                Download
+              </Button>
+              <Text fw={700}>Total Credits: {totalCredits}</Text>
+            </Group>
           </Group>
         </>
       )}
