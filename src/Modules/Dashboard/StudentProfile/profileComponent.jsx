@@ -1,17 +1,27 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
-import { Table, Text, Button, Flex, Divider, TextInput } from "@mantine/core";
+import { Button, Grid, Group, Stack, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import {
+  Check,
+  PencilSimple,
+  Phone,
+  UserCircle,
+  X,
+} from "@phosphor-icons/react";
 import axios from "axios";
 import { updateProfileDataRoute } from "../../../routes/dashboardRoutes";
+import AdmissionDetails, { RECORD_SHAPE } from "./admissionDetails";
+import { Field, FULL, ReadOnlyValue, SectionCard } from "./profileUi";
+import ResumeCard from "./resumeCard";
 
-function ProfileComponent({ data }) {
+function ProfileComponent({ data, record, onRecordChange }) {
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [profileData, setProfileData] = useState({
-    about: data.profile?.about_me || "N/A",
-    dob: data.profile?.date_of_birth || "Jan 01, 2004",
-    address: data.profile?.address || "XYZ",
+    about: data.profile?.about_me || "",
+    dob: data.profile?.date_of_birth || "",
+    address: data.profile?.address || "",
     contactNumber: data.profile?.phone_no ?? "",
     mailId: data.current?.[0]?.user?.email ?? "",
   });
@@ -19,20 +29,27 @@ function ProfileComponent({ data }) {
   const handleEditClick = async () => {
     const token = localStorage.getItem("authToken");
     if (!token) {
-      notifications.show({ message: "Authentication required. Please log in again.", color: "red" });
+      notifications.show({
+        message: "Authentication required. Please log in again.",
+        color: "red",
+      });
       return;
     }
     if (isEditing) {
       if (submitting) return;
       setSubmitting(true);
       try {
+        // With an admission record the other fields live there, so only the
+        // free-text bio goes to the account.
         const payload = {
-          profilesubmit: {
-            about_me: profileData.about,
-            date_of_birth: profileData.dob,
-            address: profileData.address,
-            phone_no: Number(profileData.contactNumber),
-          },
+          profilesubmit: record
+            ? { about_me: profileData.about }
+            : {
+                about_me: profileData.about,
+                date_of_birth: profileData.dob,
+                address: profileData.address,
+                phone_no: Number(profileData.contactNumber),
+              },
         };
 
         await axios.put(updateProfileDataRoute, payload, {
@@ -61,125 +78,109 @@ function ProfileComponent({ data }) {
     setProfileData((prev) => ({ ...prev, [field]: value }));
   };
 
-  return (
-    <Flex
-      w={{ base: "100%", sm: "60%" }}
-      p="md"
-      gap="md"
-      style={{ border: "1px solid lightgray", borderRadius: "5px" }}
-      direction="column"
-      justify="space-evenly"
+  const aboutActions = isEditing ? (
+    <Group gap="xs" wrap="nowrap">
+      <Button
+        size="xs"
+        variant="default"
+        leftSection={<X size={14} />}
+        onClick={() => setIsEditing(false)}
+        disabled={submitting}
+      >
+        Cancel
+      </Button>
+      <Button
+        size="xs"
+        leftSection={<Check size={14} />}
+        onClick={handleEditClick}
+        loading={submitting}
+      >
+        Save
+      </Button>
+    </Group>
+  ) : (
+    <Button
+      size="xs"
+      variant="light"
+      leftSection={<PencilSimple size={14} />}
+      onClick={handleEditClick}
     >
-      {/* About Me Section */}
-      <Flex
-        w="100%"
-        p="md"
-        direction="column"
-        style={{ border: "1px solid lightgray", borderRadius: "5px" }}
-      >
-        <Text fw={500} size="1.2rem">
-          About Me
-        </Text>
-        <Divider my="sm" />
-        <Flex w="100%" justify="space-between" align="center">
-          {isEditing ? (
-            <TextInput
-              value={profileData.about}
-              onChange={(e) => handleChange("about", e.target.value)}
-              w="80%"
-            />
-          ) : (
-            <Text>{profileData.about}</Text>
-          )}
-          <Button
-            onClick={handleEditClick}
-            color={isEditing ? "green" : "red"}
-            loading={submitting}
-          >
-            {isEditing ? "Save" : "Edit"}
-          </Button>
-        </Flex>
-      </Flex>
+      Edit
+    </Button>
+  );
 
-      {/* Details Section */}
-      <Flex
-        w="100%"
-        p="md"
-        direction="column"
-        style={{ border: "1px solid lightgray", borderRadius: "5px" }}
+  return (
+    <Stack gap="md" w="100%">
+      <SectionCard
+        icon={<UserCircle size={18} />}
+        title="About Me"
+        action={aboutActions}
       >
-        <Text fw={500} size="1.2rem">
-          Details
-        </Text>
-        <Divider my="sm" />
-        <Table striped highlightOnHover withTableBorder withColumnBorders>
-          <Table.Tbody>
-            <Table.Tr>
-              <Table.Td fw={500}>Date of Birth</Table.Td>
-              <Table.Td>
-                {isEditing ? (
-                  <TextInput
-                    value={profileData.dob}
-                    onChange={(e) => handleChange("dob", e.target.value)}
-                  />
-                ) : (
-                  profileData.dob
-                )}
-              </Table.Td>
-            </Table.Tr>
-            <Table.Tr>
-              <Table.Td fw={500}>Address</Table.Td>
-              <Table.Td>
-                {isEditing ? (
-                  <TextInput
-                    value={profileData.address}
-                    onChange={(e) => handleChange("address", e.target.value)}
-                  />
-                ) : (
-                  profileData.address
-                )}
-              </Table.Td>
-            </Table.Tr>
-          </Table.Tbody>
-        </Table>
-      </Flex>
+        {isEditing ? (
+          <TextInput
+            value={profileData.about}
+            placeholder="A line about yourself"
+            onChange={(e) => handleChange("about", e.target.value)}
+          />
+        ) : (
+          <ReadOnlyValue>{profileData.about || "—"}</ReadOnlyValue>
+        )}
+      </SectionCard>
 
-      {/* Contact Details Section */}
-      <Flex
-        w="100%"
-        p="md"
-        direction="column"
-        style={{ border: "1px solid lightgray", borderRadius: "5px" }}
-      >
-        <Text fw={500} size="1.2rem">
-          Contact Details
-        </Text>
-        <Divider my="sm" />
-        <Table striped highlightOnHover withTableBorder withColumnBorders>
-          <Table.Tbody>
-            <Table.Tr>
-              <Table.Td fw={500}>Contact Number</Table.Td>
-              <Table.Td>
-                {isEditing ? (
-                  <TextInput
-                    value={profileData.contactNumber}
-                    onChange={(e) =>
-                      handleChange("contactNumber", e.target.value)
-                    }
-                  />
-                ) : (
-                  profileData.contactNumber
-                )}
-              </Table.Td>
-            </Table.Tr>
-            <Table.Tr>
-              <Table.Td fw={500}>Mail ID</Table.Td>
-              <Table.Td>{profileData.mailId}</Table.Td>
-            </Table.Tr>
-          </Table.Tbody>
-        </Table>
-      </Flex>
-    </Flex>
+      {record && (
+        <ResumeCard link={record.resume_link} onSaved={onRecordChange} />
+      )}
+
+      {!record && (
+        <SectionCard icon={<Phone size={18} />} title="Details">
+          <Grid gutter="md">
+            <Field label="Date of Birth">
+              {isEditing ? (
+                <TextInput
+                  value={profileData.dob}
+                  onChange={(e) => handleChange("dob", e.target.value)}
+                />
+              ) : (
+                <ReadOnlyValue>{profileData.dob || "—"}</ReadOnlyValue>
+              )}
+            </Field>
+            <Field label="Contact Number">
+              {isEditing ? (
+                <TextInput
+                  value={profileData.contactNumber}
+                  onChange={(e) =>
+                    handleChange("contactNumber", e.target.value)
+                  }
+                />
+              ) : (
+                <ReadOnlyValue>
+                  {profileData.contactNumber || "—"}
+                </ReadOnlyValue>
+              )}
+            </Field>
+            <Field label="Mail ID">
+              <ReadOnlyValue>{profileData.mailId || "—"}</ReadOnlyValue>
+            </Field>
+            <Field label="Address" span={FULL}>
+              {isEditing ? (
+                <TextInput
+                  value={profileData.address}
+                  onChange={(e) => handleChange("address", e.target.value)}
+                />
+              ) : (
+                <ReadOnlyValue>{profileData.address || "—"}</ReadOnlyValue>
+              )}
+            </Field>
+          </Grid>
+        </SectionCard>
+      )}
+
+      <AdmissionDetails
+        record={record}
+        email={profileData.mailId}
+        onSaved={onRecordChange}
+      />
+    </Stack>
   );
 }
 
@@ -200,6 +201,13 @@ ProfileComponent.propTypes = {
       }),
     ),
   }).isRequired,
+  record: RECORD_SHAPE,
+  onRecordChange: PropTypes.func,
+};
+
+ProfileComponent.defaultProps = {
+  record: null,
+  onRecordChange: () => {},
 };
 
 export default ProfileComponent;

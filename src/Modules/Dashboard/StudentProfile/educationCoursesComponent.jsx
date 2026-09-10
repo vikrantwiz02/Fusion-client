@@ -1,18 +1,28 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import {
-  Flex,
-  Input,
-  Tabs,
-  Text,
+  Badge,
   Button,
+  Grid,
+  Group,
+  Paper,
+  SegmentedControl,
+  Stack,
+  Text,
   Textarea,
-  Table,
-  Divider,
+  TextInput,
 } from "@mantine/core";
-import { notifications, Notifications } from "@mantine/notifications";
+import { notifications } from "@mantine/notifications";
 import axios from "axios";
+import { Certificate, GraduationCap, Plus } from "@phosphor-icons/react";
 import { updateProfileDataRoute } from "../../../routes/dashboardRoutes";
+import { EmptyState, SectionCard } from "./profileUi";
+
+const authHeader = () => ({
+  Authorization: `Token ${localStorage.getItem("authToken")}`,
+});
+
+const period = (from, to) => [from, to].filter(Boolean).join("  →  ") || "—";
 
 function EducationTab({ educationData }) {
   const [formData, setFormData] = useState({
@@ -23,21 +33,22 @@ function EducationTab({ educationData }) {
     start_date: "",
     end_date: "",
   });
+  const [saving, setSaving] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleChange = (field, value) =>
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
+    if (!formData.degree.trim()) {
+      notifications.show({ message: "Enter the degree first.", color: "red" });
+      return;
+    }
+    setSaving(true);
     try {
       await axios.put(
         updateProfileDataRoute,
         { education: formData },
-        {
-          headers: {
-            Authorization: `Token ${localStorage.getItem("authToken")}`,
-          },
-        },
+        { headers: authHeader() },
       );
       notifications.show({
         message: "Education Added Successfully!",
@@ -56,130 +67,130 @@ function EducationTab({ educationData }) {
         message: "Failed! Please try later.",
         color: "red",
       });
-      console.error("Error updating education:", error);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <Flex
-      w="100%"
-      p="md"
-      direction="column"
-      style={{ border: "1px solid lightgray", borderRadius: "5px" }}
-    >
-      <Text fw={500} mb="md">
-        Add a New Educational Qualification
-      </Text>
-      <Flex align="center" justify="space-between" mb="md">
-        <Input.Wrapper label="Degree" w="48%">
-          <Input
-            name="degree"
-            value={formData.degree}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-        <Input.Wrapper label="Stream" w="48%">
-          <Input
-            name="stream"
-            value={formData.stream}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-      </Flex>
-      <Flex align="center" justify="space-between" mb="md">
-        <Input.Wrapper label="Institute Name" w="65%">
-          <Input
-            name="institute"
-            value={formData.institute}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-        <Input.Wrapper label="Grade" w="30%">
-          <Input
-            name="grade"
-            value={formData.grade}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-      </Flex>
-      <Flex align="center" justify="space-between" mb="md">
-        <Input.Wrapper label="Start Date" w="48%">
-          <Input
-            name="start_date"
-            type="date"
-            value={formData.start_date}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-        <Input.Wrapper label="End Date" w="48%">
-          <Input
-            name="end_date"
-            type="date"
-            value={formData.end_date}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-      </Flex>
-      <Button onClick={handleSubmit} size="md" w="fit-content" mt="lg">
-        Submit
-      </Button>
-      <Divider my="md" />
-      <Text fw={500} mb="md">
-        Your Educations
-      </Text>
-      {educationData.length > 0 ? (
-        <Table striped highlightOnHover withTableBorder withColumnBorders>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Degree</Table.Th>
-              <Table.Th>Stream</Table.Th>
-              <Table.Th>Institute</Table.Th>
-              <Table.Th>Grade</Table.Th>
-              <Table.Th visibleFrom="sm">Start Date</Table.Th>
-              <Table.Th visibleFrom="sm">End Date</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {educationData.map((edu, index) => (
-              <Table.Tr key={index}>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {edu.degree}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {edu.stream}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {edu.institute}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>{edu.grade}</Table.Td>
-                <Table.Td style={{ textAlign: "center" }} visibleFrom="sm">
-                  {edu.sdate}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }} visibleFrom="sm">
-                  {edu.edate}
-                </Table.Td>
-              </Table.Tr>
+    <>
+      <SectionCard
+        icon={<Plus size={18} />}
+        title="Add a Qualification"
+        description="Schooling and earlier degrees"
+      >
+        <Grid gutter="md">
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="Degree"
+              placeholder="e.g. Class XII, B.Tech"
+              value={formData.degree}
+              onChange={(e) => handleChange("degree", e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="Stream"
+              value={formData.stream}
+              onChange={(e) => handleChange("stream", e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 8 }}>
+            <TextInput
+              label="Institute Name"
+              value={formData.institute}
+              onChange={(e) => handleChange("institute", e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 4 }}>
+            <TextInput
+              label="Grade"
+              value={formData.grade}
+              onChange={(e) => handleChange("grade", e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="Start Date"
+              type="date"
+              value={formData.start_date}
+              onChange={(e) =>
+                handleChange("start_date", e.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="End Date"
+              type="date"
+              value={formData.end_date}
+              onChange={(e) => handleChange("end_date", e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Group justify="flex-end">
+              <Button
+                onClick={handleSubmit}
+                loading={saving}
+                leftSection={<Plus size={16} />}
+              >
+                Add qualification
+              </Button>
+            </Group>
+          </Grid.Col>
+        </Grid>
+      </SectionCard>
+
+      <SectionCard
+        icon={<GraduationCap size={18} />}
+        title="Your Education"
+        action={
+          educationData?.length ? (
+            <Badge variant="light" radius="sm">
+              {educationData.length}
+            </Badge>
+          ) : null
+        }
+      >
+        {educationData?.length ? (
+          <Stack gap="sm">
+            {educationData.map((edu) => (
+              <Paper
+                key={`${edu.degree}-${edu.institute}-${edu.sdate}`}
+                withBorder
+                radius="md"
+                p="md"
+              >
+                <Group justify="space-between" align="flex-start" gap="sm">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text fw={600} size="sm">
+                      {edu.degree || "—"}
+                      {edu.stream ? ` · ${edu.stream}` : ""}
+                    </Text>
+                    <Text size="sm" c="dimmed" mt={2}>
+                      {edu.institute || "—"}
+                    </Text>
+                    <Text size="xs" c="dimmed" mt={6}>
+                      {period(edu.sdate, edu.edate)}
+                    </Text>
+                  </div>
+                  {edu.grade && (
+                    <Badge variant="light" color="teal" radius="sm">
+                      {edu.grade}
+                    </Badge>
+                  )}
+                </Group>
+              </Paper>
             ))}
-          </Table.Tbody>
-        </Table>
-      ) : (
-        <Text mt="lg" style={{ textAlign: "center" }}>
-          No data found!
-        </Text>
-      )}
-    </Flex>
+          </Stack>
+        ) : (
+          <EmptyState
+            icon={<GraduationCap size={26} />}
+            message="No qualifications added yet"
+          />
+        )}
+      </SectionCard>
+    </>
   );
 }
 
@@ -191,24 +202,28 @@ function CoursesTab({ coursesData }) {
     end_date: "",
     description: "",
   });
+  const [saving, setSaving] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleChange = (field, value) =>
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
+    if (!formData.course_name.trim()) {
+      notifications.show({
+        message: "Enter the course name first.",
+        color: "red",
+      });
+      return;
+    }
+    setSaving(true);
     try {
       await axios.put(
         updateProfileDataRoute,
         { coursesubmit: formData },
-        {
-          headers: {
-            Authorization: `Token ${localStorage.getItem("authToken")}`,
-          },
-        },
+        { headers: authHeader() },
       );
-      Notifications.show({
-        message: "Certificates added Successfully!",
+      notifications.show({
+        message: "Certificate added successfully!",
         color: "green",
       });
       setFormData({
@@ -219,192 +234,184 @@ function CoursesTab({ coursesData }) {
         description: "",
       });
     } catch (error) {
-      Notifications.show({
+      notifications.show({
         message: "Failed! Please try later.",
         color: "red",
       });
-      console.error("Error updating courses:", error);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <Flex
-      w="100%"
-      p="md"
-      direction="column"
-      style={{ border: "1px solid lightgray", borderRadius: "5px" }}
-    >
-      <Text fw={500} mb="md">
-        Add a New Certification Course
-      </Text>
-      <Flex align="center" justify="space-between" mb="md">
-        <Input.Wrapper label="Course Name" w="65%">
-          <Input
-            name="course_name"
-            value={formData.course_name}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-        <Input.Wrapper label="License No." w="30%">
-          <Input
-            name="license"
-            value={formData.license}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-      </Flex>
-      <Flex align="center" justify="space-between" mb="md">
-        <Input.Wrapper label="Start Date" w="48%">
-          <Input
-            name="start_date"
-            type="date"
-            value={formData.start_date}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-        <Input.Wrapper label="End Date" w="48%">
-          <Input
-            name="end_date"
-            type="date"
-            value={formData.end_date}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-      </Flex>
-      <Input.Wrapper label="Description" w={{ base: "100%", sm: "80%" }}>
-        <Textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          autosize
-          minRows={5}
-          resize="vertical"
-          mt="xs"
-        />
-      </Input.Wrapper>
-      <Button onClick={handleSubmit} size="md" mt="lg">
-        Submit
-      </Button>
-      <Divider my="md" />
-      <Text fw={500} mb="md">
-        Your Certificates
-      </Text>
-      {coursesData.length > 0 ? (
-        <Table striped highlightOnHover withTableBorder withColumnBorders>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Td>Course Name</Table.Td>
-              <Table.Td>License No.</Table.Td>
-              <Table.Td>Start Date</Table.Td>
-              <Table.Td>Completion Date</Table.Td>
-            </Table.Tr>
-          </Table.Thead>
-          <tbody>
-            {coursesData.map((course, index) => (
-              <tr key={index}>
-                <td style={{ textAlign: "center" }}>{course.course_name}</td>
-                <td style={{ textAlign: "center" }}>{course.license_no}</td>
-                <td style={{ textAlign: "center" }}>{course.sdate}</td>
-                <td style={{ textAlign: "center" }}>{course.edate}</td>
-              </tr>
+    <>
+      <SectionCard
+        icon={<Plus size={18} />}
+        title="Add a Certification"
+        description="Online and offline certificate courses"
+      >
+        <Grid gutter="md">
+          <Grid.Col span={{ base: 12, sm: 8 }}>
+            <TextInput
+              label="Course Name"
+              value={formData.course_name}
+              onChange={(e) =>
+                handleChange("course_name", e.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 4 }}>
+            <TextInput
+              label="License No."
+              value={formData.license}
+              onChange={(e) => handleChange("license", e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="Start Date"
+              type="date"
+              value={formData.start_date}
+              onChange={(e) =>
+                handleChange("start_date", e.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="End Date"
+              type="date"
+              value={formData.end_date}
+              onChange={(e) => handleChange("end_date", e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Textarea
+              label="Description"
+              autosize
+              minRows={3}
+              value={formData.description}
+              onChange={(e) =>
+                handleChange("description", e.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Group justify="flex-end">
+              <Button
+                onClick={handleSubmit}
+                loading={saving}
+                leftSection={<Plus size={16} />}
+              >
+                Add certification
+              </Button>
+            </Group>
+          </Grid.Col>
+        </Grid>
+      </SectionCard>
+
+      <SectionCard
+        icon={<Certificate size={18} />}
+        title="Your Certificates"
+        action={
+          coursesData?.length ? (
+            <Badge variant="light" radius="sm">
+              {coursesData.length}
+            </Badge>
+          ) : null
+        }
+      >
+        {coursesData?.length ? (
+          <Stack gap="sm">
+            {coursesData.map((course) => (
+              <Paper
+                key={`${course.course_name}-${course.license_no}-${course.sdate}`}
+                withBorder
+                radius="md"
+                p="md"
+              >
+                <Group justify="space-between" align="flex-start" gap="sm">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text fw={600} size="sm">
+                      {course.course_name || "—"}
+                    </Text>
+                    <Text size="xs" c="dimmed" mt={6}>
+                      {period(course.sdate, course.edate)}
+                    </Text>
+                  </div>
+                  {course.license_no && (
+                    <Badge variant="light" radius="sm">
+                      {course.license_no}
+                    </Badge>
+                  )}
+                </Group>
+              </Paper>
             ))}
-          </tbody>
-        </Table>
-      ) : (
-        <Text mt="lg" style={{ textAlign: "center" }}>
-          No data found!
-        </Text>
-      )}
-    </Flex>
+          </Stack>
+        ) : (
+          <EmptyState
+            icon={<Certificate size={26} />}
+            message="No certificates added yet"
+          />
+        )}
+      </SectionCard>
+    </>
   );
 }
 
 export default function EducationCoursesComponent({ education, courses }) {
-  return (
-    <Flex
-      w={{ base: "100%", sm: "60%" }}
-      p="md"
-      h="auto"
-      style={{ border: "1px solid lightgray", borderRadius: "5px" }}
-      direction="column"
-      justify="space-evenly"
-    >
-      <Tabs defaultValue="education">
-        <Tabs.List mb="sm">
-          <Tabs.Tab value="education">
-            <Text fw={500} size="1.2rem">
-              Education
-            </Text>
-          </Tabs.Tab>
-          <Tabs.Tab value="courses">
-            <Text fw={500} size="1.2rem">
-              Certificate Courses
-            </Text>
-          </Tabs.Tab>
-        </Tabs.List>
+  const [view, setView] = useState("education");
 
-        <Tabs.Panel value="education">
-          <EducationTab educationData={education} />
-        </Tabs.Panel>
-        <Tabs.Panel value="courses">
-          <CoursesTab coursesData={courses} />
-        </Tabs.Panel>
-      </Tabs>
-    </Flex>
+  return (
+    <Stack gap="md" w="100%">
+      <SegmentedControl
+        value={view}
+        onChange={setView}
+        radius="md"
+        data={[
+          { value: "education", label: "Education" },
+          { value: "courses", label: "Certificate Courses" },
+        ]}
+      />
+      {view === "education" ? (
+        <EducationTab educationData={education} />
+      ) : (
+        <CoursesTab coursesData={courses} />
+      )}
+    </Stack>
   );
 }
 
+const EDUCATION_SHAPE = PropTypes.arrayOf(
+  PropTypes.shape({
+    degree: PropTypes.string,
+    stream: PropTypes.string,
+    institute: PropTypes.string,
+    grade: PropTypes.string,
+    sdate: PropTypes.string,
+    edate: PropTypes.string,
+  }),
+);
+
+const COURSE_SHAPE = PropTypes.arrayOf(
+  PropTypes.shape({
+    course_name: PropTypes.string,
+    license_no: PropTypes.string,
+    sdate: PropTypes.string,
+    edate: PropTypes.string,
+    description: PropTypes.string,
+  }),
+);
+
 EducationCoursesComponent.propTypes = {
-  education: PropTypes.arrayOf(
-    PropTypes.shape({
-      degree: PropTypes.string,
-      stream: PropTypes.string,
-      institute: PropTypes.string,
-      grade: PropTypes.string,
-      start_date: PropTypes.string,
-      end_date: PropTypes.string,
-    }),
-  ),
-  courses: PropTypes.arrayOf(
-    PropTypes.shape({
-      course_name: PropTypes.string,
-      license: PropTypes.string,
-      start_date: PropTypes.string,
-      end_date: PropTypes.string,
-      description: PropTypes.string,
-    }),
-  ),
+  education: EDUCATION_SHAPE,
+  courses: COURSE_SHAPE,
 };
 
-EducationTab.propTypes = {
-  educationData: PropTypes.arrayOf(
-    PropTypes.shape({
-      degree: PropTypes.string,
-      stream: PropTypes.string,
-      institute: PropTypes.string,
-      grade: PropTypes.string,
-      start_date: PropTypes.string,
-      end_date: PropTypes.string,
-    }),
-  ),
-};
+EducationCoursesComponent.defaultProps = { education: [], courses: [] };
 
-CoursesTab.propTypes = {
-  coursesData: PropTypes.arrayOf(
-    PropTypes.shape({
-      course_name: PropTypes.string,
-      license: PropTypes.string,
-      start_date: PropTypes.string,
-      end_date: PropTypes.string,
-      description: PropTypes.string,
-    }),
-  ),
-};
+EducationTab.propTypes = { educationData: EDUCATION_SHAPE };
+EducationTab.defaultProps = { educationData: [] };
+
+CoursesTab.propTypes = { coursesData: COURSE_SHAPE };
+CoursesTab.defaultProps = { coursesData: [] };

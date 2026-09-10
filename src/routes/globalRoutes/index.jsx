@@ -10,6 +10,8 @@ export const mediaRoute = `${host}/media/`;
 // First-login student profile completion
 export const profileCompletionRoute = `${host}/programme_curriculum/api/student/profile_completion/`;
 export const profileCompletionSubmitRoute = `${host}/programme_curriculum/api/student/profile_completion/submit/`;
+export const studentProfileImageRoute = `${host}/programme_curriculum/api/student/profile_image/`;
+export const studentProfileUpdateRoute = `${host}/programme_curriculum/api/student/profile_update/`;
 
 // OTP-based password reset
 export const passwordResetSendOtp = `${host}/api/auth/password-reset/send-otp/`;

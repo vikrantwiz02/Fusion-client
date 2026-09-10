@@ -14,10 +14,14 @@ const userSlice = createSlice({
     mustCompleteProfile: false, // first-login student must finish profile popup
     authChecked: false, // /api/auth/me has resolved (gates route rendering)
     programmeType: null, // UG | PG | PHD — decides which academic pages exist
+    profilePhoto: "", // student's own photo, shown on the sidebar avatar
   },
   reducers: {
     setProgrammeType: (state, action) => {
       state.programmeType = action.payload;
+    },
+    setProfilePhoto: (state, action) => {
+      state.profilePhoto = action.payload;
     },
     setMustCompleteProfile: (state, action) => {
       state.mustCompleteProfile = action.payload;
@@ -63,6 +67,7 @@ export const {
   setMustCompleteProfile,
   setAuthChecked,
   setProgrammeType,
+  setProfilePhoto,
   clearUserName,
   clearRoles,
 } = userSlice.actions;

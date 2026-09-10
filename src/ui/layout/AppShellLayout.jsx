@@ -532,6 +532,9 @@ export function AppShellLayout({
                 radius="md"
                 size={compactNav ? 32 : 38}
                 variant="filled"
+                src={user.photo || null}
+                imageProps={{ style: { objectFit: "cover" } }}
+                alt={user.name}
               >
                 {initials(user.name)}
               </Avatar>
@@ -630,6 +633,7 @@ AppShellLayout.propTypes = {
   user: PropTypes.shape({
     name: PropTypes.string,
     roleLabel: PropTypes.string,
+    photo: PropTypes.string,
   }).isRequired,
   onLogout: PropTypes.func.isRequired,
   roles: PropTypes.arrayOf(PropTypes.string),
