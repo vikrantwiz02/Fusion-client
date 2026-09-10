@@ -64,6 +64,14 @@ export default function SwayamExtraCredit({
     }
   };
 
+  // A course picked in one slot must not be offered in the others.
+  const coursesTakenElsewhere = (slotId) =>
+    new Set(
+      Object.entries(choicesSelections)
+        .filter(([sno, value]) => String(sno) !== String(slotId) && value)
+        .map(([, value]) => String(value)),
+    );
+
   const handleChoiceChange = (slotId, value) => {
     setChoicesSelections((prev) => ({ ...prev, [slotId]: value }));
   };
@@ -167,6 +175,13 @@ export default function SwayamExtraCredit({
         </div>
       ) : (
         <>
+          <Alert color="blue" mb="md" variant="light">
+            <Text size="sm">
+              To replace an elective course from a previous semester, use the{" "}
+              <strong>Replace</strong> tab.
+            </Text>
+          </Alert>
+
           {hasPendingRequest && !error && (
             <Alert
               color="yellow"
@@ -232,6 +247,12 @@ export default function SwayamExtraCredit({
                           .filter(
                             (course) =>
                               course.id !== undefined && course.id !== null,
+                          )
+                          .filter(
+                            (course) =>
+                              !coursesTakenElsewhere(slot.sno).has(
+                                String(course.id),
+                              ),
                           )
                           .map((course) => ({
                             value: String(course.id),
