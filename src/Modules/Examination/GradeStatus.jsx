@@ -145,7 +145,11 @@ export default function GradeStatus() {
   };
 
   const handleViewGrades = async (course) => {
-    setViewModal({ open: true, pdfUrl: null, loading: true, error: null, title: `${course.course_code} - ${course.course_name}` });
+    const sectionSuffix =
+      course.section_label && course.section_label !== "—"
+        ? ` — Section ${course.section_label}`
+        : "";
+    setViewModal({ open: true, pdfUrl: null, loading: true, error: null, title: `${course.course_code} - ${course.course_name}${sectionSuffix}` });
     try {
       const token = localStorage.getItem("authToken");
       const response = await axios({
@@ -154,13 +158,18 @@ export default function GradeStatus() {
         data: {
           Role: userRole,
           course_id: course.course_id,
+          course_instructor: course.course_instructor_id,
           academic_year: selectedAcademicYear,
           semester_type: selectedSemesterType,
         },
         headers: { Authorization: `Token ${token}` },
         responseType: "blob",
       });
-      const fileName = `${course.course_code}_${course.course_name.replace(/[/\\?%*:|"<>]/g, "_")}.pdf`;
+      const sectionPart =
+        course.section_label && course.section_label !== "—"
+          ? `_Section_${course.section_label}`
+          : "";
+      const fileName = `${course.course_code}_${course.course_name.replace(/[/\\?%*:|"<>]/g, "_")}${sectionPart}.pdf`;
       const pdfUrl = URL.createObjectURL(new File([response.data], fileName, { type: "application/pdf" }));
       setViewModal(prev => ({ ...prev, loading: false, pdfUrl }));
     } catch (err) {
