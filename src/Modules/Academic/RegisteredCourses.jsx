@@ -274,10 +274,12 @@ export default function RegisteredCourses() {
           headers: { Authorization: `Token ${token}` },
         })
         .then((receiptResponse) => {
-          if (receiptResponse.data && receiptResponse.data.branch) {
+          if (receiptResponse.data) {
             setStudentInfo((prev) => ({
               ...prev,
-              department: receiptResponse.data.branch,
+              department: receiptResponse.data.branch || prev.department,
+              prevSemCpi: receiptResponse.data.prev_sem_cpi,
+              prevSemesterNo: receiptResponse.data.prev_semester_no,
             }));
           }
         })
@@ -671,6 +673,13 @@ export default function RegisteredCourses() {
       "0",
     )}-${String(now.getDate()).padStart(2, "0")}`;
     const filename = `Course_Registration_${dateStr}.pdf`;
+    // Printed on the day the receipt is generated, and the CPI carried forward.
+    const printedOn = `${String(now.getDate()).padStart(2, "0")}.${String(
+      now.getMonth() + 1,
+    ).padStart(2, "0")}.${now.getFullYear()}`;
+    const prevCpiLabel = studentInfo.prevSemCpi
+      ? `Prev. Sem. CPI: ${studentInfo.prevSemCpi}`
+      : "Prev. Sem. CPI: -";
 
     try {
       const doc = new jsPDF({
@@ -687,6 +696,11 @@ export default function RegisteredCourses() {
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text("STUDENT COPY", pageWidth / 2, yPosition, { align: "center" });
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Date: ${printedOn}`, pageWidth - 20, yPosition, {
+        align: "right",
+      });
 
       yPosition += 3;
       doc.setLineWidth(0.3);
@@ -737,9 +751,6 @@ export default function RegisteredCourses() {
         ]);
       });
 
-      tableData.push([(courses.length + 1).toString(), "", "", "", "", ""]);
-      tableData.push([(courses.length + 2).toString(), "", "", "", "", ""]);
-
       autoTable(doc, {
         startY: yPosition,
         head: [
@@ -788,13 +799,14 @@ export default function RegisteredCourses() {
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
-      doc.text("Total Credits:", 20, yPosition);
+      doc.text(`Total Credits: ${totalCredits}`, 20, yPosition);
+      doc.text(prevCpiLabel, pageWidth - 20, yPosition, { align: "right" });
       yPosition += 6;
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.text(
-        "1. I have more than 75% attendance in the above mentioned subjects.",
+        "1. I will have more than 75% attendance in the above mentioned subjects.",
         20,
         yPosition,
       );
@@ -810,8 +822,6 @@ export default function RegisteredCourses() {
       yPosition += 5;
 
       doc.setLineWidth(0.3);
-      doc.line(20, yPosition, pageWidth - 20, yPosition);
-      yPosition += 8;
       doc.line(20, yPosition, pageWidth - 20, yPosition);
       yPosition += 10;
 
@@ -841,6 +851,11 @@ export default function RegisteredCourses() {
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text("ACADEMIC COPY", pageWidth / 2, yPosition, { align: "center" });
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Date: ${printedOn}`, pageWidth - 20, yPosition, {
+        align: "right",
+      });
 
       yPosition += 3;
       doc.setLineWidth(0.3);
@@ -935,13 +950,14 @@ export default function RegisteredCourses() {
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
-      doc.text("Total Credits:", 20, yPosition);
+      doc.text(`Total Credits: ${totalCredits}`, 20, yPosition);
+      doc.text(prevCpiLabel, pageWidth - 20, yPosition, { align: "right" });
       yPosition += 6;
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.text(
-        "1. I have more than 75% attendance in the above mentioned subjects.",
+        "1. I will have more than 75% attendance in the above mentioned subjects.",
         20,
         yPosition,
       );
@@ -957,8 +973,6 @@ export default function RegisteredCourses() {
       yPosition += 5;
 
       doc.setLineWidth(0.3);
-      doc.line(20, yPosition, pageWidth - 20, yPosition);
-      yPosition += 8;
       doc.line(20, yPosition, pageWidth - 20, yPosition);
       yPosition += 10;
 
