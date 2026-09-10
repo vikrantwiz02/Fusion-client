@@ -21,6 +21,7 @@ import {
   setRole,
   setCurrentAccessibleModules,
   setProgrammeType,
+  setProfilePhoto,
 } from "../redux/userslice";
 import { setCurrentModule } from "../redux/moduleslice";
 import { setUnreadCount } from "../redux/notificationSlice";
@@ -29,6 +30,7 @@ import {
   updateRoleRoute,
   unreadNotificationCountRoute,
 } from "../routes/dashboardRoutes";
+import { host, profileCompletionRoute } from "../routes/globalRoutes";
 import useLogout from "../helper/useLogout";
 
 export function Layout({ children = null }) {
@@ -45,6 +47,7 @@ export function Layout({ children = null }) {
     (state) => state.user.currentAccessibleModules,
   );
   const unreadCount = useSelector((state) => state.notification.unreadCount);
+  const profilePhoto = useSelector((state) => state.user.profilePhoto);
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -71,6 +74,20 @@ export function Layout({ children = null }) {
       })
       .catch(() => dispatch(setProgrammeType("UG")));
   }, [dispatch, role, programmeType]);
+
+  useEffect(() => {
+    if (role !== "student" || profilePhoto) return;
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+    axios
+      .get(profileCompletionRoute, {
+        headers: { Authorization: `Token ${token}` },
+      })
+      .then(({ data }) => {
+        if (data?.data?.photo) dispatch(setProfilePhoto(data.data.photo));
+      })
+      .catch(() => {});
+  }, [dispatch, role, profilePhoto]);
 
   const navGroups = useMemo(
     () => buildNavGroups({ role, accessibleModules, programmeType }),
@@ -144,7 +161,11 @@ export function Layout({ children = null }) {
       activePath={pathname}
       onNavigate={navigate}
       brandSubtitle="FUSION · ERP PORTAL"
-      user={{ name: username, roleLabel: role }}
+      user={{
+        name: username,
+        roleLabel: role,
+        photo: profilePhoto ? `${host}${profilePhoto}` : "",
+      }}
       onLogout={() => handleLogout()}
       roles={roles ?? []}
       role={role}

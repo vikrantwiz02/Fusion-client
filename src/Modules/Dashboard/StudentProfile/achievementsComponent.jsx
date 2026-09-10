@@ -1,18 +1,22 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import {
-  Flex,
-  Input,
-  Divider,
-  Text,
+  Badge,
   Button,
+  Grid,
+  Group,
+  Paper,
   Select,
+  Stack,
+  Text,
   Textarea,
-  Table,
+  TextInput,
 } from "@mantine/core";
 import axios from "axios";
 import { notifications } from "@mantine/notifications";
+import { Plus, Trophy } from "@phosphor-icons/react";
 import { updateProfileDataRoute } from "../../../routes/dashboardRoutes";
+import { EmptyState, SectionCard } from "./profileUi";
 
 function AchievementsComponent({ achievements }) {
   const [achievement, setAchievement] = useState({
@@ -22,12 +26,21 @@ function AchievementsComponent({ achievements }) {
     issuer: "",
     description: "",
   });
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (field, value) => {
     setAchievement((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async () => {
+    if (!achievement.skill.trim()) {
+      notifications.show({
+        message: "Give the achievement a name first.",
+        color: "red",
+      });
+      return;
+    }
+    setSaving(true);
     try {
       await axios.put(
         updateProfileDataRoute,
@@ -52,151 +65,154 @@ function AchievementsComponent({ achievements }) {
         color: "green",
       });
     } catch (error) {
-      alert("Error adding achievement");
+      notifications.show({
+        message: "Error adding achievement.",
+        color: "red",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <Flex
-      w={{ base: "100%", sm: "60%" }}
-      p="md"
-      h="auto"
-      style={{ border: "1px solid lightgray", borderRadius: "5px" }}
-      direction="column"
-      justify="space-evenly"
-    >
-      <Flex
-        w="100%"
-        p="md"
-        direction="column"
-        style={{ border: "1px solid lightgray", borderRadius: "5px" }}
+    <Stack gap="md" w="100%">
+      <SectionCard
+        icon={<Plus size={18} />}
+        title="Add an Achievement"
+        description="Awards, certifications and recognitions"
       >
-        <Text fw={500} size="1.2rem">
-          Achievements
-        </Text>
-        <Divider my="md" />
-        <Flex w="100%" direction="column">
-          <Text fw={500} mb="md">
-            Add a new achievement
-          </Text>
-          <Flex align="center" justify="space-between" mb="md">
-            <Input.Wrapper label="Achievement name" w="65%">
-              <Input
-                size="md"
-                mt="xs"
-                value={achievement.skill}
-                onChange={(e) => handleChange("skill", e.target.value)}
-              />
-            </Input.Wrapper>
-            <Input.Wrapper label="Type" w="30%">
-              <Select
-                size="md"
-                mt="xs"
-                data={["Educational", "Other"]}
-                value={achievement.type}
-                onChange={(value) => handleChange("type", value)}
-              />
-            </Input.Wrapper>
-          </Flex>
-          <Flex align="center" justify="space-between" mb="md">
-            <Input.Wrapper label="Date" w={{ base: "45%", sm: "30%" }}>
-              <Input
-                type="date"
-                size="md"
-                mt="xs"
-                value={achievement.date}
-                onChange={(e) => handleChange("date", e.target.value)}
-              />
-            </Input.Wrapper>
-            <Input.Wrapper label="Issuer" w={{ base: "50%", sm: "65%" }}>
-              <Input
-                size="md"
-                mt="xs"
-                value={achievement.issuer}
-                onChange={(e) => handleChange("issuer", e.target.value)}
-              />
-            </Input.Wrapper>
-          </Flex>
-          <Flex
-            align="center"
-            gap={{ base: "md", sm: "lg" }}
-            justify="space-between"
-            direction={{ base: "column" }}
-          >
-            <Input.Wrapper label="Description" w={{ base: "100%" }}>
-              <Textarea
-                autosize
-                minRows={5}
-                resize="vertical"
-                mt="xs"
-                value={achievement.description}
-                onChange={(e) => handleChange("description", e.target.value)}
-              />
-            </Input.Wrapper>
-            <Button
-              size="md"
-              style={{
-                base: { alignSelf: "flex-center" },
-                sm: { alignSelf: "flex-end" },
-              }}
-              onClick={handleSubmit}
-            >
-              Submit
-            </Button>
-          </Flex>
-        </Flex>
-        <Divider my="md" />
-        <Text fw={500} mb="md">
-          Your Achievements
-        </Text>
-        <Divider my="md" />
-        {achievements.length > 0 ? (
-          <Table striped highlightOnHover withTableBorder withColumnBorders>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th style={{ textAlign: "center" }}>Type</Table.Th>
-                <Table.Th style={{ textAlign: "center" }}>Date</Table.Th>
-                <Table.Th style={{ textAlign: "center" }}>Issuer</Table.Th>
-                <Table.Th style={{ textAlign: "center" }}>Description</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {achievements.map((ach, index) => (
-                <Table.Tr key={index}>
-                  <Table.Td style={{ textAlign: "center" }}>
-                    {ach.achievement_type}
-                  </Table.Td>
-                  <Table.Td style={{ textAlign: "center" }}>
-                    {ach.date_earned}
-                  </Table.Td>
-                  <Table.Td style={{ textAlign: "center" }}>
-                    {ach.issuer}
-                  </Table.Td>
-                  <Table.Td style={{ textAlign: "center" }}>
-                    {ach.description}
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+        <Grid gutter="md">
+          <Grid.Col span={{ base: 12, sm: 8 }}>
+            <TextInput
+              label="Achievement name"
+              placeholder="e.g. Smart India Hackathon Finalist"
+              value={achievement.skill}
+              onChange={(event) =>
+                handleChange("skill", event.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 4 }}>
+            <Select
+              label="Type"
+              data={["Educational", "Other"]}
+              value={achievement.type}
+              onChange={(value) => handleChange("type", value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 4 }}>
+            <TextInput
+              label="Date"
+              type="date"
+              value={achievement.date}
+              onChange={(event) =>
+                handleChange("date", event.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 8 }}>
+            <TextInput
+              label="Issuer"
+              placeholder="Who awarded it"
+              value={achievement.issuer}
+              onChange={(event) =>
+                handleChange("issuer", event.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Textarea
+              label="Description"
+              autosize
+              minRows={3}
+              value={achievement.description}
+              onChange={(event) =>
+                handleChange("description", event.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Group justify="flex-end">
+              <Button
+                onClick={handleSubmit}
+                loading={saving}
+                leftSection={<Plus size={16} />}
+              >
+                Add achievement
+              </Button>
+            </Group>
+          </Grid.Col>
+        </Grid>
+      </SectionCard>
+
+      <SectionCard
+        icon={<Trophy size={18} />}
+        title="Your Achievements"
+        action={
+          achievements?.length ? (
+            <Badge variant="light" radius="sm">
+              {achievements.length}
+            </Badge>
+          ) : null
+        }
+      >
+        {achievements?.length ? (
+          <Stack gap="sm">
+            {achievements.map((ach) => (
+              <Paper
+                key={`${ach.issuer}-${ach.date_earned}-${ach.description}`}
+                withBorder
+                radius="md"
+                p="md"
+              >
+                <Group justify="space-between" align="flex-start" gap="sm">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text fw={600} size="sm">
+                      {ach.issuer || "—"}
+                    </Text>
+                    {ach.description && (
+                      <Text size="sm" c="dimmed" mt={4}>
+                        {ach.description}
+                      </Text>
+                    )}
+                  </div>
+                  <Stack gap={6} align="flex-end">
+                    <Badge variant="light" radius="sm">
+                      {ach.achievement_type || "Other"}
+                    </Badge>
+                    {ach.date_earned && (
+                      <Text size="xs" c="dimmed">
+                        {ach.date_earned}
+                      </Text>
+                    )}
+                  </Stack>
+                </Group>
+              </Paper>
+            ))}
+          </Stack>
         ) : (
-          <Text>No achievements added yet.</Text>
+          <EmptyState
+            icon={<Trophy size={26} />}
+            message="No achievements added yet"
+            hint="Add awards, certifications and competition results."
+          />
         )}
-      </Flex>
-    </Flex>
+      </SectionCard>
+    </Stack>
   );
 }
 
 AchievementsComponent.propTypes = {
   achievements: PropTypes.arrayOf(
     PropTypes.shape({
-      skill: PropTypes.string,
-      type: PropTypes.string,
-      date: PropTypes.string,
+      achievement_type: PropTypes.string,
+      date_earned: PropTypes.string,
       issuer: PropTypes.string,
       description: PropTypes.string,
     }),
   ),
 };
+
+AchievementsComponent.defaultProps = { achievements: [] };
 
 export default AchievementsComponent;

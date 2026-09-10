@@ -1,19 +1,37 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import {
-  Flex,
-  Input,
-  Tabs,
-  Text,
+  Anchor,
+  Badge,
   Button,
+  Grid,
+  Group,
+  Paper,
+  SegmentedControl,
   Select,
-  Table,
+  Stack,
+  Text,
   Textarea,
-  Divider,
+  TextInput,
 } from "@mantine/core";
-import axios from "axios";
 import { notifications } from "@mantine/notifications";
+import axios from "axios";
+import {
+  ArrowSquareOut,
+  Briefcase,
+  Plus,
+  Stack as StackIcon,
+} from "@phosphor-icons/react";
 import { updateProfileDataRoute } from "../../../routes/dashboardRoutes";
+import { EmptyState, SectionCard } from "./profileUi";
+
+const authHeader = () => ({
+  Authorization: `Token ${localStorage.getItem("authToken")}`,
+});
+
+const period = (from, to) => [from, to].filter(Boolean).join("  →  ") || "—";
+
+const statusColor = (status) => (status === "COMPLETED" ? "teal" : "blue");
 
 function InternshipsTab({ internshipsData }) {
   const [formData, setFormData] = useState({
@@ -25,24 +43,28 @@ function InternshipsTab({ internshipsData }) {
     end_date: "",
     description: "",
   });
+  const [saving, setSaving] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleChange = (field, value) =>
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
+    if (!formData.organization.trim()) {
+      notifications.show({
+        message: "Enter the organization first.",
+        color: "red",
+      });
+      return;
+    }
+    setSaving(true);
     try {
       await axios.put(
         updateProfileDataRoute,
         { experiencesubmit: formData },
-        {
-          headers: {
-            Authorization: `Token ${localStorage.getItem("authToken")}`,
-          },
-        },
+        { headers: authHeader() },
       );
       notifications.show({
-        message: "Internship Added Successfully!",
+        message: "Experience Added Successfully!",
         color: "green",
       });
       setFormData({
@@ -59,145 +81,147 @@ function InternshipsTab({ internshipsData }) {
         message: "Failed! Please try later.",
         color: "red",
       });
-      console.error("Error updating internships:", error);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <Flex
-      w="100%"
-      p="md"
-      direction="column"
-      style={{ border: "1px solid lightgray", borderRadius: "5px" }}
-    >
-      <Text fw={500} mb="md">
-        Add a New Internship
-      </Text>
-      <Flex align="center" justify="space-between" mb="md">
-        <Input.Wrapper label="Organization Name" w="65%">
-          <Input
-            name="organization"
-            value={formData.organization}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-        <Input.Wrapper label="Location" w="30%">
-          <Input
-            name="location"
-            value={formData.location}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-      </Flex>
-      <Flex align="center" justify="space-between" mb="md">
-        <Input.Wrapper label="Job Profile Title" w="65%">
-          <Input
-            name="job_title"
-            value={formData.job_title}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-        <Input.Wrapper label="Status" w="30%">
-          <Select
-            name="status"
-            data={["ONGOING", "COMPLETED"]}
-            value={formData.status}
-            onChange={(value) => setFormData({ ...formData, status: value })}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-      </Flex>
-      <Flex align="center" justify="space-between" mb="md">
-        <Input.Wrapper label="Start Date" w="48%">
-          <Input
-            name="start_date"
-            type="date"
-            value={formData.start_date}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-        <Input.Wrapper label="End Date" w="48%">
-          <Input
-            name="end_date"
-            type="date"
-            value={formData.end_date}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-      </Flex>
-      <Input.Wrapper label="Description" w="100%">
-        <Textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          autosize
-          minRows={5}
-          resize="vertical"
-          mt="xs"
-        />
-      </Input.Wrapper>
-      <Button onClick={handleSubmit} size="md" mt="lg">
-        Submit
-      </Button>
-      <Divider my="md" />
-      <Text fw={500} mb="md">
-        Your Experience
-      </Text>
+    <>
+      <SectionCard
+        icon={<Plus size={18} />}
+        title="Add an Experience"
+        description="Internships and jobs"
+      >
+        <Grid gutter="md">
+          <Grid.Col span={{ base: 12, sm: 8 }}>
+            <TextInput
+              label="Organization Name"
+              value={formData.organization}
+              onChange={(e) =>
+                handleChange("organization", e.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 4 }}>
+            <TextInput
+              label="Location"
+              value={formData.location}
+              onChange={(e) => handleChange("location", e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 8 }}>
+            <TextInput
+              label="Job Profile Title"
+              value={formData.job_title}
+              onChange={(e) => handleChange("job_title", e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 4 }}>
+            <Select
+              label="Status"
+              data={["ONGOING", "COMPLETED"]}
+              value={formData.status}
+              onChange={(value) => handleChange("status", value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="Start Date"
+              type="date"
+              value={formData.start_date}
+              onChange={(e) =>
+                handleChange("start_date", e.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="End Date"
+              type="date"
+              value={formData.end_date}
+              onChange={(e) => handleChange("end_date", e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Textarea
+              label="Description"
+              autosize
+              minRows={3}
+              value={formData.description}
+              onChange={(e) =>
+                handleChange("description", e.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Group justify="flex-end">
+              <Button
+                onClick={handleSubmit}
+                loading={saving}
+                leftSection={<Plus size={16} />}
+              >
+                Add experience
+              </Button>
+            </Group>
+          </Grid.Col>
+        </Grid>
+      </SectionCard>
 
-      {internshipsData.length > 0 ? (
-        <Table striped highlightOnHover withTableBorder withColumnBorders>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Organization</Table.Th>
-              <Table.Th>Location</Table.Th>
-              <Table.Th>Job Title</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th>Start Date</Table.Th>
-              <Table.Th>End Date</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {internshipsData.map((internship, index) => (
-              <Table.Tr key={index}>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {internship.organization}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {internship.location}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {internship.job_title}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {internship.status}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {internship.sdate}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {internship.edate}
-                </Table.Td>
-              </Table.Tr>
+      <SectionCard
+        icon={<Briefcase size={18} />}
+        title="Your Experience"
+        action={
+          internshipsData?.length ? (
+            <Badge variant="light" radius="sm">
+              {internshipsData.length}
+            </Badge>
+          ) : null
+        }
+      >
+        {internshipsData?.length ? (
+          <Stack gap="sm">
+            {internshipsData.map((item) => (
+              <Paper
+                key={`${item.organization}-${item.job_title}-${item.sdate}`}
+                withBorder
+                radius="md"
+                p="md"
+              >
+                <Group justify="space-between" align="flex-start" gap="sm">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text fw={600} size="sm">
+                      {item.job_title || "—"}
+                    </Text>
+                    <Text size="sm" c="dimmed" mt={2}>
+                      {item.organization || "—"}
+                      {item.location ? ` · ${item.location}` : ""}
+                    </Text>
+                    <Text size="xs" c="dimmed" mt={6}>
+                      {period(item.sdate, item.edate)}
+                    </Text>
+                  </div>
+                  {item.status && (
+                    <Badge
+                      variant="light"
+                      radius="sm"
+                      color={statusColor(item.status)}
+                    >
+                      {item.status}
+                    </Badge>
+                  )}
+                </Group>
+              </Paper>
             ))}
-          </Table.Tbody>
-        </Table>
-      ) : (
-        <Text mt="lg" style={{ textAlign: "center" }}>
-          No data found!
-        </Text>
-      )}
-    </Flex>
+          </Stack>
+        ) : (
+          <EmptyState
+            icon={<Briefcase size={26} />}
+            message="No experience added yet"
+          />
+        )}
+      </SectionCard>
+    </>
   );
 }
 
@@ -210,21 +234,25 @@ function ProjectsTab({ projectsData }) {
     end_date: "",
     description: "",
   });
+  const [saving, setSaving] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleChange = (field, value) =>
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async () => {
+    if (!formData.project_name.trim()) {
+      notifications.show({
+        message: "Enter the project name first.",
+        color: "red",
+      });
+      return;
+    }
+    setSaving(true);
     try {
       await axios.put(
         updateProfileDataRoute,
         { projectsubmit: formData },
-        {
-          headers: {
-            Authorization: `Token ${localStorage.getItem("authToken")}`,
-          },
-        },
+        { headers: authHeader() },
       );
       notifications.show({
         message: "Project Added Successfully!",
@@ -243,220 +271,215 @@ function ProjectsTab({ projectsData }) {
         message: "Failed! Please try later.",
         color: "red",
       });
-      console.error("Error updating projects:", error);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <Flex
-      w="100%"
-      p="md"
-      direction="column"
-      style={{ border: "1px solid lightgray", borderRadius: "5px" }}
-    >
-      <Text fw={500} mb="md">
-        Add a New Project
-      </Text>
-      <Flex align="center" justify="space-between" mb="md">
-        <Input.Wrapper label="Project Name" w="65%">
-          <Input
-            name="project_name"
-            value={formData.project_name}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-        <Input.Wrapper label="Status" w="30%">
-          <Select
-            name="status"
-            data={["ONGOING", "COMPLETED"]}
-            value={formData.status}
-            onChange={(value) => setFormData({ ...formData, status: value })}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-      </Flex>
-      <Input.Wrapper label="Project Link" w="100%" mb="md">
-        <Input
-          name="project_link"
-          value={formData.project_link}
-          onChange={handleChange}
-          size="md"
-          mt="xs"
-        />
-      </Input.Wrapper>
-      <Flex align="center" justify="space-between" mb="md">
-        <Input.Wrapper label="Start Date" w="48%">
-          <Input
-            name="start_date"
-            type="date"
-            value={formData.start_date}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-        <Input.Wrapper label="End Date" w="48%">
-          <Input
-            name="end_date"
-            type="date"
-            value={formData.end_date}
-            onChange={handleChange}
-            size="md"
-            mt="xs"
-          />
-        </Input.Wrapper>
-      </Flex>
-      <Input.Wrapper label="Description" w="100%" mb="md">
-        <Textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          autosize
-          minRows={5}
-          resize="vertical"
-          mt="xs"
-        />
-      </Input.Wrapper>
-      <Button onClick={handleSubmit} size="md" mt="lg">
-        Submit
-      </Button>
-      <Divider my="md" />
-      <Text fw={500} mb="md">
-        Your Projects
-      </Text>
-      {projectsData.length > 0 ? (
-        <Table striped highlightOnHover withTableBorder withColumnBorders>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Project Name</Table.Th>
-              <Table.Th>Status</Table.Th>
-              <Table.Th>Project Link</Table.Th>
-              <Table.Th>Start Date</Table.Th>
-              <Table.Th>End Date</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {projectsData.map((project, index) => (
-              <Table.Tr key={index}>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {project.project_name}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {project.status}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>
-                  <a
-                    href={project.project_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {project.project_link}
-                  </a>
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {project.start_date}
-                </Table.Td>
-                <Table.Td style={{ textAlign: "center" }}>
-                  {project.end_date}
-                </Table.Td>
-              </Table.Tr>
+    <>
+      <SectionCard
+        icon={<Plus size={18} />}
+        title="Add a Project"
+        description="Personal, course and club projects"
+      >
+        <Grid gutter="md">
+          <Grid.Col span={{ base: 12, sm: 8 }}>
+            <TextInput
+              label="Project Name"
+              value={formData.project_name}
+              onChange={(e) =>
+                handleChange("project_name", e.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 4 }}>
+            <Select
+              label="Status"
+              data={["ONGOING", "COMPLETED"]}
+              value={formData.status}
+              onChange={(value) => handleChange("status", value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <TextInput
+              label="Project Link"
+              placeholder="https://github.com/..."
+              value={formData.project_link}
+              onChange={(e) =>
+                handleChange("project_link", e.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="Start Date"
+              type="date"
+              value={formData.start_date}
+              onChange={(e) =>
+                handleChange("start_date", e.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="End Date"
+              type="date"
+              value={formData.end_date}
+              onChange={(e) => handleChange("end_date", e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Textarea
+              label="Description"
+              autosize
+              minRows={3}
+              value={formData.description}
+              onChange={(e) =>
+                handleChange("description", e.currentTarget.value)
+              }
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Group justify="flex-end">
+              <Button
+                onClick={handleSubmit}
+                loading={saving}
+                leftSection={<Plus size={16} />}
+              >
+                Add project
+              </Button>
+            </Group>
+          </Grid.Col>
+        </Grid>
+      </SectionCard>
+
+      <SectionCard
+        icon={<StackIcon size={18} />}
+        title="Your Projects"
+        action={
+          projectsData?.length ? (
+            <Badge variant="light" radius="sm">
+              {projectsData.length}
+            </Badge>
+          ) : null
+        }
+      >
+        {projectsData?.length ? (
+          <Stack gap="sm">
+            {projectsData.map((project) => (
+              <Paper
+                key={`${project.project_name}-${project.start_date || project.sdate}`}
+                withBorder
+                radius="md"
+                p="md"
+              >
+                <Group justify="space-between" align="flex-start" gap="sm">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text fw={600} size="sm">
+                      {project.project_name || "—"}
+                    </Text>
+                    {project.project_link && (
+                      <Anchor
+                        href={project.project_link}
+                        target="_blank"
+                        rel="noreferrer"
+                        size="sm"
+                      >
+                        <Group gap={4} wrap="nowrap">
+                          <ArrowSquareOut size={13} />
+                          <Text span size="sm" truncate>
+                            {project.project_link}
+                          </Text>
+                        </Group>
+                      </Anchor>
+                    )}
+                    <Text size="xs" c="dimmed" mt={6}>
+                      {period(
+                        project.sdate || project.start_date,
+                        project.edate || project.end_date,
+                      )}
+                    </Text>
+                  </div>
+                  {project.status && (
+                    <Badge
+                      variant="light"
+                      radius="sm"
+                      color={statusColor(project.status)}
+                    >
+                      {project.status}
+                    </Badge>
+                  )}
+                </Group>
+              </Paper>
             ))}
-          </Table.Tbody>
-        </Table>
-      ) : (
-        <Text mt="lg" style={{ textAlign: "center" }}>
-          No data found!
-        </Text>
-      )}
-    </Flex>
+          </Stack>
+        ) : (
+          <EmptyState
+            icon={<StackIcon size={26} />}
+            message="No projects added yet"
+          />
+        )}
+      </SectionCard>
+    </>
   );
 }
 
 export default function WorkExperienceComponent({ experience, project }) {
-  return (
-    <Flex
-      w={{ base: "100%", sm: "60%" }}
-      p="md"
-      h="auto"
-      style={{ border: "1px solid lightgray", borderRadius: "5px" }}
-      direction="column"
-      justify="space-evenly"
-    >
-      <Tabs defaultValue="internships">
-        <Tabs.List mb="sm">
-          <Tabs.Tab value="internships">
-            <Text fw={500} size="1.2rem">
-              Internships
-            </Text>
-          </Tabs.Tab>
-          <Tabs.Tab value="projects">
-            <Text fw={500} size="1.2rem">
-              Projects
-            </Text>
-          </Tabs.Tab>
-        </Tabs.List>
+  const [view, setView] = useState("experience");
 
-        <Tabs.Panel value="internships">
-          <InternshipsTab internshipsData={experience} />
-        </Tabs.Panel>
-        <Tabs.Panel value="projects">
-          <ProjectsTab projectsData={project} />
-        </Tabs.Panel>
-      </Tabs>
-    </Flex>
+  return (
+    <Stack gap="md" w="100%">
+      <SegmentedControl
+        value={view}
+        onChange={setView}
+        radius="md"
+        data={[
+          { value: "experience", label: "Work Experience" },
+          { value: "projects", label: "Projects" },
+        ]}
+      />
+      {view === "experience" ? (
+        <InternshipsTab internshipsData={experience} />
+      ) : (
+        <ProjectsTab projectsData={project} />
+      )}
+    </Stack>
   );
 }
 
+const EXPERIENCE_SHAPE = PropTypes.arrayOf(
+  PropTypes.shape({
+    organization: PropTypes.string,
+    location: PropTypes.string,
+    job_title: PropTypes.string,
+    status: PropTypes.string,
+    sdate: PropTypes.string,
+    edate: PropTypes.string,
+  }),
+);
+
+const PROJECT_SHAPE = PropTypes.arrayOf(
+  PropTypes.shape({
+    project_name: PropTypes.string,
+    status: PropTypes.string,
+    project_link: PropTypes.string,
+    sdate: PropTypes.string,
+    edate: PropTypes.string,
+    start_date: PropTypes.string,
+    end_date: PropTypes.string,
+  }),
+);
+
 WorkExperienceComponent.propTypes = {
-  experience: PropTypes.arrayOf(
-    PropTypes.shape({
-      organization: PropTypes.string,
-      location: PropTypes.string,
-      job_title: PropTypes.string,
-      status: PropTypes.string,
-      start_date: PropTypes.string,
-      end_date: PropTypes.string,
-      description: PropTypes.string,
-    }),
-  ).isRequired,
-  project: PropTypes.arrayOf(
-    PropTypes.shape({
-      project_name: PropTypes.string,
-      status: PropTypes.string,
-      project_link: PropTypes.string,
-      start_date: PropTypes.string,
-      end_date: PropTypes.string,
-      description: PropTypes.string,
-    }),
-  ).isRequired,
+  experience: EXPERIENCE_SHAPE,
+  project: PROJECT_SHAPE,
 };
 
-InternshipsTab.propTypes = {
-  internshipsData: PropTypes.arrayOf(
-    PropTypes.shape({
-      organization: PropTypes.string,
-      location: PropTypes.string,
-      job_title: PropTypes.string,
-      status: PropTypes.string,
-      start_date: PropTypes.string,
-      end_date: PropTypes.string,
-      description: PropTypes.string,
-    }),
-  ).isRequired,
-};
+WorkExperienceComponent.defaultProps = { experience: [], project: [] };
 
-ProjectsTab.propTypes = {
-  projectsData: PropTypes.arrayOf(
-    PropTypes.shape({
-      project_name: PropTypes.string,
-      status: PropTypes.string,
-      project_link: PropTypes.string,
-      start_date: PropTypes.string,
-      end_date: PropTypes.string,
-      description: PropTypes.string,
-    }),
-  ).isRequired,
-};
+InternshipsTab.propTypes = { internshipsData: EXPERIENCE_SHAPE };
+InternshipsTab.defaultProps = { internshipsData: [] };
+
+ProjectsTab.propTypes = { projectsData: PROJECT_SHAPE };
+ProjectsTab.defaultProps = { projectsData: [] };
