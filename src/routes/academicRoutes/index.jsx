@@ -14,6 +14,7 @@ export const preCourseRegistrationRoute = `${host}/academic-procedures/api/stu/p
 export const preCourseRegistrationSubmitRoute = `${host}/academic-procedures/api/stu/preregistration/submit/`;
 export const swayamRegistrationRoute = `${host}/academic-procedures/api/stu/swayam_courses/`;
 export const swayamRegistrationSubmitRoute = `${host}/academic-procedures/api/stu/swayam/submit/`;
+export const swayamAvailabilityRoute = `${host}/academic-procedures/api/stu/swayam/availability/`;
 export const swayamReplaceCheckRoute = `${host}/academic-procedures/api/stu/swayam/replace/check/`;
 export const swayamReplaceSlotsRoute = `${host}/academic-procedures/api/stu/swayam/replace/slots/`;
 export const swayamReplaceCoursesRoute = `${host}/academic-procedures/api/stu/swayam/replace/courses/`;

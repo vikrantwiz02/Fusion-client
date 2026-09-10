@@ -360,6 +360,9 @@ export default function SwayamReplace({
     );
   }
 
+  // The course being replaced has to be identified before new ones can be picked.
+  const sourceChosen = Boolean(existingSwayamCourse || selectedSourceCourse);
+
   const formContent = registrationError ? (
     <Alert color="red" mb="md">
       {registrationError}
@@ -427,7 +430,7 @@ export default function SwayamReplace({
       ) : (
         <Alert color="yellow" mb="md" variant="light">
           <strong>Both Slots Required:</strong> You must select two new Swayam
-          courses for this replacement request.
+          courses for this replacement request in this semester.
         </Alert>
       )}
 
@@ -500,9 +503,12 @@ export default function SwayamReplace({
       <FormSection
         title="New Swayam courses"
         hint={
-          singleSlotAllowed
-            ? "Select at least one."
-            : "Both slots are required."
+          // Nothing here can be chosen until the course being replaced is known.
+          !sourceChosen
+            ? "Choose the course to replace first."
+            : singleSlotAllowed
+              ? "Select at least one."
+              : "Both slots are required."
         }
       >
         <FormRow>
@@ -530,9 +536,10 @@ export default function SwayamReplace({
               value={selectedTargetSlot}
               onChange={handleTargetSlotChange}
               disabled={
-                existingSwayamCourse
+                !sourceChosen ||
+                (existingSwayamCourse
                   ? targetSlots.length === 0
-                  : targetSlotsForSelection.length === 0
+                  : targetSlotsForSelection.length === 0)
               }
             />
           </Grid.Col>
@@ -553,7 +560,11 @@ export default function SwayamReplace({
                 }))}
               value={selectedTargetCourse}
               onChange={setSelectedTargetCourse}
-              disabled={!selectedTargetSlot || targetCourses.length === 0}
+              disabled={
+                !sourceChosen ||
+                !selectedTargetSlot ||
+                targetCourses.length === 0
+              }
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, sm: 6 }}>
@@ -580,9 +591,10 @@ export default function SwayamReplace({
               value={selectedTargetSlot2}
               onChange={handleTargetSlotChange2}
               disabled={
-                existingSwayamCourse
+                !sourceChosen ||
+                (existingSwayamCourse
                   ? targetSlots.length === 0
-                  : targetSlotsForSelection2.length === 0
+                  : targetSlotsForSelection2.length === 0)
               }
             />
           </Grid.Col>
@@ -603,7 +615,11 @@ export default function SwayamReplace({
                 }))}
               value={selectedTargetCourse2}
               onChange={setSelectedTargetCourse2}
-              disabled={!selectedTargetSlot2 || targetCourses2.length === 0}
+              disabled={
+                !sourceChosen ||
+                !selectedTargetSlot2 ||
+                targetCourses2.length === 0
+              }
             />
           </Grid.Col>
         </FormRow>

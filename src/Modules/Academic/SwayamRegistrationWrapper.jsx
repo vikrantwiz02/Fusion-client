@@ -1,18 +1,65 @@
-import React, { useState } from "react";
-import { Tabs, Box } from "@mantine/core";
+import React, { useState, useEffect, useCallback } from "react";
+import { Tabs, Box, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import axios from "axios";
 import tabClasses from "../../ui/styles/tabs.module.css";
+import { swayamAvailabilityRoute } from "../../routes/academicRoutes";
 import SwayamExtraCredit from "./SwayamExtraCredit";
 import SwayamReplace from "./SwayamReplace";
 import SwayamYourRequests from "./SwayamYourRequests";
 
 function SwayamRegistrationWrapper() {
   const compact = useMediaQuery("(max-width: 575px)");
-  const [activeMainTab, setActiveMainTab] = useState("replace");
+  const [activeMainTab, setActiveMainTab] = useState("extra");
   const [activeRequestsTab, setActiveRequestsTab] = useState("replace");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [availability, setAvailability] = useState(null);
+
+  const loadAvailability = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const { data } = await axios.get(swayamAvailabilityRoute, {
+        headers: token ? { Authorization: `Token ${token}` } : {},
+      });
+      if (!data?.error) setAvailability(data);
+    } catch {
+      setAvailability(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAvailability();
+  }, [loadAvailability, refreshKey]);
+
+  // The two paths draw on the same Swayam slots, so once one has taken them
+  // the other has nothing left to offer. A replacement needs two.
+  // Only gate when the semester actually has Swayam slots; otherwise let the
+  // panels say why themselves rather than claiming the slots were spent.
+  const gating = Boolean(availability?.applicable);
+  const replaceClosed = gating && !availability.can_replace;
+  const extraClosed = gating && !availability.can_extra_credit;
+  const closedReason = (needed) => {
+    if (!availability) return "";
+    const { free_slots: free, used_extra_credits: extra, used_replace: repl } =
+      availability;
+    const spentOn = extra > 0 ? "extra credits" : "a replacement request";
+    if (free === 0)
+      return `All your Swayam slots are already used${extra || repl ? ` for ${spentOn}` : ""}.`;
+    return `Only ${free} Swayam slot is free, and this needs ${needed}.`;
+  };
+
+  // Never leave the student sitting on a tab that has nothing to offer.
+  useEffect(() => {
+    if (activeMainTab === "extra" && extraClosed) {
+      setActiveMainTab(replaceClosed ? "requests" : "replace");
+    } else if (activeMainTab === "replace" && replaceClosed) {
+      setActiveMainTab(extraClosed ? "requests" : "extra");
+    }
+  }, [activeMainTab, replaceClosed, extraClosed]);
 
   const handleTabChange = (value) => {
+    if (value === "replace" && replaceClosed) return;
+    if (value === "extra" && extraClosed) return;
     setActiveMainTab(value);
     setRefreshKey((prev) => prev + 1);
   };
@@ -56,12 +103,24 @@ function SwayamRegistrationWrapper() {
           }}
         >
           <Tabs.List className={tabClasses.list}>
-            <Tabs.Tab value="replace" className={tabClasses.tab}>
-              Replace
-            </Tabs.Tab>
-            <Tabs.Tab value="extra" className={tabClasses.tab}>
-              {compact ? "Extra" : "Extra Credits"}
-            </Tabs.Tab>
+            <Tooltip label={closedReason(1)} disabled={!extraClosed}>
+              <Tabs.Tab
+                value="extra"
+                className={tabClasses.tab}
+                disabled={extraClosed}
+              >
+                {compact ? "Extra" : "Extra Credits"}
+              </Tabs.Tab>
+            </Tooltip>
+            <Tooltip label={closedReason(2)} disabled={!replaceClosed}>
+              <Tabs.Tab
+                value="replace"
+                className={tabClasses.tab}
+                disabled={replaceClosed}
+              >
+                Replace
+              </Tabs.Tab>
+            </Tooltip>
             <Tabs.Tab value="requests" className={tabClasses.tab}>
               {compact ? "Requests" : "Your Requests"}
             </Tabs.Tab>
