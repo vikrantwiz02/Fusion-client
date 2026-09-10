@@ -309,3 +309,28 @@ describe("label collisions", () => {
     },
   );
 });
+
+describe("department staff", () => {
+  it("sees only Home and Assistantship, whatever modules are enabled", () => {
+    const groups = buildNavGroups({
+      role: "CSE Staff",
+      accessibleModules: {
+        course_registration: true,
+        examinations: true,
+        database: true,
+      },
+    });
+    expect(groups.map((g) => g.section)).toEqual(["Overview", "Scholarship"]);
+    expect(groups[1].items.map((i) => i.label)).toEqual(["Assistantship"]);
+    expect(groups[1].items[0].to).toBe("/scholarship/assistantship");
+  });
+
+  it("does not show Assistantship to anyone else", () => {
+    const groups = buildNavGroups({
+      role: "acadadmin",
+      accessibleModules: { database: true },
+    });
+    const labels = groups.flatMap((g) => g.items.map((i) => i.label));
+    expect(labels).not.toContain("Assistantship");
+  });
+});
