@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 
 import { ModulePage } from "../../ui/components/ModulePage";
 import ViewDatabase from "./ViewDatabase.jsx";
+import ReportPage from "./ReportPage.jsx";
 
 export default function Database() {
   const userRole = useSelector((state) => state.user.role);
@@ -17,6 +18,14 @@ export default function Database() {
         element={
           <ModulePage title="Database">
             <ViewDatabase />
+          </ModulePage>
+        }
+      />
+      <Route
+        path="view/:reportId"
+        element={
+          <ModulePage title="Database">
+            <ReportPage />
           </ModulePage>
         }
       />
