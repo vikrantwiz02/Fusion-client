@@ -27,6 +27,14 @@ export const FACULTY_ROLES = [
   "Assistant Professor",
 ];
 export const STUDENT_ROLES = ["student"];
+
+// One per discipline, e.g. "CSE Staff". They get the assistantship sheet and
+// nothing else.
+export const DEPARTMENT_STAFF_SUFFIX = " Staff";
+
+export function isDepartmentStaff(role) {
+  return Boolean(role) && role.endsWith(DEPARTMENT_STAFF_SUFFIX);
+}
 export const DEAN_ROLES = ["Dean Academic"];
 export const DIRECTOR_ROLES = ["Director"];
 export const HOD_ROLES = ["HOD*"];

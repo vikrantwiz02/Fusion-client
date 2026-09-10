@@ -23,6 +23,7 @@ import InactivityHandler from "./helper/inactivityhandler";
 import ProfileCompletionModal from "./components/ProfileCompletionModal";
 import Examination from "./Modules/Examination/examination";
 import Database from "./Modules/Database/database";
+import AssistantshipPage from "./Modules/Scholarship/AssistantshipPage";
 import ProgrammeCurriculumRoutes from "./Modules/Program_curriculum/programmCurriculum";
 import Certificates from "./Modules/Certificates";
 import NotFoundPage from "./components/NotFoundPage";
@@ -186,6 +187,10 @@ export default function App() {
             <Route path="/examination/*" element={<Examination />} />
             <Route path="/certificates/*" element={<Certificates />} />
             <Route path="/database/*" element={<Database />} />
+            <Route
+              path="/scholarship/assistantship"
+              element={<AssistantshipPage />}
+            />
           </Route>
           <Route path="/accounts/login" element={<LoginPage />} />
           <Route

@@ -26,6 +26,7 @@ import SkillsTechComponent from "./skillsComponent";
 import AchievementsComponent from "./achievementsComponent";
 import WorkExperienceComponent from "./workExperienceComponent";
 import EducationCoursesComponent from "./educationCoursesComponent";
+import BankDetailsComponent from "./bankDetailsComponent";
 import { getProfileDataRoute } from "../../../routes/dashboardRoutes";
 import {
   host,
@@ -38,7 +39,7 @@ const PHOTO_MAX_KB = 200;
 
 function InfoCard({ data, photo, onPhotoChange, width }) {
   const primaryHolder = data.current?.[0];
-  const isStudent = data.profile?.user_type === 'student';
+  const isStudent = data.profile?.user_type === "student";
   const [uploading, setUploading] = useState(false);
 
   const upload = (file) => {
@@ -221,9 +222,14 @@ function Profile() {
       }
     : null;
 
+  // Only PG and PhD students are paid a stipend, so only they are asked for
+  // an account.
+  const showBankDetails = Boolean(record?.wants_bank_details);
+
   const tabItems = isStudent
     ? [
         { title: "Profile" },
+        ...(showBankDetails ? [{ title: "Bank Details" }] : []),
         { title: "Skills & Technologies" },
         { title: "Education & Courses" },
         { title: "Work Experience" },
@@ -239,6 +245,15 @@ function Profile() {
           record={record}
           onRecordChange={setRecord}
         />,
+        ...(showBankDetails
+          ? [
+              <BankDetailsComponent
+                key="bank"
+                record={record}
+                onSaved={setRecord}
+              />,
+            ]
+          : []),
         <SkillsTechComponent key="skills" data={profileData?.skills} />,
         <EducationCoursesComponent
           key="education"
@@ -250,7 +265,10 @@ function Profile() {
           experience={profileData?.experience ?? []}
           project={profileData?.project ?? []}
         />,
-        <AchievementsComponent key="achievements" achievements={profileData?.achievement} />,
+        <AchievementsComponent
+          key="achievements"
+          achievements={profileData?.achievement}
+        />,
       ]
     : [<ProfileComponent key="profile" data={profileData} />];
 
@@ -308,6 +326,7 @@ InfoCard.propTypes = {
       }),
     ),
     profile: PropTypes.shape({
+      user_type: PropTypes.string,
       department: PropTypes.shape({
         name: PropTypes.string,
       }),

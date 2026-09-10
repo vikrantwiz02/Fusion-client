@@ -16,7 +16,7 @@ import {
   CERTIFICATES_BASE,
   CERTIFICATE_PAGES,
 } from "../../Modules/Certificates/pages";
-import { pagesForRole, STUDENT_ROLES } from "./roles";
+import { isDepartmentStaff, pagesForRole, STUDENT_ROLES } from "./roles";
 
 const GROUP_ICONS = {
   Registration: "ClipboardText",
@@ -162,6 +162,22 @@ export function buildNavGroups({
       ],
     },
   ];
+
+  // Department staff keep a single screen; module access does not widen it.
+  if (isDepartmentStaff(role)) {
+    groups.push({
+      section: "Scholarship",
+      items: [
+        {
+          code: "assistantship",
+          label: "Assistantship",
+          icon: "Bank",
+          to: "/scholarship/assistantship",
+        },
+      ],
+    });
+    return groups;
+  }
 
   sectionsFor(role).forEach(({ id, section, base, pages }) => {
     if (!accessibleModules[id]) return;
