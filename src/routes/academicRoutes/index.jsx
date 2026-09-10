@@ -149,7 +149,7 @@ export const sectionStudentsRoute = `${host}/aims/api/section/students/`;
 export const assignSectionRoute = `${host}/aims/api/section/assign/`;
 export const sectionsInUseRoute = `${host}/aims/api/section/in-use/`;
 
-export const courseRegistrationReceiptRoute = `${host}/academic-procedures/course_reg_receipt/`;
+export const courseRegistrationReceiptRoute = `${host}/academic-procedures/api/course_reg_receipt/`;
 
 // ============================================================================
 // PhD-SPECIFIC ROUTES (Added for PhD student management)
